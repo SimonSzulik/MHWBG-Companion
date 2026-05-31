@@ -19,8 +19,19 @@ live synchronisiert über **Supabase**.
 
 ## Status
 
-🚧 **Verbindungs-Gerüst** — minimales lauffähiges Projekt mit Supabase-Anbindung
-und Verbindungs-Test-Screen. Feature-Scaffold (Navigation, DB-Schema, Module) folgt.
+🟢 **MVP (local-first)** — voll nutzbare PWA, läuft offline am Spieltisch:
+
+- **Onboarding** (Hunter anlegen → Waffe wählen)
+- **Camp-Hub** mit Status-Kacheln + Bottom-Tab-Navigation
+- **Jäger**: Charakterbogen, Gear ausrüsten, abgeleitete Werte/Skills
+- **Inventar**: Material/Teile/Items zählen + Zenny
+- **Forge**: waffen-gelocktes Crafting (zieht Material/Zenny ab)
+- **Kampagne**: Tag-Tracker + Hunt-Checkliste
+- **Referenz**: Monster + Statuseffekte
+
+Daten liegen lokal (localStorage). **Cloud-Sync** (Supabase, `supabase/schema.sql`)
+ist vorbereitet und wird als nächster Layer angebunden. Spieldaten in
+`src/data/wildspireWaste.ts` sind vorläufig (warten auf Regelheft-OCR).
 
 ## Setup (lokal)
 
