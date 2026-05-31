@@ -7,6 +7,7 @@ import type {
   GearSlot,
   MaterialStash,
 } from "../domain/types";
+import { MAX_QUEST_COMPLETIONS } from "../data/quests";
 import { gameData } from "../data/gameData";
 import { canCraftGear } from "../domain/catalog";
 
@@ -41,28 +42,69 @@ function migrateMaterials(materials: MaterialStash): MaterialStash {
   return next;
 }
 
-const PERSIST_KEY = "mhwbg-campaign-v3";
-const LEGACY_KEY = "mhwbg-campaign-v2";
+/** Legacy save shape before v4 (leaderId + questCompletions). */
+type LegacyCampaign = Omit<Campaign, "leaderId" | "questCompletions"> & {
+  leaderId?: string;
+  questCompletions?: Record<string, number>;
+  huntsCompleted?: Record<string, boolean>;
+};
+
+function migrateCampaign(raw: LegacyCampaign): Campaign {
+  const questCompletions: Record<string, number> = {
+    ...(raw.questCompletions ?? {}),
+  };
+  if (raw.huntsCompleted) {
+    for (const [id, done] of Object.entries(raw.huntsCompleted)) {
+      if (questCompletions[id] == null) {
+        questCompletions[id] = done ? 1 : 0;
+      }
+    }
+  }
+  const { huntsCompleted: _removed, ...rest } = raw;
+  return {
+    ...rest,
+    materials: migrateMaterials(rest.materials),
+    leaderId: rest.leaderId ?? rest.hunters[0]?.id ?? "",
+    questCompletions,
+  };
+}
+
+const PERSIST_KEY = "mhwbg-campaign-v4";
+const LEGACY_KEYS = ["mhwbg-campaign-v3", "mhwbg-campaign-v2"];
 
 const campaignStorage = createJSONStorage<CampaignState>(() => ({
   getItem: (name) => {
     const current = localStorage.getItem(name);
-    if (current) return current;
-    const legacy = localStorage.getItem(LEGACY_KEY);
-    if (!legacy) return null;
-    try {
-      const parsed = JSON.parse(legacy) as {
-        state?: { campaign?: Campaign | null };
-      };
-      if (parsed.state?.campaign?.materials) {
-        parsed.state.campaign.materials = migrateMaterials(
-          parsed.state.campaign.materials,
-        );
+    if (current) {
+      try {
+        const parsed = JSON.parse(current) as {
+          state?: { campaign?: LegacyCampaign | null };
+        };
+        if (parsed.state?.campaign) {
+          parsed.state.campaign = migrateCampaign(parsed.state.campaign);
+          return JSON.stringify(parsed);
+        }
+      } catch {
+        return current;
       }
-      return JSON.stringify(parsed);
-    } catch {
-      return null;
+      return current;
     }
+    for (const legacyKey of LEGACY_KEYS) {
+      const legacy = localStorage.getItem(legacyKey);
+      if (!legacy) continue;
+      try {
+        const parsed = JSON.parse(legacy) as {
+          state?: { campaign?: LegacyCampaign | null };
+        };
+        if (parsed.state?.campaign) {
+          parsed.state.campaign = migrateCampaign(parsed.state.campaign);
+        }
+        return JSON.stringify(parsed);
+      } catch {
+        continue;
+      }
+    }
+    return null;
   },
   setItem: (name, value) => localStorage.setItem(name, value),
   removeItem: (name) => localStorage.removeItem(name),
@@ -96,7 +138,7 @@ interface CampaignState {
   craftGear: (gearId: string) => { ok: boolean; reason?: string };
 
   setDay: (day: number) => void;
-  toggleHunt: (huntId: string) => void;
+  incrementQuest: (questId: string) => void;
 
   /**
    * Replace the local campaign with state pulled from the cloud. Used by the
@@ -133,12 +175,13 @@ export const useCampaign = create<CampaignState>()(
             box: gameData.box,
             day: 1,
             maxDay: 60,
+            leaderId: newHunter.id,
             hunters: [newHunter],
             zenny: 0,
             materials: {},
             items: { potion: 3 },
             ownedGear: starter ? [starter] : [],
-            huntsCompleted: {},
+            questCompletions: {},
             createdAt: now,
             updatedAt: now,
           },
@@ -292,15 +335,17 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      toggleHunt: (huntId) =>
+      incrementQuest: (questId) =>
         set((s) => {
           if (!s.campaign) return s;
+          const cur = s.campaign.questCompletions[questId] ?? 0;
+          if (cur >= MAX_QUEST_COMPLETIONS) return s;
           return {
             campaign: touch({
               ...s.campaign,
-              huntsCompleted: {
-                ...s.campaign.huntsCompleted,
-                [huntId]: !s.campaign.huntsCompleted[huntId],
+              questCompletions: {
+                ...s.campaign.questCompletions,
+                [questId]: cur + 1,
               },
             }),
           };
@@ -308,13 +353,9 @@ export const useCampaign = create<CampaignState>()(
 
       applyRemoteCampaign: (campaign) =>
         set({
-          campaign: {
-            ...campaign,
-            materials: migrateMaterials(campaign.materials),
-          },
+          campaign: migrateCampaign(campaign as LegacyCampaign),
         }),
     }),
-    // v3: inventory groups (material / other / monster), reDBo0n-aligned ids.
     {
       name: PERSIST_KEY,
       storage: campaignStorage,

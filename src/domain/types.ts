@@ -149,14 +149,16 @@ export interface Campaign {
   /** In-game day counter, e.g. 8 of 60. */
   day: number;
   maxDay: number;
+  /** Hunter id of the campaign creator / party leader. */
+  leaderId: string;
   hunters: Hunter[];
   zenny: number;
   materials: MaterialStash;
   items: ItemStash;
   /** Crafted/owned gear ids (unlocks beyond starting kit). */
   ownedGear: string[];
-  /** Hunt id -> completed. */
-  huntsCompleted: Record<string, boolean>;
+  /** Quest id -> completion count (0–4). */
+  questCompletions: Record<string, number>;
   createdAt: number;
   updatedAt: number;
 }

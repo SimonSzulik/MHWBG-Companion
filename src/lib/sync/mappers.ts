@@ -10,27 +10,43 @@ type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
 type StateRow = Database["public"]["Tables"]["campaign_state"]["Row"];
 type HunterRow = Database["public"]["Tables"]["hunter"]["Row"];
 
+/** Parse hunts_completed jsonb (legacy bool or numeric counts). */
+function parseQuestCompletions(
+  raw: Record<string, boolean | number> | null | undefined,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw) return out;
+  for (const [id, val] of Object.entries(raw)) {
+    if (typeof val === "boolean") out[id] = val ? 1 : 0;
+    else if (typeof val === "number") out[id] = Math.max(0, Math.floor(val));
+  }
+  return out;
+}
+
 /** Build the local Campaign from the three remote pieces. */
 export function rowsToCampaign(
   campaign: CampaignRow,
   state: StateRow | null,
   hunters: HunterRow[],
 ): Campaign {
+  const sortedHunters = hunters
+    .slice()
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map(rowToHunter);
+
   return {
     id: campaign.id,
     name: campaign.name,
     box: campaign.box,
     day: campaign.day,
     maxDay: campaign.max_day,
+    leaderId: campaign.leader_hunter_id ?? sortedHunters[0]?.id ?? "",
     zenny: state?.zenny ?? 0,
     materials: state?.materials ?? {},
     items: state?.items ?? {},
     ownedGear: state?.owned_gear ?? [],
-    huntsCompleted: state?.hunts_completed ?? {},
-    hunters: hunters
-      .slice()
-      .sort((a, b) => a.created_at.localeCompare(b.created_at))
-      .map(rowToHunter),
+    questCompletions: parseQuestCompletions(state?.hunts_completed),
+    hunters: sortedHunters,
     createdAt: Date.parse(campaign.created_at) || Date.now(),
     updatedAt: Date.parse(campaign.updated_at) || Date.now(),
   };
@@ -57,7 +73,7 @@ export function campaignToStateUpdate(
     materials: c.materials,
     items: c.items,
     owned_gear: c.ownedGear,
-    hunts_completed: c.huntsCompleted,
+    hunts_completed: c.questCompletions,
   };
 }
 
@@ -65,7 +81,13 @@ export function campaignToStateUpdate(
 export function campaignToCampaignUpdate(
   c: Campaign,
 ): Database["public"]["Tables"]["campaign"]["Update"] {
-  return { name: c.name, box: c.box, day: c.day, max_day: c.maxDay };
+  return {
+    name: c.name,
+    box: c.box,
+    day: c.day,
+    max_day: c.maxDay,
+    leader_hunter_id: c.leaderId || null,
+  };
 }
 
 export function hunterToInsert(

@@ -34,6 +34,7 @@ create table if not exists public.campaign (
   day         int  not null default 1 check (day >= 1),
   max_day     int  not null default 60 check (max_day >= 1),
   owner_id    uuid not null references auth.users (id) on delete cascade,
+  leader_hunter_id uuid references public.hunter (id) on delete set null,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -74,7 +75,7 @@ create table if not exists public.campaign_state (
   items           jsonb not null default '{}'::jsonb,
   -- crafted/owned gear ids
   owned_gear      jsonb not null default '[]'::jsonb,
-  -- huntId -> bool
+  -- huntId -> completion count (legacy: bool)
   hunts_completed jsonb not null default '{}'::jsonb,
   updated_at      timestamptz not null default now()
 );

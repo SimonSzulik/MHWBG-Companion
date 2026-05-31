@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { useCampaign } from "../store/campaign";
 import { gameData } from "../data/gameData";
-import { craftState } from "../domain/catalog";
+import { catalog, craftState } from "../domain/catalog";
+import { iconUrl } from "../domain/icons";
+import type { GearSlot, Hunter } from "../domain/types";
+
+const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
 
 /**
  * Camp hub (home). Banner with the active hunter + status tiles, then a grid
@@ -19,7 +23,6 @@ export function Camp() {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-4 pb-24 pt-5">
-      {/* Top bar: campaign name + settings */}
       <div className="mb-3 flex items-center justify-between">
         <p className="font-display text-lg text-ink-soft">{campaign.name}</p>
         <Link
@@ -31,35 +34,38 @@ export function Camp() {
         </Link>
       </div>
 
-      {/* Banner */}
       <Link to="/hunters" className="paper-card flex items-center gap-3 p-4 active:translate-y-px">
         <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-2xl">
           🧍
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-display truncate text-2xl leading-tight">
             {hunter?.name ?? "Hunter"}
           </p>
           <p className="truncate text-sm text-ink-soft">
             {hunter?.weaponType} · {campaign.hunters.length} Jäger
           </p>
+          {hunter && <EquippedIconRow hunter={hunter} />}
         </div>
         <span className="ml-auto text-ink-soft">›</span>
       </Link>
 
-      {/* Status tiles */}
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div className="paper-card grid place-items-center py-4 text-center">
-          <p className="font-display text-3xl leading-none">Tag {campaign.day}</p>
-          <p className="text-sm text-ink-soft">von {campaign.maxDay}</p>
+      <Link
+        to="/campaign"
+        className="paper-card mt-3 flex items-center gap-4 p-5 active:translate-y-px"
+      >
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border-[1.5px] border-line-strong bg-paper-2 text-3xl">
+          🏕️
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-xl font-semibold leading-tight">Kampagne</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            Tag {campaign.day} / {campaign.maxDay} · {potions} Tränke
+          </p>
         </div>
-        <div className="paper-card grid place-items-center py-4 text-center">
-          <p className="font-display text-3xl leading-none">{potions}</p>
-          <p className="text-sm text-ink-soft">Tränke</p>
-        </div>
-      </div>
+        <span className="text-xl text-ink-soft">›</span>
+      </Link>
 
-      {/* Drill-in tiles */}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Tile to="/inventory" emoji="🎒" title="Inventar" sub="Material zählen" />
         <Tile
@@ -69,9 +75,37 @@ export function Camp() {
           sub={craftableCount > 0 ? `${craftableCount} baubar` : "Schmiede"}
           highlight={craftableCount > 0}
         />
-        <Tile to="/campaign" emoji="🏕️" title="Kampagne" sub="Quests & Tage" />
         <Tile to="/reference" emoji="📖" title="Referenz" sub="Regeln & Skills" />
       </div>
+    </div>
+  );
+}
+
+function EquippedIconRow({ hunter }: { hunter: Hunter }) {
+  return (
+    <div className="mt-2 flex gap-1.5">
+      {EQUIP_SLOTS.map((slot) => {
+        const gearId = hunter.equipped[slot];
+        const gear = gearId ? catalog.gear(gearId) : undefined;
+        if (gear?.tierIcon) {
+          return (
+            <img
+              key={slot}
+              src={iconUrl(gear.tierIcon)}
+              alt=""
+              className="h-7 w-7 object-contain"
+            />
+          );
+        }
+        return (
+          <span
+            key={slot}
+            className="grid h-7 w-7 place-items-center rounded-md border border-dashed border-line bg-paper-2 text-[9px] text-ink-soft"
+          >
+            {slot === "weapon" ? "⚔" : slot === "head" ? "H" : slot === "chest" ? "M" : "G"}
+          </span>
+        );
+      })}
     </div>
   );
 }

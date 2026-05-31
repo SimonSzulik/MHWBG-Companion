@@ -97,6 +97,12 @@ export async function createCloudCampaign(): Promise<string | null> {
     await supabase
       .from("hunter")
       .insert(local.hunters.map((h) => hunterToInsert(camp.id, h)));
+    if (local.leaderId) {
+      await supabase
+        .from("campaign")
+        .update({ leader_hunter_id: local.leaderId })
+        .eq("id", camp.id);
+    }
   }
 
   await startSync(camp.id);
@@ -203,7 +209,8 @@ function snapshot(c: Campaign): string {
     materials: c.materials,
     items: c.items,
     ownedGear: [...c.ownedGear].sort(),
-    huntsCompleted: c.huntsCompleted,
+    leaderId: c.leaderId,
+    questCompletions: c.questCompletions,
     hunters: c.hunters,
   });
 }

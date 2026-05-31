@@ -15,6 +15,7 @@ export interface Database {
           day: number;
           max_day: number;
           owner_id: string;
+          leader_hunter_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -25,12 +26,14 @@ export interface Database {
           day?: number;
           max_day?: number;
           owner_id: string;
+          leader_hunter_id?: string | null;
         };
         Update: Partial<{
           name: string;
           box: string;
           day: number;
           max_day: number;
+          leader_hunter_id: string | null;
         }>;
         Relationships: [];
       };
@@ -92,7 +95,7 @@ export interface Database {
           materials: Record<string, number>;
           items: Record<string, number>;
           owned_gear: string[];
-          hunts_completed: Record<string, boolean>;
+          hunts_completed: Record<string, number | boolean>;
           updated_at: string;
         };
         Insert: {
@@ -101,14 +104,14 @@ export interface Database {
           materials?: Record<string, number>;
           items?: Record<string, number>;
           owned_gear?: string[];
-          hunts_completed?: Record<string, boolean>;
+          hunts_completed?: Record<string, number | boolean>;
         };
         Update: Partial<{
           zenny: number;
           materials: Record<string, number>;
           items: Record<string, number>;
           owned_gear: string[];
-          hunts_completed: Record<string, boolean>;
+          hunts_completed: Record<string, number | boolean>;
         }>;
         Relationships: [];
       };

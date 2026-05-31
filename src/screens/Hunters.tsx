@@ -3,14 +3,13 @@ import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
 import { gameData } from "../data/gameData";
 import { catalog } from "../domain/catalog";
-import type { GearSlot, Hunter, WeaponType } from "../domain/types";
+import { iconUrl } from "../domain/icons";
+import type { GearDef, GearSlot, Hunter, WeaponType } from "../domain/types";
 
 const ARMOUR_SLOTS: { slot: GearSlot; label: string }[] = [
-  { slot: "head", label: "Kopf" },
-  { slot: "chest", label: "Brust" },
-  { slot: "arms", label: "Arme" },
-  { slot: "waist", label: "Hüfte" },
-  { slot: "legs", label: "Beine" },
+  { slot: "head", label: "Helm" },
+  { slot: "chest", label: "Mail" },
+  { slot: "legs", label: "Greaves" },
 ];
 
 const WEAPON_TYPES: WeaponType[] = [
@@ -35,7 +34,6 @@ export function Hunters() {
 
   return (
     <Screen title="Jäger" subtitle={`${hunters.length} im Team`}>
-      {/* Hunter switcher */}
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
         {hunters.map((h) => (
           <button
@@ -100,6 +98,7 @@ export function Hunters() {
 function HunterSheet({ hunter }: { hunter: Hunter }) {
   const equipGear = useCampaign((s) => s.equipGear);
   const campaign = useCampaign((s) => s.campaign);
+  const [openSlot, setOpenSlot] = useState<GearSlot | null>(null);
   if (!campaign) return null;
 
   const ownedSet = new Set(campaign.ownedGear);
@@ -107,7 +106,6 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
     ? catalog.gear(hunter.equipped.weapon)
     : undefined;
 
-  // Derived: collect effects from equipped pieces + total defense.
   const equippedDefs = Object.values(hunter.equipped)
     .map((id) => (id ? catalog.gear(id) : undefined))
     .filter(Boolean);
@@ -137,24 +135,37 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
         </div>
       </div>
 
-      {/* Weapon slot */}
       <SlotEditor
         label="Waffe"
-        current={weapon?.name}
-        options={ownedFor("weapon").map((g) => ({ id: g.id, name: g.name }))}
-        onSelect={(id) => equipGear(hunter.id, "weapon", id)}
+        slot="weapon"
+        current={weapon}
+        open={openSlot === "weapon"}
+        onToggle={() =>
+          setOpenSlot((s) => (s === "weapon" ? null : "weapon"))
+        }
+        options={ownedFor("weapon")}
+        onSelect={(id) => {
+          equipGear(hunter.id, "weapon", id);
+          setOpenSlot(null);
+        }}
       />
 
-      {/* Armour slots */}
       {ARMOUR_SLOTS.map(({ slot, label }) => {
-        const cur = hunter.equipped[slot];
+        const curId = hunter.equipped[slot];
+        const cur = curId ? catalog.gear(curId) : undefined;
         return (
           <SlotEditor
             key={slot}
             label={label}
-            current={cur ? catalog.gear(cur)?.name : undefined}
-            options={ownedFor(slot).map((g) => ({ id: g.id, name: g.name }))}
-            onSelect={(id) => equipGear(hunter.id, slot, id)}
+            slot={slot}
+            current={cur}
+            open={openSlot === slot}
+            onToggle={() => setOpenSlot((s) => (s === slot ? null : slot))}
+            options={ownedFor(slot)}
+            onSelect={(id) => {
+              equipGear(hunter.id, slot, id);
+              setOpenSlot(null);
+            }}
           />
         );
       })}
@@ -177,38 +188,95 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
 
 function SlotEditor({
   label,
+  slot,
   current,
+  open,
+  onToggle,
   options,
   onSelect,
 }: {
   label: string;
-  current?: string;
-  options: { id: string; name: string }[];
+  slot: GearSlot;
+  current?: GearDef;
+  open: boolean;
+  onToggle: () => void;
+  options: GearDef[];
   onSelect: (id: string | null) => void;
 }) {
   return (
-    <div className="paper-card flex items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0">
-        <p className="text-xs uppercase tracking-wide text-ink-soft">{label}</p>
-        <p className="truncate font-medium">{current ?? "— leer —"}</p>
-      </div>
-      <select
-        value=""
-        onChange={(e) => {
-          const v = e.target.value;
-          if (!v) return; // placeholder
-          onSelect(v === "__clear__" ? null : v);
-        }}
-        className="shrink-0 rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-2 py-1.5 text-sm outline-none"
+    <div className="paper-card overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left active:translate-y-px"
       >
-        <option value="">ändern…</option>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-        {current && <option value="__clear__">— ablegen —</option>}
-      </select>
+        <GearIcon gear={current} slot={slot} />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-wide text-ink-soft">{label}</p>
+          <p className="truncate font-medium">{current?.name ?? "— leer —"}</p>
+        </div>
+        <span
+          className={`shrink-0 text-lg text-ink-soft transition-transform duration-200 ${
+            open ? "rotate-90" : ""
+          }`}
+        >
+          ›
+        </span>
+      </button>
+
+      <div
+        className="grid transition-[grid-template-rows] duration-250 ease-in-out"
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-line px-3 pb-3 pt-2">
+            {options.length === 0 && (
+              <p className="py-2 text-sm text-ink-soft">Noch nichts geschmiedet.</p>
+            )}
+            <div className="flex flex-col gap-1">
+              {options.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => onSelect(g.id)}
+                  className={`flex items-center gap-3 rounded-lg px-2 py-2 text-left active:translate-y-px ${
+                    current?.id === g.id ? "bg-accent-faint ring-1 ring-accent" : "hover:bg-paper-2"
+                  }`}
+                >
+                  <GearIcon gear={g} slot={slot} />
+                  <span className="truncate text-sm font-medium">{g.name}</span>
+                </button>
+              ))}
+            </div>
+            {current && (
+              <button
+                type="button"
+                onClick={() => onSelect(null)}
+                className="mt-2 w-full rounded-lg border-[1.5px] border-dashed border-line-strong py-2 text-sm text-ink-soft active:translate-y-px"
+              >
+                — ablegen —
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function GearIcon({ gear, slot }: { gear?: GearDef; slot: GearSlot }) {
+  if (gear?.tierIcon) {
+    return (
+      <img
+        src={iconUrl(gear.tierIcon)}
+        alt=""
+        className="h-10 w-10 shrink-0 object-contain"
+      />
+    );
+  }
+  return (
+    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border-[1.5px] border-dashed border-line bg-paper-2 text-[10px] text-ink-soft">
+      {slot === "weapon" ? "⚔" : slot === "head" ? "H" : slot === "chest" ? "M" : "G"}
+    </span>
   );
 }
