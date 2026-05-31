@@ -16,7 +16,7 @@ export interface HuntDef {
 }
 
 export const hunts: HuntDef[] = [
-  { id: "h1-jagras", name: "Great Jagras", monsterId: "great-jagras", order: 1, objective: "Zugewiesene Erstuntersuchung." },
+  { id: "h1-jagras", name: "Great Jagras", monsterId: "jagras", order: 1, objective: "Zugewiesene Erstuntersuchung." },
   { id: "h2-kadachi", name: "Tobi-Kadachi", monsterId: "tobi-kadachi", order: 2, objective: "Vorsicht vor Blitz." },
   { id: "h3-anjanath", name: "Anjanath", monsterId: "anjanath", order: 3, objective: "Feuriger Brute Wyvern." },
   { id: "h4-rathalos", name: "Rathalos", monsterId: "rathalos", order: 4, objective: "König der Lüfte." },

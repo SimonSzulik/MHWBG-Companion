@@ -12,7 +12,6 @@ export function Camp() {
   if (!campaign) return null;
 
   const hunter = campaign.hunters[0];
-  const potions = campaign.items["potion"] ?? 0;
   const craftableCount = gameData.gear.filter(
     (g) => craftState(g, campaign) === "craftable",
   ).length;
@@ -54,8 +53,8 @@ export function Camp() {
           <p className="text-sm text-ink-soft">von {campaign.maxDay}</p>
         </div>
         <div className="paper-card grid place-items-center py-4 text-center">
-          <p className="font-display text-3xl leading-none">{potions}</p>
-          <p className="text-sm text-ink-soft">Tränke</p>
+          <p className="font-display text-3xl leading-none">{campaign.zenny}</p>
+          <p className="text-sm text-ink-soft">Zenny</p>
         </div>
       </div>
 

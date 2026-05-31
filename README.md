@@ -24,7 +24,7 @@ live synchronisiert über **Supabase**.
 - **Onboarding** (Hunter anlegen → Waffe wählen)
 - **Camp-Hub** mit Status-Kacheln + Bottom-Tab-Navigation
 - **Jäger**: Charakterbogen, Gear ausrüsten, abgeleitete Werte/Skills
-- **Inventar**: Material/Teile/Items zählen + Zenny
+- **Inventar**: Material, Other & Monster Teile (mit Icons) + Zenny
 - **Forge**: waffen-gelocktes Crafting (zieht Material/Zenny ab)
 - **Kampagne**: Tag-Tracker + Hunt-Checkliste
 - **Referenz**: Monster + Statuseffekte
@@ -33,6 +33,8 @@ Daten liegen lokal (localStorage). **Cloud-Sync** (Supabase, `supabase/schema.sq
 ist vorbereitet und wird als nächster Layer angebunden. Spieldaten in
 `src/data/ancientForest.ts` sind aus dem Regelheft verifiziert; Monsterteil-Namen
 und Forge-Rezeptkosten (auf physischen Karten) sind als vorläufig markiert.
+
+Material-Icons in `public/icons/` stammen aus [reDBo0n/mhwbg-comp](https://github.com/reDBo0n/mhwbg-comp) und sind Eigentum von CAPCOM.
 
 ## Setup (lokal)
 

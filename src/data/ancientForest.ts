@@ -1,52 +1,110 @@
-import type { GameData } from "../domain/types";
+import type { GameData, Material } from "../domain/types";
 
 /**
  * Ancient Forest — static catalog.
  *
- * Verified against the Ancient Forest rulebook (monster roster, weapons,
- * status ailments, terrain, armour skills, shared ores/bones). Monster-part
- * material names and forge recipe costs live on the physical cards (not in the
- * rulebook), so those are marked provisional and meant to be corrected from
- * the printed reference cards. Ids are stable; tweak names/costs freely.
+ * Material IDs, names and icon types align with reDBo0n/mhwbg-comp items.json
+ * (commons / others / monsters) for icon compatibility.
  */
 export const ancientForest: GameData = {
   box: "Ancient Forest",
 
   materials: [
-    // ----- Common ores & bones (shared resource pool) -----
-    { id: "carbalite-ore", name: "Carbalite Ore", category: "ore" },
-    { id: "malachite-ore", name: "Malachite Ore", category: "ore" },
-    { id: "dragonite-ore", name: "Dragonite Ore", category: "ore" },
-    { id: "fucium-ore", name: "Fucium Ore", category: "ore" },
-    { id: "quality-bone", name: "Quality Bone", category: "bone" },
-    { id: "monster-bone-s", name: "Monster Bone Small", category: "bone" },
-    { id: "ancient-bone", name: "Ancient Bone", category: "bone" },
-    { id: "boulder-bone", name: "Boulder Bone", category: "bone" },
-    { id: "dragonvein-crystal", name: "Dragonvein Crystal", category: "special" },
-    { id: "coral-crystal", name: "Coral Crystal", category: "special" },
-    { id: "firecell-stone", name: "Firecell Stone", category: "special" },
+    // ----- Material (commons) -----
+    { id: "carbalite-ore", name: "Carbalite Ore", group: "material", iconType: "white-ore" },
+    { id: "malachite-ore", name: "Malachite Ore", group: "material", iconType: "white-ore" },
+    { id: "dragonite-ore", name: "Dragonite Ore", group: "material", iconType: "white-ore" },
+    { id: "fucium-ore", name: "Fucium Ore", group: "material", iconType: "white-ore" },
+    { id: "quality-bone", name: "Quality Bone", group: "material", iconType: "white-bone" },
+    { id: "monster-bone-small", name: "Monster Bone Small", group: "material", iconType: "white-bone" },
+    { id: "monster-bone-medium", name: "Monster Bone Medium", group: "material", iconType: "white-bone" },
+    { id: "monster-bone-large", name: "Monster Bone Large", group: "material", iconType: "white-bone" },
+    { id: "monster-keenbone", name: "Monster Keenbone", group: "material", iconType: "white-bone" },
+    { id: "monster-hardbone", name: "Monster Hardbone", group: "material", iconType: "white-bone" },
+    { id: "ancient-bone", name: "Ancient Bone", group: "material", iconType: "white-bone" },
+    { id: "boulder-bone", name: "Boulder Bone", group: "material", iconType: "white-bone" },
+    { id: "dragonvein-crystal", name: "Dragonvein Crystal", group: "material", iconType: "white-gem" },
+    { id: "wingdrake-hide", name: "Wingdrake Hide", group: "material", iconType: "white-pelt" },
 
-    // ----- Monster parts (PROVISIONAL — verify against reward cards) -----
-    // Great Jagras
-    { id: "jagras-claw", name: "Great Jagras Claw", category: "monster", source: "Great Jagras" },
-    { id: "jagras-scale", name: "Great Jagras Scale", category: "monster", source: "Great Jagras" },
-    { id: "jagras-hide", name: "Great Jagras Hide", category: "monster", source: "Great Jagras" },
-    // Tobi-Kadachi
-    { id: "kadachi-fang", name: "Tobi-Kadachi Fang", category: "monster", source: "Tobi-Kadachi" },
-    { id: "kadachi-pelt", name: "Tobi-Kadachi Pelt", category: "monster", source: "Tobi-Kadachi" },
-    { id: "kadachi-claw", name: "Tobi-Kadachi Claw", category: "monster", source: "Tobi-Kadachi" },
-    // Anjanath
-    { id: "anjanath-fang", name: "Anjanath Fang", category: "monster", source: "Anjanath" },
-    { id: "anjanath-scale", name: "Anjanath Scale", category: "monster", source: "Anjanath" },
-    { id: "anjanath-pelt", name: "Anjanath Pelt", category: "monster", source: "Anjanath" },
-    { id: "anjanath-nosebone", name: "Anjanath Nose Bone", category: "monster", source: "Anjanath" },
-    // Rathalos / Azure Rathalos
-    { id: "rathalos-scale", name: "Rathalos Scale", category: "monster", source: "Rathalos" },
-    { id: "rathalos-shell", name: "Rathalos Shell", category: "monster", source: "Rathalos" },
-    { id: "rathalos-wing", name: "Rathalos Wing", category: "monster", source: "Rathalos" },
-    { id: "rathalos-plate", name: "Rathalos Plate", category: "monster", source: "Rathalos" },
-    { id: "rathalos-marrow", name: "Rathalos Marrow", category: "monster", source: "Azure Rathalos" },
-    { id: "rath-ruby", name: "Rath Ruby", category: "monster", source: "Azure Rathalos" },
+    // ----- Other -----
+    { id: "aqua-sac", name: "Aqua Sac", group: "other", iconType: "white-sac" },
+    { id: "bird-wyvern-gem", name: "Bird Wyvern Gem", group: "other", iconType: "white-gem" },
+    { id: "black-spiral-horn", name: "Black Spiral Horn", group: "other", iconType: "white-claw" },
+    { id: "blos-medulla", name: "Blos Medulla", group: "other", iconType: "white-head" },
+    { id: "coral-crystal", name: "Coral Crystal", group: "other", iconType: "white-gem" },
+    { id: "earth-crystal", name: "Earth Crystal", group: "other", iconType: "white-gem" },
+    { id: "elder-dragon-blood", name: "Elder Dragon Blood", group: "other", iconType: "white-juice" },
+    { id: "elder-dragon-bone", name: "Elder Dragon Bone", group: "other", iconType: "white-bone" },
+    { id: "electrode", name: "Electrode", group: "other", iconType: "white-head" },
+    { id: "electro-sac", name: "Electro Sac", group: "other", iconType: "white-sac" },
+    { id: "fertile-mud", name: "Fertile Mud", group: "other", iconType: "white-dump" },
+    { id: "firecell-stone", name: "Firecell Stone", group: "other", iconType: "white-ore" },
+    { id: "fire-dragon-scale", name: "Fire Dragon Scale", group: "other", iconType: "white-scale" },
+    { id: "flame-sac", name: "Flame Sac", group: "other", iconType: "white-sac" },
+    { id: "gajau-scale", name: "Gajau Scale", group: "other", iconType: "white-scale" },
+    { id: "immortal-dragonscale", name: "Immortal Dragonscale", group: "other", iconType: "white-scale" },
+    { id: "inferno-sac", name: "Inferno Sac", group: "other", iconType: "white-sac" },
+    { id: "majestic-horn", name: "Majestic Horn", group: "other", iconType: "white-claw" },
+    { id: "novacrystal", name: "Novacrystal", group: "other", iconType: "white-gem" },
+    { id: "piercing-claw", name: "Piercing Claw", group: "other", iconType: "white-claw" },
+    { id: "poison-sac", name: "Poison Sac", group: "other", iconType: "white-sac" },
+    { id: "sharp-claw", name: "Sharp Claw", group: "other", iconType: "white-claw" },
+    { id: "thunder-sac", name: "Thunder Sac", group: "other", iconType: "white-sac" },
+    { id: "toxin-sac", name: "Toxin Sac", group: "other", iconType: "white-sac" },
+    { id: "twisted-horn", name: "Twisted Horn", group: "other", iconType: "white-claw" },
+    { id: "warm-pelt", name: "Warm Pelt", group: "other", iconType: "white-pelt" },
+    { id: "wyvern-gem", name: "Wyvern Gem", group: "other", iconType: "white-gem" },
+
+    // ----- Monster parts: Great Jagras -----
+    ...monsterParts("jagras", [
+      ["great-jagras-claw", "Great Jagras Claw", "Claw", "white-claw"],
+      ["great-jagras-hide", "Great Jagras Hide", "Hide", "white-pelt"],
+      ["great-jagras-mane", "Great Jagras Mane", "Mane", "white-head"],
+      ["great-jagras-scale", "Great Jagras Scale", "Scale", "white-scale"],
+    ]),
+
+    // ----- Tobi-Kadachi -----
+    ...monsterParts("tobi-kadachi", [
+      ["tobi-kadachi-claw", "Tobi-Kadachi Claw", "Claw", "white-claw"],
+      ["tobi-kadachi-electrode", "Tobi-Kadachi Electrode", "Electrode", "white-head"],
+      ["tobi-kadachi-membrane", "Tobi-Kadachi Membrane", "Membrane", "white-head"],
+      ["tobi-kadachi-pelt", "Tobi-Kadachi Pelt", "Pelt", "white-pelt"],
+      ["tobi-kadachi-scale", "Tobi-Kadachi Scale", "Scale", "white-scale"],
+    ]),
+
+    // ----- Anjanath -----
+    ...monsterParts("anjanath", [
+      ["anjanath-fang", "Anjanath Fang", "Fang", "white-claw"],
+      ["anjanath-nosebone", "Anjanath Nosebone", "Nosebone", "white-bone"],
+      ["anjanath-pelt", "Anjanath Pelt", "Pelt", "white-pelt"],
+      ["anjanath-scale", "Anjanath Scale", "Scale", "white-scale"],
+      ["anjanath-tail", "Anjanath Tail", "Tail", "white-tail"],
+    ]),
+
+    // ----- Rathalos -----
+    ...monsterParts("rathalos", [
+      ["rathalos-carapace", "Rathalos Carapace", "Carapace", "white-carapace"],
+      ["rathalos-marrow", "Rathalos Marrow", "Marrow", "white-head"],
+      ["rathalos-medulla", "Rathalos Medulla", "Medulla", "white-head"],
+      ["rathalos-plate", "Rathalos Plate", "Plate", "white-plate"],
+      ["rathalos-scale", "Rathalos Scale", "Scale", "white-scale"],
+      ["rathalos-shell", "Rathalos Shell", "Shell", "white-shell"],
+      ["rathalos-tail", "Rathalos Tail", "Tail", "white-tail"],
+      ["rathalos-webbing", "Rathalos Webbing", "Webbing", "white-honey"],
+      ["rathalos-wing", "Rathalos Wing", "Wing", "white-wing"],
+      ["rathalos-wingtalon", "Rathalos Wingtalon", "Wingtalon", "white-claw"],
+    ]),
+
+    // ----- Azure Rathalos -----
+    ...monsterParts("azure-rathalos", [
+      ["azure-rathalos-carapace", "Azure Rathalos Carapace", "Carapace", "white-carapace"],
+      ["azure-rathalos-marrow", "Azure Rathalos Marrow", "Marrow", "white-head"],
+      ["azure-rathalos-plate", "Azure Rathalos Plate", "Plate", "white-plate"],
+      ["azure-rathalos-scale", "Azure Rathalos Scale", "Scale", "white-scale"],
+      ["azure-rathalos-tail", "Azure Rathalos Tail", "Tail", "white-tail"],
+      ["azure-rathalos-wing", "Azure Rathalos Wing", "Wing", "white-wing"],
+      ["azure-rathalos-wingtalon", "Azure Rathalos Wingtalon", "Wingtalon", "white-claw"],
+    ]),
   ],
 
   items: [
@@ -59,7 +117,7 @@ export const ancientForest: GameData = {
   ],
 
   monsters: [
-    { id: "great-jagras", name: "Great Jagras", kind: "Fanged Wyvern", notes: "Erste zugewiesene Untersuchung." },
+    { id: "jagras", name: "Great Jagras", kind: "Fanged Wyvern", notes: "Erste zugewiesene Untersuchung." },
     { id: "tobi-kadachi", name: "Tobi-Kadachi", kind: "Fanged Wyvern", notes: "Blitz-Element." },
     { id: "anjanath", name: "Anjanath", kind: "Brute Wyvern", notes: "Feuer-Element." },
     { id: "rathalos", name: "Rathalos", kind: "Flying Wyvern", notes: "König der Lüfte." },
@@ -82,9 +140,9 @@ export const ancientForest: GameData = {
       slot: "weapon",
       weaponType: "Switch Axe",
       cost: [
-        { materialId: "kadachi-fang", qty: 2 },
-        { materialId: "kadachi-pelt", qty: 3 },
-        { materialId: "monster-bone-s", qty: 1 },
+        { materialId: "tobi-kadachi-claw", qty: 2 },
+        { materialId: "tobi-kadachi-pelt", qty: 3 },
+        { materialId: "monster-bone-small", qty: 1 },
       ],
       zenny: 1500,
       effect: "Blitz-Element.",
@@ -133,13 +191,13 @@ export const ancientForest: GameData = {
       effect: "Start-Heavy-Bowgun.",
     },
 
-    // ----- Armour (provisional sets) -----
+    // ----- Armour -----
     {
       id: "jagras-helm",
       name: "Jagras Helm",
       slot: "head",
       cost: [
-        { materialId: "jagras-scale", qty: 2 },
+        { materialId: "great-jagras-scale", qty: 2 },
         { materialId: "quality-bone", qty: 1 },
       ],
       zenny: 600,
@@ -172,3 +230,20 @@ export const ancientForest: GameData = {
     },
   ],
 };
+
+function monsterParts(
+  monsterId: string,
+  parts: [id: string, name: string, shortName: string, iconType: string][],
+): Material[] {
+  return parts.map(([id, name, shortName, iconType]) => ({
+    id,
+    name,
+    group: "monster" as const,
+    iconType,
+    monsterId,
+    shortName,
+  }));
+}
+
+/** Monsters shown in the Monster Teile picker, in display order. */
+export const inventoryMonsters = ancientForest.monsters;

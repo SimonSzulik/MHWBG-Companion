@@ -21,19 +21,20 @@ export type WeaponType =
   | "Long Sword"
   | "Bow";
 
-export type MaterialCategory =
-  | "ore"
-  | "bone"
-  | "monster"
-  | "special";
+/** Which inventory tab a material belongs to. */
+export type InventoryGroup = "material" | "other" | "monster";
 
 /** A type of craftable/collectable material (catalog entry). */
 export interface Material {
   id: string;
   name: string;
-  category: MaterialCategory;
-  /** Optional source hint, e.g. monster name. */
-  source?: string;
+  group: InventoryGroup;
+  /** Icon filename stem, e.g. "white-ore". Maps to /icons/{iconType}.png */
+  iconType: string;
+  /** Monster icon stem for group === "monster", e.g. "jagras". */
+  monsterId?: string;
+  /** Short label in monster-part submenus, e.g. "Claw". */
+  shortName?: string;
 }
 
 /** A consumable item (potions, bombs, traps…). */

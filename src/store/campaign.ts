@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Campaign,
   Hunter,
   WeaponType,
   GearSlot,
+  MaterialStash,
 } from "../domain/types";
 import { gameData } from "../data/gameData";
 
@@ -17,6 +18,54 @@ import { gameData } from "../data/gameData";
 const uid = () =>
   globalThis.crypto?.randomUUID?.() ??
   `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** Maps legacy v2 material ids to v3 ids when rehydrating old saves. */
+const MATERIAL_ID_MIGRATION: Record<string, string> = {
+  "jagras-claw": "great-jagras-claw",
+  "jagras-scale": "great-jagras-scale",
+  "jagras-hide": "great-jagras-hide",
+  "kadachi-fang": "tobi-kadachi-claw",
+  "kadachi-pelt": "tobi-kadachi-pelt",
+  "kadachi-claw": "tobi-kadachi-claw",
+  "monster-bone-s": "monster-bone-small",
+  "rath-ruby": "azure-rathalos-plate",
+};
+
+function migrateMaterials(materials: MaterialStash): MaterialStash {
+  const next: MaterialStash = {};
+  for (const [id, qty] of Object.entries(materials)) {
+    const newId = MATERIAL_ID_MIGRATION[id] ?? id;
+    next[newId] = (next[newId] ?? 0) + qty;
+  }
+  return next;
+}
+
+const PERSIST_KEY = "mhwbg-campaign-v3";
+const LEGACY_KEY = "mhwbg-campaign-v2";
+
+const campaignStorage = createJSONStorage<CampaignState>(() => ({
+  getItem: (name) => {
+    const current = localStorage.getItem(name);
+    if (current) return current;
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (!legacy) return null;
+    try {
+      const parsed = JSON.parse(legacy) as {
+        state?: { campaign?: Campaign | null };
+      };
+      if (parsed.state?.campaign?.materials) {
+        parsed.state.campaign.materials = migrateMaterials(
+          parsed.state.campaign.materials,
+        );
+      }
+      return JSON.stringify(parsed);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name, value) => localStorage.setItem(name, value),
+  removeItem: (name) => localStorage.removeItem(name),
+}));
 
 interface NewHunterInput {
   name: string;
@@ -270,11 +319,19 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      applyRemoteCampaign: (campaign) => set({ campaign }),
+      applyRemoteCampaign: (campaign) =>
+        set({
+          campaign: {
+            ...campaign,
+            materials: migrateMaterials(campaign.materials),
+          },
+        }),
     }),
-    // v2: switched catalog from Wildspire Waste -> Ancient Forest (ids changed),
-    // so older saves are intentionally retired by the new key.
-    { name: "mhwbg-campaign-v2" },
+    // v3: inventory groups (material / other / monster), reDBo0n-aligned ids.
+    {
+      name: PERSIST_KEY,
+      storage: campaignStorage,
+    },
   ),
 );
 
