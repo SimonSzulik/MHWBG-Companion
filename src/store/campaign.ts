@@ -110,21 +110,28 @@ const campaignStorage = createJSONStorage<CampaignState>(() => ({
   removeItem: (name) => localStorage.removeItem(name),
 }));
 
-interface NewHunterInput {
+interface StartCampaignInput {
+  campaignName: string;
   name: string;
   weaponType: WeaponType;
   palicoName?: string;
-  playerName?: string;
+  maxDay?: number;
+  potions?: number;
 }
 
 interface CampaignState {
   campaign: Campaign | null;
+  hydrated: boolean;
 
-  /** Create a fresh campaign with one starting hunter. */
-  startCampaign: (input: { campaignName?: string } & NewHunterInput) => void;
+  /** Create a fresh campaign with one starting hunter (local draft before cloud upload). */
+  startCampaign: (input: StartCampaignInput) => void;
   resetCampaign: () => void;
 
-  addHunter: (input: NewHunterInput) => void;
+  addHunter: (input: {
+    name: string;
+    weaponType: WeaponType;
+    palicoName?: string;
+  }) => void;
   updateHunter: (id: string, patch: Partial<Hunter>) => void;
   removeHunter: (id: string) => void;
   equipGear: (hunterId: string, slot: GearSlot, gearId: string | null) => void;
@@ -156,15 +163,22 @@ export const useCampaign = create<CampaignState>()(
   persist(
     (set, get) => ({
       campaign: null,
+      hydrated: false,
 
-      startCampaign: ({ campaignName, ...hunter }) => {
-        const starter = starterGearFor(hunter.weaponType);
+      startCampaign: ({
+        campaignName,
+        name,
+        weaponType,
+        palicoName,
+        maxDay = 25,
+        potions = 1,
+      }) => {
+        const starter = starterGearFor(weaponType);
         const newHunter: Hunter = {
           id: uid(),
-          name: hunter.name || "Hunter",
-          palicoName: hunter.palicoName,
-          playerName: hunter.playerName,
-          weaponType: hunter.weaponType,
+          name: name || "Hunter",
+          palicoName,
+          weaponType,
           equipped: starter ? { weapon: starter } : {},
         };
         const now = Date.now();
@@ -174,12 +188,12 @@ export const useCampaign = create<CampaignState>()(
             name: campaignName || "Neue Kampagne",
             box: gameData.box,
             day: 1,
-            maxDay: 60,
+            maxDay: Math.max(1, maxDay),
             leaderId: newHunter.id,
             hunters: [newHunter],
             zenny: 0,
             materials: {},
-            items: { potion: 3 },
+            items: { potion: potions },
             ownedGear: starter ? [starter] : [],
             questCompletions: {},
             createdAt: now,
@@ -198,7 +212,6 @@ export const useCampaign = create<CampaignState>()(
             id: uid(),
             name: input.name || "Hunter",
             palicoName: input.palicoName,
-            playerName: input.playerName,
             weaponType: input.weaponType,
             equipped: starter ? { weapon: starter } : {},
           };
@@ -282,7 +295,7 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      adjustItem: (itemId, delta) =>
+      adjustItem: (itemId, delta) => {
         set((s) => {
           if (!s.campaign) return s;
           const cur = s.campaign.items[itemId] ?? 0;
@@ -293,7 +306,9 @@ export const useCampaign = create<CampaignState>()(
               items: { ...s.campaign.items, [itemId]: next },
             }),
           };
-        }),
+        });
+        void import("../lib/sync/engine").then((m) => m.requestImmediatePush());
+      },
 
       craftGear: (gearId) => {
         const s = get();
@@ -362,6 +377,10 @@ export const useCampaign = create<CampaignState>()(
     },
   ),
 );
+
+useCampaign.persist.onFinishHydration(() => {
+  useCampaign.setState({ hydrated: true });
+});
 
 /** Default starter weapon id per weapon type. */
 function starterGearFor(weaponType: WeaponType): string | null {

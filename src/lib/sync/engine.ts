@@ -1,21 +1,11 @@
 /**
- * Cloud sync engine: mirrors the local campaign store to Supabase.
- *
- * Design (matches the "board game" usage pattern):
- *  - Local store stays the working copy — the app is fully usable offline.
- *  - On connect we PULL the remote campaign, then keep a Realtime subscription
- *    open so other players' changes arrive live (applied via
- *    applyRemoteCampaign, which does not re-trigger a push).
- *  - Local changes are pushed with a short debounce. Writes happen before/
- *    after a hunt, rarely concurrently, so per-field last-write-wins is fine.
- *
- * Nothing here runs unless Supabase is configured AND a sync session is
- * explicitly started, so the local-first MVP is unaffected.
+ * Cloud sync engine: Supabase is the source of truth for shared campaigns.
  */
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "../supabase";
 import { useCampaign } from "../../store/campaign";
-import type { Campaign, Hunter } from "../../domain/types";
+import { useAuth } from "../../store/auth";
+import type { Campaign, Hunter, WeaponType } from "../../domain/types";
 import {
   campaignToCampaignUpdate,
   campaignToStateUpdate,
@@ -24,13 +14,16 @@ import {
   rowsToCampaign,
 } from "./mappers";
 
+const SYNC_CAMPAIGN_KEY = "mhwbg-active-campaign-id";
+
 let channel: RealtimeChannel | null = null;
 let unsubscribeStore: (() => void) | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPushedSnapshot = "";
-/** When true we're applying a remote update — don't echo it back as a push. */
 let applyingRemote = false;
 let activeCampaignId: string | null = null;
+let reconnectAttempt = 0;
 
 export type SyncStatus = "off" | "connecting" | "live" | "error";
 type Listener = (status: SyncStatus, detail?: string) => void;
@@ -42,22 +35,36 @@ export function onSyncStatus(fn: Listener): () => void {
   fn(status);
   return () => listeners.delete(fn);
 }
+
+export function getSyncStatus(): SyncStatus {
+  return status;
+}
+
 function setStatus(next: SyncStatus, detail?: string) {
   status = next;
   listeners.forEach((l) => l(next, detail));
 }
 
-/** Ensure there is an auth session (anonymous is fine for quick start). */
-export async function ensureAuth(): Promise<string | null> {
-  if (!isSupabaseConfigured) return null;
-  const { data } = await supabase.auth.getSession();
-  if (data.session) return data.session.user.id;
-  const { data: anon, error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    setStatus("error", error.message);
-    return null;
+function persistActiveCampaignId(id: string | null) {
+  if (id) localStorage.setItem(SYNC_CAMPAIGN_KEY, id);
+  else localStorage.removeItem(SYNC_CAMPAIGN_KEY);
+}
+
+export function getPersistedCampaignId(): string | null {
+  return localStorage.getItem(SYNC_CAMPAIGN_KEY);
+}
+
+function requireUserId(): string | null {
+  return useAuth.getState().userId;
+}
+
+/** Push local state immediately (e.g. potion use). */
+export function requestImmediatePush(): void {
+  const c = useCampaign.getState().campaign;
+  if (c && activeCampaignId && c.id === activeCampaignId) {
+    if (pushTimer) clearTimeout(pushTimer);
+    void push(c);
   }
-  return anon.user?.id ?? null;
 }
 
 /**
@@ -68,17 +75,21 @@ export async function createCloudCampaign(): Promise<string | null> {
   const local = useCampaign.getState().campaign;
   if (!local || !isSupabaseConfigured) return null;
   setStatus("connecting");
-  const userId = await ensureAuth();
-  if (!userId) return null;
+  const userId = requireUserId();
+  if (!userId) {
+    setStatus("error", "Nicht eingeloggt.");
+    return null;
+  }
 
-  // Insert campaign; trigger creates membership + empty state row.
+  const maxDay = Math.max(1, local.maxDay);
+
   const { data: camp, error } = await supabase
     .from("campaign")
     .insert({
       name: local.name,
       box: local.box,
       day: local.day,
-      max_day: local.maxDay,
+      max_day: maxDay,
       owner_id: userId,
     })
     .select()
@@ -88,15 +99,15 @@ export async function createCloudCampaign(): Promise<string | null> {
     return null;
   }
 
-  // Push current state + hunters up.
   await supabase
     .from("campaign_state")
     .update(campaignToStateUpdate(local))
     .eq("campaign_id", camp.id);
+
   if (local.hunters.length) {
-    await supabase
-      .from("hunter")
-      .insert(local.hunters.map((h) => hunterToInsert(camp.id, h)));
+    await supabase.from("hunter").insert(
+      local.hunters.map((h) => hunterToInsert(camp.id, h, userId)),
+    );
     if (local.leaderId) {
       await supabase
         .from("campaign")
@@ -109,15 +120,43 @@ export async function createCloudCampaign(): Promise<string | null> {
   return camp.join_code;
 }
 
-/** Join an existing campaign by code, pull it, and start syncing. */
-export async function joinCloudCampaign(code: string): Promise<boolean> {
+export interface PeekJoinResult {
+  campaignId: string;
+  takenWeapons: WeaponType[];
+}
+
+/** Preview which weapons are taken before joining. */
+export async function peekJoinCampaign(
+  code: string,
+): Promise<PeekJoinResult | null> {
+  const { data, error } = await supabase.rpc("peek_join_campaign", {
+    code: code.trim(),
+  });
+  if (error || !data) return null;
+  const parsed = data as { campaign_id: string; taken_weapons: string[] };
+  return {
+    campaignId: parsed.campaign_id,
+    takenWeapons: parsed.taken_weapons as WeaponType[],
+  };
+}
+
+/** Join campaign and create hunter, then sync. */
+export async function joinCampaignWithHunter(
+  code: string,
+  hunterName: string,
+  weaponType: WeaponType,
+): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
   setStatus("connecting");
-  const userId = await ensureAuth();
-  if (!userId) return false;
+  if (!requireUserId()) {
+    setStatus("error", "Nicht eingeloggt.");
+    return false;
+  }
 
-  const { data: cid, error } = await supabase.rpc("join_campaign", {
+  const { data: cid, error } = await supabase.rpc("join_campaign_hunter", {
     code: code.trim(),
+    hunter_name: hunterName,
+    weapon_type: weaponType,
   });
   if (error || !cid) {
     setStatus("error", error?.message ?? "Beitritt fehlgeschlagen");
@@ -150,34 +189,14 @@ export async function pull(campaignId: string): Promise<Campaign | null> {
 
 /** Begin live sync for a campaign: pull, subscribe, and watch local changes. */
 export async function startSync(campaignId: string): Promise<void> {
+  await stopSync();
   activeCampaignId = campaignId;
+  persistActiveCampaignId(campaignId);
+  setStatus("connecting");
+  reconnectAttempt = 0;
   await pull(campaignId);
+  subscribeChannel(campaignId);
 
-  // Realtime: any change to this campaign's rows → re-pull and apply.
-  channel = supabase
-    .channel(`campaign:${campaignId}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "campaign_state", filter: `campaign_id=eq.${campaignId}` },
-      () => void pull(campaignId),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "hunter", filter: `campaign_id=eq.${campaignId}` },
-      () => void pull(campaignId),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "campaign", filter: `id=eq.${campaignId}` },
-      () => void pull(campaignId),
-    )
-    .subscribe((s) => {
-      if (s === "SUBSCRIBED") setStatus("live");
-      else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT")
-        setStatus("error", "Realtime-Verbindung verloren");
-    });
-
-  // Watch local store → debounce-push diffs.
   unsubscribeStore = useCampaign.subscribe((s) => {
     if (applyingRemote || !s.campaign) return;
     if (s.campaign.id !== activeCampaignId) return;
@@ -185,10 +204,81 @@ export async function startSync(campaignId: string): Promise<void> {
   });
 }
 
+function subscribeChannel(campaignId: string) {
+  channel = supabase
+    .channel(`campaign:${campaignId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "campaign_state",
+        filter: `campaign_id=eq.${campaignId}`,
+      },
+      () => void pull(campaignId),
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "hunter",
+        filter: `campaign_id=eq.${campaignId}`,
+      },
+      () => void pull(campaignId),
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "campaign",
+        filter: `id=eq.${campaignId}`,
+      },
+      () => void pull(campaignId),
+    )
+    .subscribe((s) => {
+      if (s === "SUBSCRIBED") {
+        reconnectAttempt = 0;
+        setStatus("live");
+      } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
+        setStatus("error", "Realtime-Verbindung verloren");
+        scheduleReconnect(campaignId);
+      }
+    });
+}
+
+function scheduleReconnect(campaignId: string) {
+  if (reconnectTimer) return;
+  const delay = Math.min(30_000, 1000 * 2 ** reconnectAttempt);
+  reconnectAttempt += 1;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (activeCampaignId === campaignId) {
+      void (async () => {
+        if (channel) await supabase.removeChannel(channel);
+        channel = null;
+        subscribeChannel(campaignId);
+      })();
+    }
+  }, delay);
+}
+
+/** Resume sync for a persisted campaign (app boot). */
+export async function resumeSyncIfNeeded(): Promise<void> {
+  const campaign = useCampaign.getState().campaign;
+  const id = campaign?.id ?? getPersistedCampaignId();
+  if (!id || !isSupabaseConfigured || !requireUserId()) return;
+  if (activeCampaignId === id && status === "live") return;
+  await startSync(id);
+}
+
 /** Stop syncing and tear down subscriptions. */
 export async function stopSync(): Promise<void> {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = null;
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = null;
   unsubscribeStore?.();
   unsubscribeStore = null;
   if (channel) await supabase.removeChannel(channel);
@@ -197,10 +287,7 @@ export async function stopSync(): Promise<void> {
   setStatus("off");
 }
 
-/* ----------------------------- internals ----------------------------- */
-
 function snapshot(c: Campaign): string {
-  // Order-independent enough for change detection.
   return JSON.stringify({
     name: c.name,
     day: c.day,
@@ -225,6 +312,7 @@ function schedulePush(campaign: Campaign) {
 async function push(campaign: Campaign): Promise<void> {
   if (!activeCampaignId) return;
   const snap = snapshot(campaign);
+  const userId = requireUserId();
   try {
     await supabase
       .from("campaign")
@@ -236,7 +324,7 @@ async function push(campaign: Campaign): Promise<void> {
       .update(campaignToStateUpdate(campaign))
       .eq("campaign_id", campaign.id);
 
-    await syncHunters(campaign.id, campaign.hunters);
+    await syncHunters(campaign.id, campaign.hunters, userId);
 
     lastPushedSnapshot = snap;
   } catch (e) {
@@ -244,8 +332,11 @@ async function push(campaign: Campaign): Promise<void> {
   }
 }
 
-/** Upsert present hunters and delete those removed locally. */
-async function syncHunters(campaignId: string, hunters: Hunter[]) {
+async function syncHunters(
+  campaignId: string,
+  hunters: Hunter[],
+  userId: string | null,
+) {
   const { data: remote } = await supabase
     .from("hunter")
     .select("id")
@@ -253,15 +344,18 @@ async function syncHunters(campaignId: string, hunters: Hunter[]) {
   const remoteIds = new Set((remote ?? []).map((r) => r.id));
   const localIds = new Set(hunters.map((h) => h.id));
 
-  // upsert
   for (const h of hunters) {
     if (remoteIds.has(h.id)) {
-      await supabase.from("hunter").update(hunterToUpdate(h)).eq("id", h.id);
+      await supabase
+        .from("hunter")
+        .update(hunterToUpdate(h, userId))
+        .eq("id", h.id);
     } else {
-      await supabase.from("hunter").insert(hunterToInsert(campaignId, h));
+      await supabase
+        .from("hunter")
+        .insert(hunterToInsert(campaignId, h, userId));
     }
   }
-  // delete removed
   const toDelete = [...remoteIds].filter((id) => !localIds.has(id));
   if (toDelete.length) {
     await supabase.from("hunter").delete().in("id", toDelete);

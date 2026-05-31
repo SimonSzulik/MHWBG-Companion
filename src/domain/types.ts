@@ -159,6 +159,8 @@ export interface Campaign {
   ownedGear: string[];
   /** Quest id -> completion count (0–4). */
   questCompletions: Record<string, number>;
+  /** Share code for co-op (from cloud). */
+  joinCode?: string;
   createdAt: number;
   updatedAt: number;
 }

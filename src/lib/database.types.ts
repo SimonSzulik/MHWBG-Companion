@@ -1,7 +1,5 @@
 /**
- * Hand-written types mirroring supabase/schema.sql. When the cloud sync layer
- * lands, these give the Supabase client end-to-end type safety. Keep in sync
- * with the SQL (or replace with `supabase gen types typescript` output).
+ * Hand-written types mirroring supabase/schema.sql.
  */
 export interface Database {
   public: {
@@ -115,12 +113,33 @@ export interface Database {
         }>;
         Relationships: [];
       };
+      player_profile: {
+        Row: {
+          user_id: string;
+          username: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          username: string;
+        };
+        Update: Partial<{ username: string }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       join_campaign: {
         Args: { code: string };
         Returns: string;
+      };
+      join_campaign_hunter: {
+        Args: { code: string; hunter_name: string; weapon_type: string };
+        Returns: string;
+      };
+      peek_join_campaign: {
+        Args: { code: string };
+        Returns: { campaign_id: string; taken_weapons: string[] };
       };
       is_campaign_member: {
         Args: { cid: string };

@@ -47,6 +47,7 @@ export function rowsToCampaign(
     ownedGear: state?.owned_gear ?? [],
     questCompletions: parseQuestCompletions(state?.hunts_completed),
     hunters: sortedHunters,
+    joinCode: campaign.join_code,
     createdAt: Date.parse(campaign.created_at) || Date.now(),
     updatedAt: Date.parse(campaign.updated_at) || Date.now(),
   };
@@ -93,10 +94,12 @@ export function campaignToCampaignUpdate(
 export function hunterToInsert(
   campaignId: string,
   h: Hunter,
+  userId?: string | null,
 ): Database["public"]["Tables"]["hunter"]["Insert"] {
   return {
     id: h.id,
     campaign_id: campaignId,
+    user_id: userId ?? null,
     name: h.name,
     palico_name: h.palicoName ?? null,
     player_name: h.playerName ?? null,
@@ -108,8 +111,10 @@ export function hunterToInsert(
 
 export function hunterToUpdate(
   h: Hunter,
+  userId?: string | null,
 ): Database["public"]["Tables"]["hunter"]["Update"] {
   return {
+    user_id: userId ?? undefined,
     name: h.name,
     palico_name: h.palicoName ?? null,
     player_name: h.playerName ?? null,

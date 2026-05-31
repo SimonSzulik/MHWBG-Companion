@@ -3,13 +3,18 @@ export function Stepper({
   value,
   onChange,
   min = 0,
+  max,
 }: {
   value: number;
   onChange: (next: number) => void;
   min?: number;
+  max?: number;
 }) {
   const dec = () => onChange(Math.max(min, value - 1));
-  const inc = () => onChange(value + 1);
+  const inc = () => {
+    const next = value + 1;
+    onChange(max != null ? Math.min(max, next) : next);
+  };
   return (
     <div className="flex items-center gap-2">
       <button
@@ -28,7 +33,8 @@ export function Stepper({
         type="button"
         onClick={inc}
         aria-label="mehr"
-        className="grid h-9 w-9 place-items-center rounded-lg border-[1.5px] border-line-strong bg-accent text-lg font-bold text-white active:translate-y-px"
+        className="grid h-9 w-9 place-items-center rounded-lg border-[1.5px] border-line-strong bg-accent text-lg font-bold text-white active:translate-y-px disabled:opacity-40"
+        disabled={max != null && value >= max}
       >
         +
       </button>

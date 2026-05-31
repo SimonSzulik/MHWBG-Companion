@@ -83,6 +83,32 @@ create table if not exists public.campaign_state (
 create index if not exists hunter_campaign_idx on public.hunter (campaign_id);
 create index if not exists member_user_idx on public.campaign_member (user_id);
 
+-- One weapon type per campaign (no duplicate hunter weapons).
+alter table public.hunter
+  drop constraint if exists hunter_weapon_unique;
+alter table public.hunter
+  add constraint hunter_weapon_unique unique (campaign_id, weapon_type);
+
+-- Player profile linked to auth.users (Jägername login).
+create table if not exists public.player_profile (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  username   text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists player_profile_username_lower_idx
+  on public.player_profile (lower(username));
+
+alter table public.player_profile enable row level security;
+
+drop policy if exists profile_select on public.player_profile;
+create policy profile_select on public.player_profile
+  for select using (user_id = auth.uid());
+
+drop policy if exists profile_insert on public.player_profile;
+create policy profile_insert on public.player_profile
+  for insert with check (user_id = auth.uid());
+
 -- -----------------------------------------------------------------------------
 -- Helper: is the current user a member of a campaign?
 -- SECURITY DEFINER so it bypasses RLS on campaign_member and avoids the
@@ -250,6 +276,72 @@ begin
   return cid;
 end;
 $$;
+
+-- Preview taken weapons before joining (no membership required).
+create or replace function public.peek_join_campaign(code text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  cid uuid;
+  taken json;
+begin
+  select id into cid from public.campaign where join_code = upper(code);
+  if cid is null then
+    raise exception 'Kampagne nicht gefunden';
+  end if;
+  select coalesce(json_agg(h.weapon_type), '[]'::json)
+    into taken
+    from public.hunter h
+    where h.campaign_id = cid;
+  return json_build_object('campaign_id', cid, 'taken_weapons', taken);
+end;
+$$;
+
+-- Join campaign and create hunter in one step.
+create or replace function public.join_campaign_hunter(
+  code text,
+  hunter_name text,
+  weapon_type text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  cid uuid;
+begin
+  select id into cid from public.campaign where join_code = upper(code);
+  if cid is null then
+    raise exception 'Kampagne nicht gefunden';
+  end if;
+  if exists (
+    select 1 from public.hunter h
+    where h.campaign_id = cid and h.weapon_type = join_campaign_hunter.weapon_type
+  ) then
+    raise exception 'Waffe bereits belegt';
+  end if;
+  if exists (
+    select 1 from public.hunter h
+    where h.campaign_id = cid and h.user_id = auth.uid()
+  ) then
+    raise exception 'Du bist bereits in dieser Kampagne';
+  end if;
+  insert into public.campaign_member (campaign_id, user_id, role)
+    values (cid, auth.uid(), 'player')
+    on conflict do nothing;
+  insert into public.hunter (campaign_id, user_id, name, weapon_type)
+    values (cid, auth.uid(), hunter_name, weapon_type);
+  return cid;
+end;
+$$;
+
+grant execute on function public.join_campaign(text) to authenticated;
+grant execute on function public.peek_join_campaign(text) to authenticated;
+grant execute on function public.join_campaign_hunter(text, text, text) to authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Realtime: broadcast row changes for live shared state.

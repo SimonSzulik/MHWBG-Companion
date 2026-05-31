@@ -3,11 +3,16 @@ import {
   Routes,
   Route,
   Navigate,
-  Outlet,
 } from "react-router-dom";
+import type { ReactNode } from "react";
 import { useCampaign } from "./store/campaign";
-import { BottomNav } from "./ui/BottomNav";
-import { Onboarding } from "./screens/Onboarding";
+import { useAuth } from "./store/auth";
+import { useAppReady } from "./AppBootstrap";
+import { AuthGuard, CampaignGuard, Shell } from "./AppBootstrap";
+import { LoginScreen } from "./screens/LoginScreen";
+import { OnboardingHub } from "./screens/OnboardingHub";
+import { CreateCampaignScreen } from "./screens/CreateCampaignScreen";
+import { JoinCampaignScreen } from "./screens/JoinCampaignScreen";
 import { Camp } from "./screens/Camp";
 import { Hunters } from "./screens/Hunters";
 import { Inventory } from "./screens/Inventory";
@@ -18,27 +23,75 @@ import { DowntimeScreen } from "./screens/DowntimeScreen";
 import { Reference } from "./screens/Reference";
 import { Settings } from "./screens/Settings";
 
-/**
- * Shell with persistent bottom nav. Guards routes behind an existing
- * campaign — first run sends the player through onboarding.
- */
-function Shell() {
-  const hasCampaign = useCampaign((s) => s.campaign !== null);
-  if (!hasCampaign) return <Navigate to="/onboarding" replace />;
+function LoginRoute() {
+  const userId = useAuth((s) => s.userId);
+  if (userId) return <Navigate to="/onboarding" replace />;
+  return <LoginScreen />;
+}
+
+function NoCampaignRoute({ children }: { children: ReactNode }) {
+  const campaign = useCampaign((s) => s.campaign);
+  if (campaign) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function OnboardingRoute() {
+  const campaign = useCampaign((s) => s.campaign);
+  if (campaign) return <Navigate to="/" replace />;
   return (
-    <div className="relative">
-      <Outlet />
-      <BottomNav />
-    </div>
+    <AuthGuard>
+      <OnboardingHub />
+    </AuthGuard>
   );
 }
 
 export default function App() {
+  const ready = useAppReady();
+  if (!ready) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center text-sm text-ink-soft">
+        Lade…
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route element={<Shell />}>
+        <Route path="/login" element={<LoginRoute />} />
+        <Route
+          path="/onboarding"
+          element={<OnboardingRoute />}
+        />
+        <Route
+          path="/onboarding/new"
+          element={
+            <AuthGuard>
+              <NoCampaignRoute>
+                <CreateCampaignScreen />
+              </NoCampaignRoute>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/onboarding/join"
+          element={
+            <AuthGuard>
+              <NoCampaignRoute>
+                <JoinCampaignScreen />
+              </NoCampaignRoute>
+            </AuthGuard>
+          }
+        />
+        <Route
+          element={
+            <AuthGuard>
+              <CampaignGuard>
+                <Shell />
+              </CampaignGuard>
+            </AuthGuard>
+          }
+        >
           <Route path="/" element={<Camp />} />
           <Route path="/hunters" element={<Hunters />} />
           <Route path="/inventory" element={<Inventory />} />
@@ -49,7 +102,7 @@ export default function App() {
           <Route path="/reference" element={<Reference />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
