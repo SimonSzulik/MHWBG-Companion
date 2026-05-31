@@ -1,6 +1,6 @@
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
-import { wildspireHunts } from "../data/hunts";
+import { hunts } from "../data/hunts";
 import { catalog } from "../domain/catalog";
 
 /** Campaign drill-in: day tracker + hunt checklist. */
@@ -38,10 +38,10 @@ export function CampaignScreen() {
       </div>
 
       <p className="mb-2 mt-5 px-1 text-xs uppercase tracking-wide text-accent">
-        Jagden · {done}/{wildspireHunts.length}
+        Jagden · {done}/{hunts.length}
       </p>
       <div className="flex flex-col gap-2">
-        {wildspireHunts
+        {hunts
           .slice()
           .sort((a, b) => a.order - b.order)
           .map((h) => {

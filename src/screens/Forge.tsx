@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
-import { wildspireWaste } from "../data/wildspireWaste";
+import { gameData } from "../data/gameData";
 import { catalog, craftState, type CraftState } from "../domain/catalog";
 import type { GearDef } from "../domain/types";
 
@@ -20,10 +20,10 @@ export function Forge() {
 
   const mainWeapon = campaign.hunters[0]?.weaponType;
 
-  const weapons = wildspireWaste.gear.filter(
+  const weapons = gameData.gear.filter(
     (g) => g.slot === "weapon" && g.weaponType === mainWeapon,
   );
-  const armour = wildspireWaste.gear.filter((g) => g.slot !== "weapon");
+  const armour = gameData.gear.filter((g) => g.slot !== "weapon");
   const list = tab === "weapons" ? weapons : armour;
 
   return (

@@ -1,7 +1,7 @@
 # MHW Board Game Companion
 
 Mobile-first **PWA** (React + Vite + TypeScript) als Kampagnen-Tracker & Charakterbogen
-für **Monster Hunter World: The Board Game** (Wildspire Waste).
+für **Monster Hunter World: The Board Game** (Ancient Forest).
 
 Der Kampf bleibt physisch am Tisch — die App übernimmt die Buchhaltung *zwischen*
 den Jagden: Hunter, Inventar/Zenny, Crafting und Kampagnen-Fortschritt, geteilt &
@@ -31,7 +31,8 @@ live synchronisiert über **Supabase**.
 
 Daten liegen lokal (localStorage). **Cloud-Sync** (Supabase, `supabase/schema.sql`)
 ist vorbereitet und wird als nächster Layer angebunden. Spieldaten in
-`src/data/wildspireWaste.ts` sind vorläufig (warten auf Regelheft-OCR).
+`src/data/ancientForest.ts` sind aus dem Regelheft verifiziert; Monsterteil-Namen
+und Forge-Rezeptkosten (auf physischen Karten) sind als vorläufig markiert.
 
 ## Setup (lokal)
 

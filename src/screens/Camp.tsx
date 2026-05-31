@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useCampaign } from "../store/campaign";
-import { wildspireWaste } from "../data/wildspireWaste";
+import { gameData } from "../data/gameData";
 import { craftState } from "../domain/catalog";
 
 /**
@@ -13,7 +13,7 @@ export function Camp() {
 
   const hunter = campaign.hunters[0];
   const potions = campaign.items["potion"] ?? 0;
-  const craftableCount = wildspireWaste.gear.filter(
+  const craftableCount = gameData.gear.filter(
     (g) => craftState(g, campaign) === "craftable",
   ).length;
 

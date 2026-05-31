@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { WeaponType } from "../domain/types";
 import { useCampaign } from "../store/campaign";
+import { gameData } from "../data/gameData";
 
 const WEAPONS: { type: WeaponType; tag: string }[] = [
   { type: "Switch Axe", tag: "axe ⇄ sword modes" },
@@ -120,7 +121,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
       </span>
       <div>
         <h1 className="font-display text-3xl">Willkommen, Hunter</h1>
-        <p className="mt-1 text-ink-soft">Fünfte Flotte · Wildspire Waste</p>
+        <p className="mt-1 text-ink-soft">Fünfte Flotte · {gameData.box}</p>
       </div>
       <div className="flex w-full flex-col gap-3">
         <button

@@ -6,7 +6,7 @@ import type {
   WeaponType,
   GearSlot,
 } from "../domain/types";
-import { wildspireWaste } from "../data/wildspireWaste";
+import { gameData } from "../data/gameData";
 
 /**
  * Local-first campaign store. Everything persists to localStorage so the app
@@ -81,7 +81,7 @@ export const useCampaign = create<CampaignState>()(
           campaign: {
             id: uid(),
             name: campaignName || "Neue Kampagne",
-            box: wildspireWaste.box,
+            box: gameData.box,
             day: 1,
             maxDay: 60,
             hunters: [newHunter],
@@ -217,7 +217,7 @@ export const useCampaign = create<CampaignState>()(
       craftGear: (gearId) => {
         const s = get();
         if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
-        const def = wildspireWaste.gear.find((g) => g.id === gearId);
+        const def = gameData.gear.find((g) => g.id === gearId);
         if (!def) return { ok: false, reason: "Unbekanntes Gear." };
         if (s.campaign.ownedGear.includes(gearId))
           return { ok: false, reason: "Bereits gebaut." };
@@ -272,13 +272,15 @@ export const useCampaign = create<CampaignState>()(
 
       applyRemoteCampaign: (campaign) => set({ campaign }),
     }),
-    { name: "mhwbg-campaign-v1" },
+    // v2: switched catalog from Wildspire Waste -> Ancient Forest (ids changed),
+    // so older saves are intentionally retired by the new key.
+    { name: "mhwbg-campaign-v2" },
   ),
 );
 
 /** First weapon in a tree = the starter for that weapon type. */
 function starterGearFor(weaponType: WeaponType): string | null {
-  const starter = wildspireWaste.gear.find(
+  const starter = gameData.gear.find(
     (g) => g.slot === "weapon" && g.weaponType === weaponType && g.cost.length === 0,
   );
   return starter?.id ?? null;

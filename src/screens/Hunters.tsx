@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
-import { wildspireWaste } from "../data/wildspireWaste";
+import { gameData } from "../data/gameData";
 import { catalog } from "../domain/catalog";
 import type { GearSlot, Hunter, WeaponType } from "../domain/types";
 
@@ -115,7 +115,7 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
   const skills = equippedDefs.map((g) => g?.effect).filter(Boolean) as string[];
 
   const ownedFor = (slot: GearSlot) =>
-    wildspireWaste.gear.filter(
+    gameData.gear.filter(
       (g) =>
         g.slot === slot &&
         ownedSet.has(g.id) &&

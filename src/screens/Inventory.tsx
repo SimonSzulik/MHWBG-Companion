@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Screen } from "../ui/Screen";
 import { Stepper } from "../ui/Stepper";
 import { useCampaign } from "../store/campaign";
-import { wildspireWaste } from "../data/wildspireWaste";
+import { gameData } from "../data/gameData";
 import type { Material, MaterialCategory } from "../domain/types";
 
 type Tab = "materials" | "parts" | "items";
@@ -22,10 +22,10 @@ export function Inventory() {
   const adjustItem = useCampaign((s) => s.adjustItem);
   if (!campaign) return null;
 
-  const oresBones = wildspireWaste.materials.filter(
+  const oresBones = gameData.materials.filter(
     (m) => m.category === "ore" || m.category === "bone",
   );
-  const parts = wildspireWaste.materials.filter(
+  const parts = gameData.materials.filter(
     (m) => m.category === "monster" || m.category === "special",
   );
 
@@ -66,7 +66,7 @@ export function Inventory() {
           <p className="px-1 text-xs uppercase tracking-wide text-accent">
             Verbrauchsgegenstände
           </p>
-          {wildspireWaste.items.map((it) => (
+          {gameData.items.map((it) => (
             <Row key={it.id} name={it.name}>
               <Stepper
                 value={campaign.items[it.id] ?? 0}

@@ -28,7 +28,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.campaign (
   id          uuid primary key default gen_random_uuid(),
   name        text not null default 'Neue Kampagne',
-  box         text not null default 'Wildspire Waste',
+  box         text not null default 'Ancient Forest',
   -- short human-friendly code others type in to join, e.g. "MHW-7Q2K"
   join_code   text not null unique default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   day         int  not null default 1 check (day >= 1),
