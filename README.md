@@ -24,8 +24,8 @@ live synchronisiert über **Supabase**.
 - **Onboarding** (Hunter anlegen → Waffe wählen)
 - **Camp-Hub** mit Status-Kacheln + Bottom-Tab-Navigation
 - **Jäger**: Charakterbogen, Gear ausrüsten, abgeleitete Werte/Skills
-- **Inventar**: Material, Other & Monster Teile (mit Icons) + Zenny
-- **Forge**: waffen-gelocktes Crafting (zieht Material/Zenny ab)
+- **Inventar**: Material, Other & Monster (mit Icons)
+- **Forge**: ausklappbare Waffen-Schmiedepfade + Rüstung
 - **Kampagne**: Tag-Tracker + Hunt-Checkliste
 - **Referenz**: Monster + Statuseffekte
 

@@ -8,6 +8,7 @@ import type {
   MaterialStash,
 } from "../domain/types";
 import { gameData } from "../data/gameData";
+import { canCraftGear } from "../domain/catalog";
 
 /**
  * Local-first campaign store. Everything persists to localStorage so the app
@@ -90,9 +91,8 @@ interface CampaignState {
   adjustMaterial: (materialId: string, delta: number) => void;
   setMaterial: (materialId: string, qty: number) => void;
   adjustItem: (itemId: string, delta: number) => void;
-  adjustZenny: (delta: number) => void;
 
-  /** Forge gear: spend materials + zenny, add to ownedGear. */
+  /** Forge gear: spend materials, add to ownedGear. */
   craftGear: (gearId: string) => { ok: boolean; reason?: string };
 
   setDay: (day: number) => void;
@@ -252,17 +252,6 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      adjustZenny: (delta) =>
-        set((s) => {
-          if (!s.campaign) return s;
-          return {
-            campaign: touch({
-              ...s.campaign,
-              zenny: Math.max(0, s.campaign.zenny + delta),
-            }),
-          };
-        }),
-
       craftGear: (gearId) => {
         const s = get();
         if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
@@ -270,14 +259,13 @@ export const useCampaign = create<CampaignState>()(
         if (!def) return { ok: false, reason: "Unbekanntes Gear." };
         if (s.campaign.ownedGear.includes(gearId))
           return { ok: false, reason: "Bereits gebaut." };
+        if (!canCraftGear(def, s.campaign))
+          return { ok: false, reason: "Voraussetzungen nicht erfüllt." };
 
-        // check materials
         for (const c of def.cost) {
           if ((s.campaign.materials[c.materialId] ?? 0) < c.qty)
             return { ok: false, reason: "Material fehlt." };
         }
-        if ((def.zenny ?? 0) > s.campaign.zenny)
-          return { ok: false, reason: "Zenny fehlt." };
 
         const materials = { ...s.campaign.materials };
         for (const c of def.cost) {
@@ -287,7 +275,6 @@ export const useCampaign = create<CampaignState>()(
           campaign: touch({
             ...s.campaign,
             materials,
-            zenny: s.campaign.zenny - (def.zenny ?? 0),
             ownedGear: [...s.campaign.ownedGear, gearId],
           }),
         });
@@ -335,10 +322,18 @@ export const useCampaign = create<CampaignState>()(
   ),
 );
 
-/** First weapon in a tree = the starter for that weapon type. */
+/** Default starter weapon id per weapon type. */
 function starterGearFor(weaponType: WeaponType): string | null {
   const starter = gameData.gear.find(
-    (g) => g.slot === "weapon" && g.weaponType === weaponType && g.cost.length === 0,
+    (g) =>
+      g.slot === "weapon" &&
+      g.weaponType === weaponType &&
+      g.isStarter === true,
   );
-  return starter?.id ?? null;
+  if (starter) return starter.id;
+  const fallback = gameData.gear.find(
+    (g) =>
+      g.slot === "weapon" && g.weaponType === weaponType && g.cost.length === 0,
+  );
+  return fallback?.id ?? null;
 }

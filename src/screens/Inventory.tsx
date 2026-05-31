@@ -55,7 +55,7 @@ export function Inventory() {
           active={tab === "monster"}
           onClick={() => setTab("monster")}
         >
-          Monster Teile
+          Monster
         </TabBtn>
       </div>
 
@@ -117,10 +117,6 @@ export function Inventory() {
         </div>
       )}
 
-      <div className="mt-5 paper-card flex items-center justify-between px-4 py-3">
-        <span className="font-semibold">Zenny</span>
-        <ZennyEditor />
-      </div>
     </Screen>
   );
 }
@@ -300,33 +296,6 @@ function CompactStepper({
         onClick={() => onChange(value + 1)}
         aria-label="mehr"
         className="grid h-7 w-7 place-items-center rounded border-[1.5px] border-line-strong bg-accent text-sm font-bold text-white active:translate-y-px"
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function ZennyEditor() {
-  const campaign = useCampaign((s) => s.campaign);
-  const adjustZenny = useCampaign((s) => s.adjustZenny);
-  if (!campaign) return null;
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => adjustZenny(-100)}
-        className="grid h-9 w-9 place-items-center rounded-lg border-[1.5px] border-line-strong bg-paper-2 font-bold active:translate-y-px"
-      >
-        −
-      </button>
-      <span className="w-16 text-center font-semibold tabular-nums">
-        {campaign.zenny}
-      </span>
-      <button
-        type="button"
-        onClick={() => adjustZenny(100)}
-        className="grid h-9 w-9 place-items-center rounded-lg border-[1.5px] border-line-strong bg-accent font-bold text-white active:translate-y-px"
       >
         +
       </button>

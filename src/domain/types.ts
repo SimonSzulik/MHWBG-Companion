@@ -17,6 +17,7 @@ export type WeaponType =
   | "Heavy Bowgun"
   | "Sword & Shield"
   | "Great Sword"
+  | "Dual Blades"
   | "Hammer"
   | "Long Sword"
   | "Bow";
@@ -61,14 +62,41 @@ export interface GearDef {
   weaponType?: WeaponType;
   /** Material cost to forge. */
   cost: Cost[];
-  /** Zenny cost to forge. */
-  zenny?: number;
   /** Granted skill/effect text shown on the hunter sheet. */
   effect?: string;
+  /** Forge path this weapon belongs to (weapons only). */
+  pathId?: string;
+  /** Position in path: 0 = entry, 1 = tier 2, 2 = tier 3. */
+  pathOrder?: number;
+  /** reDBo0n tier icon stem, e.g. "yellow-great-sword". */
+  tierIcon?: string;
+  /** Path header icon stem, e.g. "white-ore". */
+  pathIcon?: string;
+  /** Campaign-start default for this weapon type. */
+  isStarter?: boolean;
+  /** Deck change notes from reference card. */
+  deckChanges?: string;
   /** Defence value for armour pieces. */
   defense?: number;
   /** Free-form notes (board game rules reference). */
   notes?: string;
+}
+
+export interface MonsterDef {
+  id: string;
+  name: string;
+  /** e.g. "Brute Wyvern" */
+  kind?: string;
+  notes?: string;
+}
+
+/** A weapon forge upgrade path (Ancient Forest reference cards). */
+export interface WeaponForgePath {
+  id: string;
+  weaponType: WeaponType;
+  label: string;
+  icon: string;
+  gearIds: string[];
 }
 
 /** Bundled static catalog for one box/expansion. */
@@ -78,14 +106,7 @@ export interface GameData {
   items: ItemDef[];
   gear: GearDef[];
   monsters: MonsterDef[];
-}
-
-export interface MonsterDef {
-  id: string;
-  name: string;
-  /** e.g. "Brute Wyvern" */
-  kind?: string;
-  notes?: string;
+  weaponPaths?: WeaponForgePath[];
 }
 
 /* ---------- User data (the save) ---------- */

@@ -125,7 +125,7 @@ export const ancientForest: GameData = {
   ],
 
   gear: [
-    // ----- Switch Axe tree -----
+    // ----- Legacy weapon stubs (Switch Axe, Charge Blade, etc.) -----
     {
       id: "proto-commission-axe",
       name: "Proto Commission Axe",
@@ -144,7 +144,6 @@ export const ancientForest: GameData = {
         { materialId: "tobi-kadachi-pelt", qty: 3 },
         { materialId: "monster-bone-small", qty: 1 },
       ],
-      zenny: 1500,
       effect: "Blitz-Element.",
     },
     {
@@ -157,11 +156,8 @@ export const ancientForest: GameData = {
         { materialId: "rathalos-wing", qty: 1 },
         { materialId: "carbalite-ore", qty: 4 },
       ],
-      zenny: 4000,
       effect: "Feuer-Element. Hoher Rohschaden.",
     },
-
-    // ----- Charge Blade tree -----
     {
       id: "proto-commission-blade",
       name: "Proto Commission Blade",
@@ -170,8 +166,6 @@ export const ancientForest: GameData = {
       cost: [],
       effect: "Start-Charge-Blade.",
     },
-
-    // ----- Insect Glaive tree -----
     {
       id: "proto-commission-glaive",
       name: "Proto Commission Glaive",
@@ -180,8 +174,6 @@ export const ancientForest: GameData = {
       cost: [],
       effect: "Start-Insect-Glaive.",
     },
-
-    // ----- Heavy Bowgun tree -----
     {
       id: "proto-commission-bowgun",
       name: "Proto Commission Bowgun",
@@ -200,7 +192,6 @@ export const ancientForest: GameData = {
         { materialId: "great-jagras-scale", qty: 2 },
         { materialId: "quality-bone", qty: 1 },
       ],
-      zenny: 600,
       defense: 20,
       effect: "Skill: Geologe +1.",
     },
@@ -212,7 +203,6 @@ export const ancientForest: GameData = {
         { materialId: "anjanath-scale", qty: 3 },
         { materialId: "anjanath-pelt", qty: 2 },
       ],
-      zenny: 1000,
       defense: 28,
       effect: "Skill: Attack Boost +1.",
     },
@@ -224,7 +214,6 @@ export const ancientForest: GameData = {
         { materialId: "rathalos-shell", qty: 3 },
         { materialId: "rathalos-scale", qty: 2 },
       ],
-      zenny: 1400,
       defense: 32,
       effect: "Skill: Weakness Exploit +1.",
     },
