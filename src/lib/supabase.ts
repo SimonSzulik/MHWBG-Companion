@@ -1,7 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+/** Project root URL only — not the PostgREST `/rest/v1` path from the dashboard. */
+export function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  return raw
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/rest\/v1\/?$/i, "");
+}
+
+const url = normalizeSupabaseUrl(
+  import.meta.env.VITE_SUPABASE_URL as string | undefined,
+);
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 /**
