@@ -345,7 +345,19 @@ grant execute on function public.join_campaign_hunter(text, text, text) to authe
 
 -- -----------------------------------------------------------------------------
 -- Realtime: broadcast row changes for live shared state.
+-- Idempotent: skip if tables are already in supabase_realtime (re-run safe).
 -- -----------------------------------------------------------------------------
-alter publication supabase_realtime add table public.campaign_state;
-alter publication supabase_realtime add table public.hunter;
-alter publication supabase_realtime add table public.campaign;
+do $$ begin
+  alter publication supabase_realtime add table public.campaign_state;
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.hunter;
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.campaign;
+exception when duplicate_object then null;
+end $$;
