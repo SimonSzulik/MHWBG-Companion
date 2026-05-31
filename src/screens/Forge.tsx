@@ -4,21 +4,25 @@ import { useCampaign } from "../store/campaign";
 import { gameData } from "../data/gameData";
 import { FORGE_WEAPON_TYPES } from "../data/forge/ancientForestWeapons";
 import {
+  armorSets,
   catalog,
   craftState,
   pathsForWeapon,
   pathHasCraftable,
+  pathProgressName,
+  setProgressLabel,
   isEquipped,
   type CraftState,
+  type ForgePathLike,
 } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import type { GearDef, WeaponForgePath } from "../domain/types";
+import type { DeckChanges, GearDef } from "../domain/types";
 
 type Tab = "weapons" | "armour";
 
 /**
- * Forge drill-in. Weapon tab shows collapsible forge paths for supported types;
- * armour tab stays a flat list for now.
+ * Forge drill-in. Weapon tab shows collapsible forge paths; armour tab shows
+ * collapsible armour sets from the reference cards.
  */
 export function Forge() {
   const [tab, setTab] = useState<Tab>("weapons");
@@ -32,7 +36,10 @@ export function Forge() {
     mainWeapon != null &&
     FORGE_WEAPON_TYPES.includes(mainWeapon);
 
-  const armour = gameData.gear.filter((g) => g.slot !== "weapon");
+  const onCraft = (id: string) => {
+    const res = craft(id);
+    if (!res.ok && res.reason) alert(res.reason);
+  };
 
   return (
     <Screen
@@ -61,45 +68,43 @@ export function Forge() {
       </div>
 
       {usePathForge && mainWeapon ? (
-        <WeaponPathForge
-          weaponType={mainWeapon}
-          onCraft={(id) => {
-            const res = craft(id);
-            if (!res.ok && res.reason) alert(res.reason);
-          }}
+        <PathForgeList
+          paths={pathsForWeapon(mainWeapon)}
+          progressLabel={(path) => pathProgressName(path, campaign)}
+          sequential
+          onCraft={onCraft}
         />
       ) : tab === "weapons" ? (
         <FlatGearList
           items={gameData.gear.filter(
             (g) => g.slot === "weapon" && g.weaponType === mainWeapon,
           )}
-          onCraft={(id) => {
-            const res = craft(id);
-            if (!res.ok && res.reason) alert(res.reason);
-          }}
+          onCraft={onCraft}
         />
       ) : (
-        <FlatGearList
-          items={armour}
-          onCraft={(id) => {
-            const res = craft(id);
-            if (!res.ok && res.reason) alert(res.reason);
-          }}
+        <PathForgeList
+          paths={armorSets()}
+          progressLabel={(path) => setProgressLabel(path, campaign)}
+          sequential={false}
+          onCraft={onCraft}
         />
       )}
     </Screen>
   );
 }
 
-function WeaponPathForge({
-  weaponType,
+function PathForgeList({
+  paths,
+  progressLabel,
+  sequential,
   onCraft,
 }: {
-  weaponType: NonNullable<(typeof gameData)["gear"][0]["weaponType"]>;
+  paths: ForgePathLike[];
+  progressLabel: (path: ForgePathLike) => string;
+  sequential: boolean;
   onCraft: (id: string) => void;
 }) {
   const campaign = useCampaign((s) => s.campaign);
-  const paths = pathsForWeapon(weaponType);
   const [openId, setOpenId] = useState<string | null>(
     paths.find((p) => campaign && pathHasCraftable(p, campaign))?.id ??
       paths[0]?.id ??
@@ -114,7 +119,9 @@ function WeaponPathForge({
         <ForgePathTile
           key={path.id}
           path={path}
+          progress={progressLabel(path)}
           open={openId === path.id}
+          sequential={sequential}
           onToggle={() =>
             setOpenId((cur) => (cur === path.id ? null : path.id))
           }
@@ -127,12 +134,16 @@ function WeaponPathForge({
 
 function ForgePathTile({
   path,
+  progress,
   open,
+  sequential,
   onToggle,
   onCraft,
 }: {
-  path: WeaponForgePath;
+  path: ForgePathLike;
+  progress: string;
   open: boolean;
+  sequential: boolean;
   onToggle: () => void;
   onCraft: (id: string) => void;
 }) {
@@ -157,9 +168,14 @@ function ForgePathTile({
           alt=""
           className="h-10 w-10 shrink-0 object-contain"
         />
-        <span className="flex-1 font-semibold">{path.label}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">{path.label}</p>
+          {!open && (
+            <p className="truncate text-sm text-ink-soft">{progress}</p>
+          )}
+        </div>
         <span
-          className={`text-lg text-ink-soft transition-transform duration-200 ${
+          className={`shrink-0 text-lg text-ink-soft transition-transform duration-200 ${
             open ? "rotate-90" : ""
           }`}
         >
@@ -177,10 +193,10 @@ function ForgePathTile({
               const gear = catalog.gear(gearId);
               if (!gear) return null;
               return (
-                <ForgeWeaponNode
+                <ForgeGearNode
                   key={`${path.id}-${gearId}`}
                   gear={gear}
-                  isLast={i === path.gearIds.length - 1}
+                  showTreeLine={sequential && i < path.gearIds.length - 1}
                   onCraft={() => onCraft(gearId)}
                 />
               );
@@ -192,13 +208,13 @@ function ForgePathTile({
   );
 }
 
-function ForgeWeaponNode({
+function ForgeGearNode({
   gear,
-  isLast,
+  showTreeLine,
   onCraft,
 }: {
   gear: GearDef;
-  isLast: boolean;
+  showTreeLine: boolean;
   onCraft: () => void;
 }) {
   const campaign = useCampaign((s) => s.campaign);
@@ -212,7 +228,9 @@ function ForgeWeaponNode({
     <div className="flex gap-3">
       <div className="flex flex-col items-center pt-1">
         <TreeDot state={state} />
-        {!isLast && <div className="mt-1 w-0.5 flex-1 bg-line-strong" />}
+        {showTreeLine && (
+          <div className="mt-1 w-0.5 flex-1 bg-line-strong" />
+        )}
       </div>
 
       <div
@@ -238,19 +256,23 @@ function ForgeWeaponNode({
           </span>
         </div>
 
+        {gear.defense != null && (
+          <p className="mt-1 text-xs text-ink-soft">Verteidigung {gear.defense}</p>
+        )}
+
+        {gear.effect && (
+          <p className="mt-0.5 text-xs text-ink-soft">{gear.effect}</p>
+        )}
+
         {gear.cost.length > 0 && state !== "owned" && (
           <MaterialCostList gear={gear} />
         )}
 
-        {gear.cost.length === 0 && state !== "owned" && (
+        {gear.cost.length === 0 && state !== "owned" && gear.slot === "weapon" && (
           <p className="mt-2 text-xs text-ink-soft">Startwaffe</p>
         )}
 
-        {gear.deckChanges && (
-          <p className="mt-2 text-[10px] leading-snug text-ink-soft">
-            {gear.deckChanges}
-          </p>
-        )}
+        {gear.deckChanges && <DeckChangesBlock changes={gear.deckChanges} />}
 
         {state === "craftable" && (
           <button
@@ -260,6 +282,43 @@ function ForgeWeaponNode({
           >
             Schmieden
           </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DeckChangesBlock({ changes }: { changes: DeckChanges }) {
+  const hasRemove = (changes.remove?.length ?? 0) > 0;
+  const hasAdd = (changes.add?.length ?? 0) > 0;
+  if (!hasRemove && !hasAdd) return null;
+
+  return (
+    <div className="mt-3 border-t border-line pt-2">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {hasRemove && (
+          <div>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+              Entfernen
+            </p>
+            <ul className="flex flex-col gap-0.5 text-[11px] leading-snug">
+              {changes.remove!.map((card) => (
+                <li key={card}>− {card}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {hasAdd && (
+          <div>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+              Hinzufügen
+            </p>
+            <ul className="flex flex-col gap-0.5 text-[11px] leading-snug">
+              {changes.add!.map((card) => (
+                <li key={card}>+ {card}</li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>

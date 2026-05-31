@@ -1,6 +1,10 @@
 import type { GameData } from "../domain/types";
 import { ancientForest } from "./ancientForest";
 import {
+  ancientForestArmorGear,
+  ancientForestArmorSets,
+} from "./forge/ancientForestArmor";
+import {
   ancientForestWeaponGear,
   ancientForestWeaponPaths,
   FORGE_WEAPON_TYPES,
@@ -20,6 +24,7 @@ const legacyWeapons = ancientForest.gear.filter(
  */
 export const gameData: GameData = {
   ...ancientForest,
-  gear: [...legacyWeapons, ...ancientForestWeaponGear],
+  gear: [...legacyWeapons, ...ancientForestWeaponGear, ...ancientForestArmorGear],
   weaponPaths: ancientForestWeaponPaths,
+  armorSets: ancientForestArmorSets,
 };

@@ -1,4 +1,4 @@
-import type { Cost, GearDef, WeaponForgePath, WeaponType } from "../../domain/types";
+import type { Cost, DeckChanges, GearDef, WeaponForgePath, WeaponType } from "../../domain/types";
 
 type W = WeaponType;
 
@@ -13,7 +13,7 @@ function w(
     tierIcon: string;
     pathIcon: string;
     isStarter?: boolean;
-    deckChanges?: string;
+    deckChanges?: DeckChanges;
   },
 ): GearDef {
   return {
@@ -51,7 +51,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "malachite-ore", qty: 1 },
       { materialId: "monster-bone-medium", qty: 1 },
     ],
-    deckChanges: "Remove: 2 Jumping Slash · Add: 2 Enhanced Jumping Slash",
+    deckChanges: {
+      remove: ["2 Jumping Slash"],
+      add: ["2 Enhanced Jumping Slash"],
+    },
   }),
   w("chrome-razor", "Chrome Razor", gs, "gs-ore", 2, {
     tierIcon: "green-great-sword",
@@ -62,8 +65,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "dragonite-ore", qty: 3 },
       { materialId: "dragonvein-crystal", qty: 2 },
     ],
-    deckChanges:
-      "Remove: 2 Jumping Slash, 2 Wide Slash · Add: 2 Enhanced Jumping Slash, 2 Heavy Slice",
+    deckChanges: {
+      remove: ["2 Jumping Slash", "2 Wide Slash"],
+      add: ["2 Enhanced Jumping Slash", "2 Heavy Slice"],
+    },
   }),
 
   w("bone-blade", "Bone Blade", gs, "gs-bone", 0, {
@@ -80,7 +85,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "monster-bone-medium", qty: 1 },
       { materialId: "boulder-bone", qty: 1 },
     ],
-    deckChanges: "Remove: Any 1 Card · Add: 1 Greater Sword Block",
+    deckChanges: {
+      remove: ["Any 1 Card"],
+      add: ["1 Greater Sword Block"],
+    },
   }),
   w("giant-jawblade", "Giant Jawblade", gs, "gs-bone", 2, {
     tierIcon: "green-great-sword",
@@ -90,8 +98,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "monster-keenbone", qty: 2 },
       { materialId: "quality-bone", qty: 3 },
     ],
-    deckChanges:
-      "Remove: Any 1 Card, 4 Overhead Slam · Add: 1 Greater Sword Block, 4 Enhanced Overhead Slam",
+    deckChanges: {
+      remove: ["Any 1 Card", "4 Overhead Slam"],
+      add: ["1 Greater Sword Block", "4 Enhanced Overhead Slam"],
+    },
   }),
 
   w("jagras-blade", "Jagras Blade", gs, "gs-jagras", 1, {
@@ -103,7 +113,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "great-jagras-scale", qty: 2 },
       { materialId: "sharp-claw", qty: 1 },
     ],
-    deckChanges: "Remove: 3 Rising Slash · Add: 3 Strong Rising Slash",
+    deckChanges: {
+      remove: ["3 Rising Slash"],
+      add: ["3 Strong Rising Slash"],
+    },
   }),
   w("jagras-hacker", "Jagras Hacker", gs, "gs-jagras", 2, {
     tierIcon: "purple-great-sword",
@@ -114,8 +127,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "great-jagras-mane", qty: 2 },
       { materialId: "piercing-claw", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 3 Rising Slash, Any 2 Cards · Add: 3 Strong Rising Slash, 2 Strong Charge Up",
+    deckChanges: {
+      remove: ["3 Rising Slash", "Any 2 Cards"],
+      add: ["3 Strong Rising Slash", "2 Strong Charge Up"],
+    },
   }),
 
   w("flame-blade", "Flame Blade", gs, "gs-rathalos", 1, {
@@ -127,7 +142,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "inferno-sac", qty: 1 },
       { materialId: "rathalos-marrow", qty: 1 },
     ],
-    deckChanges: "Remove: 4 Overhead Slam · Add: 4 Blazing Slam",
+    deckChanges: {
+      remove: ["4 Overhead Slam"],
+      add: ["4 Blazing Slam"],
+    },
   }),
   w("red-wing", "Red Wing", gs, "gs-rathalos", 2, {
     tierIcon: "purple-great-sword",
@@ -138,8 +156,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "rathalos-wing", qty: 1 },
       { materialId: "rathalos-medulla", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 4 Overhead Slam, 2 Wide Slash · Add: 4 Blazing Slam, 2 Crushing Slash",
+    deckChanges: {
+      remove: ["4 Overhead Slam", "2 Wide Slash"],
+      add: ["4 Blazing Slam", "2 Crushing Slash"],
+    },
   }),
 
   // ----- Sword & Shield -----
@@ -155,8 +175,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "malachite-ore", qty: 1 },
       { materialId: "monster-bone-medium", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 2 Advancing Slash · Add: 2 Enhanced Advancing Slash",
+    deckChanges: {
+      remove: ["2 Advancing Slash"],
+      add: ["2 Enhanced Advancing Slash"],
+    },
   }),
   w("chrome-slicer", "Chrome Slicer", sns, "sns-ore", 2, {
     tierIcon: "green-sword-shield",
@@ -167,8 +189,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "dragonite-ore", qty: 3 },
       { materialId: "dragonvein-crystal", qty: 2 },
     ],
-    deckChanges:
-      "Remove: 2 Advancing Slash, Any 2 Cards · Add: 2 Enhanced Advancing Slash, 2 Helm Splitter",
+    deckChanges: {
+      remove: ["2 Advancing Slash", "Any 2 Cards"],
+      add: ["2 Enhanced Advancing Slash", "2 Helm Splitter"],
+    },
   }),
 
   w("bone-kukri", "Bone Kukri", sns, "sns-bone", 0, {
@@ -185,7 +209,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "monster-bone-medium", qty: 1 },
       { materialId: "boulder-bone", qty: 1 },
     ],
-    deckChanges: "Remove: 2 Shield Bash · Add: 2 Strong Shield Bash",
+    deckChanges: {
+      remove: ["2 Shield Bash"],
+      add: ["2 Strong Shield Bash"],
+    },
   }),
   w("grand-barong", "Grand Barong", sns, "sns-bone", 2, {
     tierIcon: "green-sword-shield",
@@ -195,8 +222,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "monster-keenbone", qty: 2 },
       { materialId: "quality-bone", qty: 3 },
     ],
-    deckChanges:
-      "Remove: 2 Shield Bash, 2 Chop · Add: 2 Strong Shield Bash, 2 Chop Reversal",
+    deckChanges: {
+      remove: ["2 Shield Bash", "2 Chop"],
+      add: ["2 Strong Shield Bash", "2 Chop Reversal"],
+    },
   }),
 
   w("jagras-edge", "Jagras Edge", sns, "sns-jagras", 1, {
@@ -208,7 +237,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "great-jagras-scale", qty: 2 },
       { materialId: "sharp-claw", qty: 1 },
     ],
-    deckChanges: "Remove: 2 Lateral Slash · Add: 2 Glutton Lateral Slash",
+    deckChanges: {
+      remove: ["2 Lateral Slash"],
+      add: ["2 Glutton Lateral Slash"],
+    },
   }),
   w("jagras-garrotte", "Jagras Garotte", sns, "sns-jagras", 2, {
     tierIcon: "purple-sword-shield",
@@ -219,8 +251,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "great-jagras-mane", qty: 2 },
       { materialId: "piercing-claw", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 2 Lateral Slash, 1 Rising Slash, Any 1 Card · Add: 2 Glutton Lateral Slash, 2 Jump Rising Slash",
+    deckChanges: {
+      remove: ["2 Lateral Slash", "1 Rising Slash", "Any 1 Card"],
+      add: ["2 Glutton Lateral Slash", "2 Jump Rising Slash"],
+    },
   }),
 
   w("flame-knife", "Flame Knife", sns, "sns-rathalos", 1, {
@@ -232,8 +266,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "rathalos-plate", qty: 1 },
       { materialId: "inferno-sac", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 2 Advancing Slash · Add: 2 Advancing Double Slash",
+    deckChanges: {
+      remove: ["2 Advancing Slash"],
+      add: ["2 Advancing Double Slash"],
+    },
   }),
   w("heat-edge", "Heat Edge", sns, "sns-rathalos", 2, {
     tierIcon: "purple-sword-shield",
@@ -243,8 +279,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "rathalos-carapace", qty: 2 },
       { materialId: "rathalos-wing", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 2 Advancing Slash, 2 Sword & Shield Combo · Add: 2 Advancing Double Slash, 2 Blazing Combo",
+    deckChanges: {
+      remove: ["2 Advancing Slash", "2 Sword & Shield Combo"],
+      add: ["2 Advancing Double Slash", "2 Blazing Combo"],
+    },
   }),
 
   // ----- Bow -----
@@ -260,7 +298,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "malachite-ore", qty: 1 },
       { materialId: "monster-bone-medium", qty: 1 },
     ],
-    deckChanges: "Remove: 2 Feint · Add: 2 Skilled Feint",
+    deckChanges: {
+      remove: ["2 Feint"],
+      add: ["2 Skilled Feint"],
+    },
   }),
   w("alloy-bow", "Alloy Bow", bow, "bow-ore", 2, {
     tierIcon: "green-bow",
@@ -271,8 +312,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "dragonite-ore", qty: 3 },
       { materialId: "dragonvein-crystal", qty: 2 },
     ],
-    deckChanges:
-      "Remove: 2 Feint, 3 Charged Shot · Add: 2 Skilled Feint, 3 Enhanced Charged Shot",
+    deckChanges: {
+      remove: ["2 Feint", "3 Charged Shot"],
+      add: ["2 Skilled Feint", "3 Enhanced Charged Shot"],
+    },
   }),
 
   w("hunters-bow", "Hunter's Bow", bow, "bow-bone", 0, {
@@ -289,8 +332,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "monster-bone-medium", qty: 1 },
       { materialId: "boulder-bone", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 4 Power Coating · Add: 2 Poison Coating, 2 Paralysis Coating",
+    deckChanges: {
+      remove: ["4 Power Coating"],
+      add: ["2 Poison Coating", "2 Paralysis Coating"],
+    },
   }),
   w("hunters-proudbow", "Hunter's Proudbow", bow, "bow-bone", 2, {
     tierIcon: "green-bow",
@@ -300,8 +345,15 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "monster-keenbone", qty: 2 },
       { materialId: "quality-bone", qty: 3 },
     ],
-    deckChanges:
-      "Remove: 4 Power Coating, 2 Shot, 2 Arc Shot · Add: 2 Poison Coating, 2 Paralysis Coating, 2 Enhanced Shot, 2 Strong Arc Shot",
+    deckChanges: {
+      remove: ["4 Power Coating", "2 Shot", "2 Arc Shot"],
+      add: [
+        "2 Poison Coating",
+        "2 Paralysis Coating",
+        "2 Enhanced Shot",
+        "2 Strong Arc Shot",
+      ],
+    },
   }),
 
   w("pulsar-bow", "Pulsar Bow", bow, "bow-tobi", 1, {
@@ -313,8 +365,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "electro-sac", qty: 1 },
       { materialId: "coral-crystal", qty: 2 },
     ],
-    deckChanges:
-      "Remove: 4 Power Coating · Add: 3 High Power Coating, 1 Paralysis Coating",
+    deckChanges: {
+      remove: ["4 Power Coating"],
+      add: ["3 High Power Coating", "1 Paralysis Coating"],
+    },
   }),
   w("flying-kadachi-strikebow", "Flying Kadachi Strikebow", bow, "bow-tobi", 2, {
     tierIcon: "purple-bow",
@@ -325,8 +379,14 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "tobi-kadachi-pelt", qty: 2 },
       { materialId: "dragonvein-crystal", qty: 2 },
     ],
-    deckChanges:
-      "Remove: 4 Power Coating, 1 Dragon Piercer, Any 1 Card · Add: 3 High Power Coating, 1 Paralysis Coating, 2 Striking Dragon Piercer",
+    deckChanges: {
+      remove: ["4 Power Coating", "1 Dragon Piercer", "Any 1 Card"],
+      add: [
+        "3 High Power Coating",
+        "1 Paralysis Coating",
+        "2 Striking Dragon Piercer",
+      ],
+    },
   }),
 
   w("blazing-bow", "Blazing Bow", bow, "bow-anja", 1, {
@@ -337,8 +397,10 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "anjanath-fang", qty: 2 },
       { materialId: "flame-sac", qty: 1 },
     ],
-    deckChanges:
-      "Remove: 4 Power Coating · Add: 2 Blast Coating, 2 Poison Coating",
+    deckChanges: {
+      remove: ["4 Power Coating"],
+      add: ["2 Blast Coating", "2 Poison Coating"],
+    },
   }),
   w("anja-arch", "Anja Arch", bow, "bow-anja", 2, {
     tierIcon: "purple-bow",
@@ -349,8 +411,14 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "anjanath-scale", qty: 3 },
       { materialId: "flame-sac", qty: 2 },
     ],
-    deckChanges:
-      "Remove: 4 Power Coating, 3 Charged Shot · Add: 2 Blast Coating, 2 Poison Coating, 3 Blazing Charged Shot",
+    deckChanges: {
+      remove: ["4 Power Coating", "3 Charged Shot"],
+      add: [
+        "2 Blast Coating",
+        "2 Poison Coating",
+        "3 Blazing Charged Shot",
+      ],
+    },
   }),
 
   // ----- Dual Blades -----

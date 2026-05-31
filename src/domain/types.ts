@@ -53,6 +53,12 @@ export interface Cost {
 
 export type GearSlot = "weapon" | "head" | "chest" | "arms" | "waist" | "legs";
 
+/** Deck modifications when forging a weapon (reference card Remove/Add). */
+export interface DeckChanges {
+  remove?: string[];
+  add?: string[];
+}
+
 /** A craftable piece of gear (catalog entry / recipe). */
 export interface GearDef {
   id: string;
@@ -75,7 +81,7 @@ export interface GearDef {
   /** Campaign-start default for this weapon type. */
   isStarter?: boolean;
   /** Deck change notes from reference card. */
-  deckChanges?: string;
+  deckChanges?: DeckChanges;
   /** Defence value for armour pieces. */
   defense?: number;
   /** Free-form notes (board game rules reference). */
@@ -99,6 +105,14 @@ export interface WeaponForgePath {
   gearIds: string[];
 }
 
+/** An armour forge set (Ancient Forest reference card row). */
+export interface ArmorForgeSet {
+  id: string;
+  label: string;
+  icon: string;
+  gearIds: string[];
+}
+
 /** Bundled static catalog for one box/expansion. */
 export interface GameData {
   box: string;
@@ -107,6 +121,7 @@ export interface GameData {
   gear: GearDef[];
   monsters: MonsterDef[];
   weaponPaths?: WeaponForgePath[];
+  armorSets?: ArmorForgeSet[];
 }
 
 /* ---------- User data (the save) ---------- */

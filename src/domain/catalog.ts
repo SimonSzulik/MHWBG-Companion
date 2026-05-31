@@ -1,5 +1,6 @@
 import { gameData } from "../data/gameData";
 import type {
+  ArmorForgeSet,
   Campaign,
   GearDef,
   WeaponForgePath,
@@ -23,12 +24,23 @@ export const catalog = {
 /** Craftability of a gear def given the current campaign state. */
 export type CraftState = "owned" | "craftable" | "missing";
 
+export interface ForgePathLike {
+  id: string;
+  label: string;
+  icon: string;
+  gearIds: string[];
+}
+
 export function pathsForWeapon(weaponType: WeaponType): WeaponForgePath[] {
   return (gameData.weaponPaths ?? []).filter((p) => p.weaponType === weaponType);
 }
 
+export function armorSets(): ArmorForgeSet[] {
+  return gameData.armorSets ?? [];
+}
+
 export function pathHasCraftable(
-  path: WeaponForgePath,
+  path: ForgePathLike,
   campaign: Campaign,
 ): boolean {
   return path.gearIds.some((id) => {
@@ -37,9 +49,42 @@ export function pathHasCraftable(
   });
 }
 
+/** Highest owned weapon name in a sequential path, or fallback. */
+export function pathProgressName(
+  path: ForgePathLike,
+  campaign: Campaign,
+): string {
+  let lastOwned: string | null = null;
+  for (const id of path.gearIds) {
+    if (campaign.ownedGear.includes(id)) {
+      const gear = catalog.gear(id);
+      if (gear) lastOwned = gear.name;
+    }
+  }
+  return lastOwned ?? "Noch nicht begonnen";
+}
+
+/** Owned armour piece names in a set, or fallback. */
+export function setProgressLabel(
+  set: ForgePathLike,
+  campaign: Campaign,
+): string {
+  const owned = set.gearIds
+    .filter((id) => campaign.ownedGear.includes(id))
+    .map((id) => catalog.gear(id)?.name)
+    .filter(Boolean) as string[];
+  if (owned.length === 0) return "Noch nichts geschmiedet";
+  return owned.join(" · ");
+}
+
 /** Whether sequential forge prerequisites are met. */
 export function canCraftGear(gear: GearDef, campaign: Campaign): boolean {
-  if (gear.pathId != null && gear.pathOrder != null && gear.pathOrder > 0) {
+  if (
+    gear.slot === "weapon" &&
+    gear.pathId != null &&
+    gear.pathOrder != null &&
+    gear.pathOrder > 0
+  ) {
     const path = gameData.weaponPaths?.find((p) => p.id === gear.pathId);
     const prevId = path?.gearIds[gear.pathOrder - 1];
     if (prevId && !campaign.ownedGear.includes(prevId)) return false;
@@ -56,9 +101,12 @@ export function craftState(gear: GearDef, campaign: Campaign): CraftState {
   return enoughMats ? "craftable" : "missing";
 }
 
-export function isEquipped(
-  gearId: string,
-  campaign: Campaign,
-): boolean {
-  return campaign.hunters.some((h) => h.equipped.weapon === gearId);
+
+export function isEquipped(gearId: string, campaign: Campaign): boolean {
+  const gear = catalog.gear(gearId);
+  if (!gear) return false;
+  return campaign.hunters.some((h) => {
+    if (gear.slot === "weapon") return h.equipped.weapon === gearId;
+    return h.equipped[gear.slot] === gearId;
+  });
 }

@@ -182,41 +182,6 @@ export const ancientForest: GameData = {
       cost: [],
       effect: "Start-Heavy-Bowgun.",
     },
-
-    // ----- Armour -----
-    {
-      id: "jagras-helm",
-      name: "Jagras Helm",
-      slot: "head",
-      cost: [
-        { materialId: "great-jagras-scale", qty: 2 },
-        { materialId: "quality-bone", qty: 1 },
-      ],
-      defense: 20,
-      effect: "Skill: Geologe +1.",
-    },
-    {
-      id: "anjanath-mail",
-      name: "Anjanath Mail",
-      slot: "chest",
-      cost: [
-        { materialId: "anjanath-scale", qty: 3 },
-        { materialId: "anjanath-pelt", qty: 2 },
-      ],
-      defense: 28,
-      effect: "Skill: Attack Boost +1.",
-    },
-    {
-      id: "rathalos-greaves",
-      name: "Rathalos Greaves",
-      slot: "legs",
-      cost: [
-        { materialId: "rathalos-shell", qty: 3 },
-        { materialId: "rathalos-scale", qty: 2 },
-      ],
-      defense: 32,
-      effect: "Skill: Weakness Exploit +1.",
-    },
   ],
 };
 
