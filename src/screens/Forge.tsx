@@ -18,7 +18,7 @@ import {
 } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
 import { ownHunter } from "../lib/hunter";
-import type { DeckChanges, GearDef } from "../domain/types";
+import type { Campaign, DeckChanges, GearDef, Hunter } from "../domain/types";
 
 type Tab = "weapons" | "armour";
 
@@ -34,14 +34,16 @@ export function Forge() {
   if (!campaign) return null;
 
   const hunter = ownHunter(campaign, userId);
-  const mainWeapon = hunter?.weaponType;
+  if (!hunter) return null;
+
+  const mainWeapon = hunter.weaponType;
   const usePathForge =
     tab === "weapons" &&
     mainWeapon != null &&
     FORGE_WEAPON_TYPES.includes(mainWeapon);
 
   const onCraft = (id: string) => {
-    const res = craft(id);
+    const res = craft(hunter.id, id);
     if (!res.ok && res.reason) alert(res.reason);
   };
 
@@ -73,13 +75,16 @@ export function Forge() {
 
       {usePathForge && mainWeapon ? (
         <PathForgeList
+          hunter={hunter}
           paths={pathsForWeapon(mainWeapon)}
-          progressLabel={(path) => pathProgressName(path, campaign)}
+          progressLabel={(path) => pathProgressName(path, hunter)}
           sequential
           onCraft={onCraft}
         />
       ) : tab === "weapons" ? (
         <FlatGearList
+          hunter={hunter}
+          campaign={campaign}
           items={gameData.gear.filter(
             (g) => g.slot === "weapon" && g.weaponType === mainWeapon,
           )}
@@ -87,8 +92,9 @@ export function Forge() {
         />
       ) : (
         <PathForgeList
+          hunter={hunter}
           paths={armorSets()}
-          progressLabel={(path) => setProgressLabel(path, campaign)}
+          progressLabel={(path) => setProgressLabel(path, hunter)}
           sequential={false}
           onCraft={onCraft}
         />
@@ -98,11 +104,13 @@ export function Forge() {
 }
 
 function PathForgeList({
+  hunter,
   paths,
   progressLabel,
   sequential,
   onCraft,
 }: {
+  hunter: Hunter;
   paths: ForgePathLike[];
   progressLabel: (path: ForgePathLike) => string;
   sequential: boolean;
@@ -110,7 +118,7 @@ function PathForgeList({
 }) {
   const campaign = useCampaign((s) => s.campaign);
   const [openId, setOpenId] = useState<string | null>(
-    paths.find((p) => campaign && pathHasCraftable(p, campaign))?.id ??
+    paths.find((p) => pathHasCraftable(p, hunter))?.id ??
       paths[0]?.id ??
       null,
   );
@@ -122,6 +130,8 @@ function PathForgeList({
       {paths.map((path) => (
         <ForgePathTile
           key={path.id}
+          hunter={hunter}
+          campaign={campaign}
           path={path}
           progress={progressLabel(path)}
           open={openId === path.id}
@@ -137,6 +147,8 @@ function PathForgeList({
 }
 
 function ForgePathTile({
+  hunter,
+  campaign,
   path,
   progress,
   open,
@@ -144,6 +156,8 @@ function ForgePathTile({
   onToggle,
   onCraft,
 }: {
+  hunter: Hunter;
+  campaign: Campaign;
   path: ForgePathLike;
   progress: string;
   open: boolean;
@@ -151,10 +165,7 @@ function ForgePathTile({
   onToggle: () => void;
   onCraft: (id: string) => void;
 }) {
-  const campaign = useCampaign((s) => s.campaign);
-  if (!campaign) return null;
-
-  const highlight = pathHasCraftable(path, campaign);
+  const highlight = pathHasCraftable(path, hunter);
 
   return (
     <div
@@ -199,6 +210,8 @@ function ForgePathTile({
               return (
                 <ForgeGearNode
                   key={`${path.id}-${gearId}`}
+                  hunter={hunter}
+                  campaign={campaign}
                   gear={gear}
                   showTreeLine={sequential && i < path.gearIds.length - 1}
                   onCraft={() => onCraft(gearId)}
@@ -213,18 +226,19 @@ function ForgePathTile({
 }
 
 function ForgeGearNode({
+  hunter,
+  campaign,
   gear,
   showTreeLine,
   onCraft,
 }: {
+  hunter: Hunter;
+  campaign: Campaign;
   gear: GearDef;
   showTreeLine: boolean;
   onCraft: () => void;
 }) {
-  const campaign = useCampaign((s) => s.campaign);
-  if (!campaign) return null;
-
-  const state = craftState(gear, campaign);
+  const state = craftState(gear, hunter);
   const equipped = isEquipped(gear.id, campaign);
   const badge = badgeFor(state, equipped);
 
@@ -269,7 +283,7 @@ function ForgeGearNode({
         )}
 
         {gear.cost.length > 0 && state !== "owned" && (
-          <MaterialCostList gear={gear} />
+          <MaterialCostList gear={gear} hunter={hunter} />
         )}
 
         {gear.cost.length === 0 && state !== "owned" && gear.slot === "weapon" && (
@@ -333,14 +347,11 @@ function DeckChangesBlock({ changes }: { changes: DeckChanges }) {
   );
 }
 
-function MaterialCostList({ gear }: { gear: GearDef }) {
-  const campaign = useCampaign((s) => s.campaign);
-  if (!campaign) return null;
-
+function MaterialCostList({ gear, hunter }: { gear: GearDef; hunter: Hunter }) {
   return (
     <ul className="mt-2 flex flex-col gap-1 text-xs">
       {gear.cost.map((c) => {
-        const have = campaign.materials[c.materialId] ?? 0;
+        const have = hunter.materials[c.materialId] ?? 0;
         const enough = have >= c.qty;
         const name =
           catalog.material(c.materialId)?.name ?? c.materialId;
@@ -385,22 +396,25 @@ function badgeFor(state: CraftState, equipped: boolean) {
 }
 
 function FlatGearList({
+  hunter,
+  campaign,
   items,
   onCraft,
 }: {
+  hunter: Hunter;
+  campaign: Campaign;
   items: GearDef[];
   onCraft: (id: string) => void;
 }) {
-  const campaign = useCampaign((s) => s.campaign);
-  if (!campaign) return null;
-
   return (
     <div className="flex flex-col gap-3">
       {items.map((g) => (
         <GearCard
           key={g.id}
+          hunter={hunter}
+          campaign={campaign}
           gear={g}
-          state={craftState(g, campaign)}
+          state={craftState(g, hunter)}
           onCraft={() => onCraft(g.id)}
         />
       ))}
@@ -412,16 +426,19 @@ function FlatGearList({
 }
 
 function GearCard({
+  hunter,
+  campaign,
   gear,
   state,
   onCraft,
 }: {
+  hunter: Hunter;
+  campaign: Campaign;
   gear: GearDef;
   state: CraftState;
   onCraft: () => void;
 }) {
-  const campaign = useCampaign((s) => s.campaign);
-  const badge = badgeFor(state, isEquipped(gear.id, campaign!));
+  const badge = badgeFor(state, isEquipped(gear.id, campaign));
 
   return (
     <div
@@ -443,7 +460,7 @@ function GearCard({
 
       {gear.cost.length > 0 && state !== "owned" && (
         <div className="mt-3">
-          <MaterialCostList gear={gear} />
+          <MaterialCostList gear={gear} hunter={hunter} />
         </div>
       )}
 

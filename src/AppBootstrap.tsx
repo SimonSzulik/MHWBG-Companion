@@ -5,6 +5,7 @@ import { useCampaign } from "./store/campaign";
 import { resumeSyncIfNeeded } from "./lib/sync/engine";
 import { BottomNav } from "./ui/BottomNav";
 import { OnlineGate } from "./ui/OnlineGate";
+import { QuestInvitePopup } from "./ui/QuestInvitePopup";
 
 /** Waits for auth + campaign store hydration. */
 export function useAppReady(): boolean {
@@ -78,6 +79,7 @@ export function Shell() {
     <OnlineGate>
       <div className="relative">
         <Outlet />
+        <QuestInvitePopup />
         <BottomNav />
       </div>
     </OnlineGate>

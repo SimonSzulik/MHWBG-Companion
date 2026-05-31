@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Screen } from "../ui/Screen";
 import { Stepper } from "../ui/Stepper";
 import { useCampaign } from "../store/campaign";
+import { useAuth } from "../store/auth";
+import { ownHunter } from "../lib/hunter";
 import { gameData } from "../data/gameData";
 import { inventoryMonsters } from "../data/ancientForest";
 import { iconUrl } from "../domain/icons";
@@ -17,7 +19,11 @@ export function Inventory() {
   );
   const campaign = useCampaign((s) => s.campaign);
   const setMaterial = useCampaign((s) => s.setMaterial);
+  const userId = useAuth((s) => s.userId);
   if (!campaign) return null;
+
+  const hunter = ownHunter(campaign, userId);
+  if (!hunter) return null;
 
   const materials = gameData.materials.filter((m) => m.group === "material");
   const others = gameData.materials.filter((m) => m.group === "other");
@@ -28,10 +34,10 @@ export function Inventory() {
     (m) => m.id === selectedMonsterId,
   );
 
-  const qtyOf = (id: string) => campaign.materials[id] ?? 0;
+  const qtyOf = (id: string) => hunter.materials[id] ?? 0;
 
   return (
-    <Screen title="Inventar" subtitle="Geteiltes Lager">
+    <Screen title="Inventar" subtitle={`${hunter.name} · Mein Lager`}>
       <div className="mb-4 flex rounded-xl border-[1.5px] border-line-strong bg-paper-2 p-1 text-sm font-semibold">
         <TabBtn
           active={tab === "material"}
@@ -66,7 +72,7 @@ export function Inventory() {
               key={m.id}
               material={m}
               qty={qtyOf(m.id)}
-              onSet={(next) => setMaterial(m.id, next)}
+              onSet={(next) => setMaterial(hunter.id, m.id, next)}
               compact
             />
           ))}
@@ -80,7 +86,7 @@ export function Inventory() {
               key={m.id}
               material={m}
               qty={qtyOf(m.id)}
-              onSet={(next) => setMaterial(m.id, next)}
+              onSet={(next) => setMaterial(hunter.id, m.id, next)}
             />
           ))}
         </div>
@@ -109,7 +115,7 @@ export function Inventory() {
                 material={m}
                 label={m.shortName ?? m.name}
                 qty={qtyOf(m.id)}
-                onSet={(next) => setMaterial(m.id, next)}
+                onSet={(next) => setMaterial(hunter.id, m.id, next)}
                 showMonsterIcon
               />
             ))}

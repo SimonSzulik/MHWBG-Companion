@@ -59,6 +59,10 @@ create table if not exists public.hunter (
   weapon_type  text not null,
   -- equipped gear ids by slot, e.g. {"weapon":"mudslide-axe","head":"barroth-helm"}
   equipped     jsonb not null default '{}'::jsonb,
+  -- per-hunter material stash
+  materials      jsonb not null default '{}'::jsonb,
+  -- crafted/owned gear ids for this hunter
+  owned_gear     jsonb not null default '[]'::jsonb,
   notes        text,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
@@ -78,6 +82,8 @@ create table if not exists public.campaign_state (
   owned_gear      jsonb not null default '[]'::jsonb,
   -- huntId -> completion count (legacy: bool)
   hunts_completed jsonb not null default '{}'::jsonb,
+  -- in-progress quest lobby / active / looting state
+  active_quest    jsonb,
   updated_at      timestamptz not null default now()
 );
 
@@ -419,3 +425,11 @@ do $$ begin
     add constraint campaign_join_code_format check (join_code ~ '^[A-Z0-9]{8}$');
 exception when duplicate_object then null;
 end $$;
+
+-- Migration v5: per-hunter inventory + active quest state (re-run safe).
+alter table public.hunter
+  add column if not exists materials jsonb not null default '{}'::jsonb;
+alter table public.hunter
+  add column if not exists owned_gear jsonb not null default '[]'::jsonb;
+alter table public.campaign_state
+  add column if not exists active_quest jsonb;

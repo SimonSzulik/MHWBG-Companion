@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
+import { useAuth } from "../store/auth";
+import { ownHunter } from "../lib/hunter";
 import {
   MAX_QUEST_COMPLETIONS,
   QUEST_MONSTERS,
@@ -9,17 +12,33 @@ import {
   type QuestDef,
   type QuestStars,
 } from "../data/quests";
+import { canStartQuest } from "../domain/quests";
 import { iconUrl } from "../domain/icons";
 
 /** Quest picker grouped by monster and star tier. */
 export function QuestScreen() {
   const campaign = useCampaign((s) => s.campaign);
-  const incrementQuest = useCampaign((s) => s.incrementQuest);
+  const startQuest = useCampaign((s) => s.startQuest);
+  const userId = useAuth((s) => s.userId);
+  const navigate = useNavigate();
   const [openMonster, setOpenMonster] = useState<string | null>(
     QUEST_MONSTERS[0]?.id ?? null,
   );
 
   if (!campaign) return null;
+  const hunter = ownHunter(campaign, userId);
+  if (!hunter) return null;
+
+  const hasActiveQuest = campaign.activeQuest != null;
+
+  const handleStart = (quest: QuestDef) => {
+    const res = startQuest(quest.id, hunter.id);
+    if (!res.ok) {
+      alert(res.reason ?? "Quest konnte nicht gestartet werden.");
+      return;
+    }
+    navigate("/campaign/quest");
+  };
 
   return (
     <Screen title="Quests" subtitle="Ancient Forest">
@@ -89,7 +108,14 @@ export function QuestScreen() {
                                 key={q.id}
                                 quest={q}
                                 count={campaign.questCompletions[q.id] ?? 0}
-                                onComplete={() => incrementQuest(q.id)}
+                                disabled={
+                                  !canStartQuest(
+                                    q,
+                                    campaign.questCompletions,
+                                    hasActiveQuest,
+                                  )
+                                }
+                                onStart={() => handleStart(q)}
                               />
                             ))}
                           </div>
@@ -110,21 +136,24 @@ export function QuestScreen() {
 function QuestRow({
   quest,
   count,
-  onComplete,
+  disabled,
+  onStart,
 }: {
   quest: QuestDef;
   count: number;
-  onComplete: () => void;
+  disabled: boolean;
+  onStart: () => void;
 }) {
   const full = count >= MAX_QUEST_COMPLETIONS;
+  const oneStarDone = quest.stars === "one-star" && count >= 1;
 
   return (
     <button
       type="button"
-      disabled={full}
-      onClick={onComplete}
+      disabled={disabled || full || oneStarDone}
+      onClick={onStart}
       className={`flex w-full items-center gap-3 rounded-xl border-[1.5px] border-line-strong px-3 py-2 text-left active:translate-y-px ${
-        full ? "bg-paper-2 opacity-60" : "bg-card"
+        disabled || full || oneStarDone ? "bg-paper-2 opacity-60" : "bg-card"
       }`}
     >
       <img
@@ -137,12 +166,16 @@ function QuestRow({
         alt=""
         className="h-6 w-6 shrink-0 object-contain"
       />
-      <span className={`min-w-0 flex-1 truncate text-sm font-medium ${full ? "line-through" : ""}`}>
+      <span
+        className={`min-w-0 flex-1 truncate text-sm font-medium ${
+          full || oneStarDone ? "line-through" : ""
+        }`}
+      >
         {quest.name}
       </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums">
-        {full ? "✓ " : ""}
-        {count}/{MAX_QUEST_COMPLETIONS}
+        {full || oneStarDone ? "✓ " : ""}
+        {oneStarDone ? "1/1" : `${count}/${MAX_QUEST_COMPLETIONS}`}
       </span>
     </button>
   );

@@ -3,14 +3,20 @@
  * rows (campaign + campaign_state + hunter[]). Kept pure and isolated so the
  * sync engine and tests can reason about one direction at a time.
  */
-import type { Campaign, GearSlot, Hunter, WeaponType } from "../../domain/types";
+import type {
+  ActiveQuest,
+  Campaign,
+  GearSlot,
+  Hunter,
+  MaterialStash,
+  WeaponType,
+} from "../../domain/types";
 import type { Database } from "../database.types";
 
 type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
 type StateRow = Database["public"]["Tables"]["campaign_state"]["Row"];
 type HunterRow = Database["public"]["Tables"]["hunter"]["Row"];
 
-/** Parse hunts_completed jsonb (legacy bool or numeric counts). */
 function parseQuestCompletions(
   raw: Record<string, boolean | number> | null | undefined,
 ): Record<string, number> {
@@ -23,7 +29,36 @@ function parseQuestCompletions(
   return out;
 }
 
-/** Build the local Campaign from the three remote pieces. */
+function parseActiveQuest(raw: unknown): ActiveQuest | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as ActiveQuest;
+  if (!o.questId || !o.phase) return null;
+  return o;
+}
+
+/** Migrate legacy shared stash from campaign_state onto first hunter. */
+function migrateSharedStashToHunters(
+  hunters: Hunter[],
+  sharedMaterials: MaterialStash,
+  sharedOwned: string[],
+): Hunter[] {
+  if (hunters.length === 0) return hunters;
+  const hasAnyStash = hunters.some(
+    (h) =>
+      Object.keys(h.materials).length > 0 || h.ownedGear.length > 0,
+  );
+  if (hasAnyStash) return hunters;
+  return hunters.map((h, i) =>
+    i === 0
+      ? {
+          ...h,
+          materials: { ...sharedMaterials, ...h.materials },
+          ownedGear: [...new Set([...sharedOwned, ...h.ownedGear])],
+        }
+      : h,
+  );
+}
+
 export function rowsToCampaign(
   campaign: CampaignRow,
   state: StateRow | null,
@@ -34,19 +69,24 @@ export function rowsToCampaign(
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map(rowToHunter);
 
+  const migratedHunters = migrateSharedStashToHunters(
+    sortedHunters,
+    state?.materials ?? {},
+    state?.owned_gear ?? [],
+  );
+
   return {
     id: campaign.id,
     name: campaign.name,
     box: campaign.box,
     day: campaign.day,
     maxDay: campaign.max_day,
-    leaderId: campaign.leader_hunter_id ?? sortedHunters[0]?.id ?? "",
+    leaderId: campaign.leader_hunter_id ?? migratedHunters[0]?.id ?? "",
     zenny: state?.zenny ?? 0,
-    materials: state?.materials ?? {},
     items: state?.items ?? {},
-    ownedGear: state?.owned_gear ?? [],
     questCompletions: parseQuestCompletions(state?.hunts_completed),
-    hunters: sortedHunters,
+    activeQuest: parseActiveQuest(state?.active_quest),
+    hunters: migratedHunters,
     joinCode: campaign.join_code,
     createdAt: Date.parse(campaign.created_at) || Date.now(),
     updatedAt: Date.parse(campaign.updated_at) || Date.now(),
@@ -62,24 +102,23 @@ export function rowToHunter(row: HunterRow): Hunter {
     userId: row.user_id ?? undefined,
     weaponType: row.weapon_type as WeaponType,
     equipped: (row.equipped ?? {}) as Partial<Record<GearSlot, string>>,
+    materials: row.materials ?? {},
+    ownedGear: row.owned_gear ?? [],
     notes: row.notes ?? undefined,
   };
 }
 
-/** The mutable save fields that live in campaign_state. */
 export function campaignToStateUpdate(
   c: Campaign,
 ): Database["public"]["Tables"]["campaign_state"]["Update"] {
   return {
     zenny: c.zenny,
-    materials: c.materials,
     items: c.items,
-    owned_gear: c.ownedGear,
     hunts_completed: c.questCompletions,
+    active_quest: c.activeQuest,
   };
 }
 
-/** Campaign-level scalar fields (name/day) that live on the campaign row. */
 export function campaignToCampaignUpdate(
   c: Campaign,
 ): Database["public"]["Tables"]["campaign"]["Update"] {
@@ -106,6 +145,8 @@ export function hunterToInsert(
     player_name: h.playerName ?? null,
     weapon_type: h.weaponType,
     equipped: h.equipped as Record<string, string>,
+    materials: h.materials,
+    owned_gear: h.ownedGear,
     notes: h.notes ?? null,
   };
 }
@@ -121,6 +162,8 @@ export function hunterToUpdate(
     player_name: h.playerName ?? null,
     weapon_type: h.weaponType,
     equipped: h.equipped as Record<string, string>,
+    materials: h.materials,
+    owned_gear: h.ownedGear,
     notes: h.notes ?? null,
   };
 }

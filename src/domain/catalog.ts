@@ -3,11 +3,11 @@ import type {
   ArmorForgeSet,
   Campaign,
   GearDef,
+  Hunter,
   WeaponForgePath,
   WeaponType,
 } from "./types";
 
-/** Indexed lookups over the static catalog. */
 const materialsById = new Map(gameData.materials.map((m) => [m.id, m]));
 const itemsById = new Map(gameData.items.map((i) => [i.id, i]));
 const gearById = new Map(gameData.gear.map((g) => [g.id, g]));
@@ -21,7 +21,6 @@ export const catalog = {
   all: gameData,
 };
 
-/** Craftability of a gear def given the current campaign state. */
 export type CraftState = "owned" | "craftable" | "missing";
 
 export interface ForgePathLike {
@@ -41,22 +40,21 @@ export function armorSets(): ArmorForgeSet[] {
 
 export function pathHasCraftable(
   path: ForgePathLike,
-  campaign: Campaign,
+  hunter: Hunter,
 ): boolean {
   return path.gearIds.some((id) => {
     const gear = catalog.gear(id);
-    return gear && craftState(gear, campaign) === "craftable";
+    return gear && craftState(gear, hunter) === "craftable";
   });
 }
 
-/** Highest owned weapon name in a sequential path, or fallback. */
 export function pathProgressName(
   path: ForgePathLike,
-  campaign: Campaign,
+  hunter: Hunter,
 ): string {
   let lastOwned: string | null = null;
   for (const id of path.gearIds) {
-    if (campaign.ownedGear.includes(id)) {
+    if (hunter.ownedGear.includes(id)) {
       const gear = catalog.gear(id);
       if (gear) lastOwned = gear.name;
     }
@@ -64,21 +62,19 @@ export function pathProgressName(
   return lastOwned ?? "Noch nicht begonnen";
 }
 
-/** Owned armour piece names in a set, or fallback. */
 export function setProgressLabel(
   set: ForgePathLike,
-  campaign: Campaign,
+  hunter: Hunter,
 ): string {
   const owned = set.gearIds
-    .filter((id) => campaign.ownedGear.includes(id))
+    .filter((id) => hunter.ownedGear.includes(id))
     .map((id) => catalog.gear(id)?.name)
     .filter(Boolean) as string[];
   if (owned.length === 0) return "Noch nichts geschmiedet";
   return owned.join(" · ");
 }
 
-/** Whether sequential forge prerequisites are met. */
-export function canCraftGear(gear: GearDef, campaign: Campaign): boolean {
+export function canCraftGear(gear: GearDef, hunter: Hunter): boolean {
   if (
     gear.slot === "weapon" &&
     gear.pathId != null &&
@@ -87,20 +83,19 @@ export function canCraftGear(gear: GearDef, campaign: Campaign): boolean {
   ) {
     const path = gameData.weaponPaths?.find((p) => p.id === gear.pathId);
     const prevId = path?.gearIds[gear.pathOrder - 1];
-    if (prevId && !campaign.ownedGear.includes(prevId)) return false;
+    if (prevId && !hunter.ownedGear.includes(prevId)) return false;
   }
   return true;
 }
 
-export function craftState(gear: GearDef, campaign: Campaign): CraftState {
-  if (campaign.ownedGear.includes(gear.id)) return "owned";
-  if (!canCraftGear(gear, campaign)) return "missing";
+export function craftState(gear: GearDef, hunter: Hunter): CraftState {
+  if (hunter.ownedGear.includes(gear.id)) return "owned";
+  if (!canCraftGear(gear, hunter)) return "missing";
   const enoughMats = gear.cost.every(
-    (c) => (campaign.materials[c.materialId] ?? 0) >= c.qty,
+    (c) => (hunter.materials[c.materialId] ?? 0) >= c.qty,
   );
   return enoughMats ? "craftable" : "missing";
 }
-
 
 export function isEquipped(gearId: string, campaign: Campaign): boolean {
   const gear = catalog.gear(gearId);

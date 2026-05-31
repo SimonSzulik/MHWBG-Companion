@@ -17,9 +17,9 @@ export function Camp() {
 
   const hunter = ownHunter(campaign, userId);
   const potions = campaign.items["potion"] ?? 0;
-  const craftableCount = gameData.gear.filter(
-    (g) => craftState(g, campaign) === "craftable",
-  ).length;
+  const craftableCount = hunter
+    ? gameData.gear.filter((g) => craftState(g, hunter) === "craftable").length
+    : 0;
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-4 pb-24 pt-5">

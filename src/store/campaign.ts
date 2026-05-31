@@ -1,8 +1,11 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type {
+  ActiveQuest,
   Campaign,
   Hunter,
+  HunterLootProgress,
+  MonsterPartId,
   WeaponType,
   GearSlot,
   MaterialStash,
@@ -11,18 +14,14 @@ import { MAX_QUEST_COMPLETIONS } from "../data/quests";
 import { gameData } from "../data/gameData";
 import { canCraftGear } from "../domain/catalog";
 import { starterKitFor } from "../domain/starterKit";
-
-/**
- * Local-first campaign store. Everything persists to localStorage so the app
- * works fully offline at the table — ideal for a board game. Cloud sync
- * (Supabase) will later mirror this state without changing the API here.
- */
+import { canStartQuest, questById, shouldIncrementOnFailure } from "../domain/quests";
+import { resolveLootChoice, rollDice } from "../domain/loot";
+import { lootTableForMonster } from "../data/lootTables";
 
 const uid = () =>
   globalThis.crypto?.randomUUID?.() ??
   `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-/** Maps legacy v2 material ids to v3 ids when rehydrating old saves. */
 const MATERIAL_ID_MIGRATION: Record<string, string> = {
   "jagras-claw": "great-jagras-claw",
   "jagras-scale": "great-jagras-scale",
@@ -43,14 +42,44 @@ function migrateMaterials(materials: MaterialStash): MaterialStash {
   return next;
 }
 
-/** Legacy save shape before v4 (leaderId + questCompletions). */
-type LegacyCampaign = Omit<Campaign, "leaderId" | "questCompletions"> & {
+/** Legacy v4 campaign with shared stash on campaign level. */
+type LegacyCampaignV4 = Omit<Campaign, "activeQuest"> & {
+  activeQuest?: ActiveQuest | null;
+  materials?: MaterialStash;
+  ownedGear?: string[];
   leaderId?: string;
   questCompletions?: Record<string, number>;
   huntsCompleted?: Record<string, boolean>;
+  hunters?: Array<
+    Partial<Hunter> & {
+      id: string;
+      name: string;
+      weaponType: WeaponType;
+      equipped: Partial<Record<GearSlot, string>>;
+    }
+  >;
 };
 
-function migrateCampaign(raw: LegacyCampaign): Campaign {
+function emptyHunterStash(): MaterialStash {
+  return {};
+}
+
+function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | undefined ? U : never, fallbackMaterials: MaterialStash, fallbackOwned: string[]): Hunter {
+  return {
+    id: h.id,
+    name: h.name,
+    palicoName: h.palicoName,
+    playerName: h.playerName,
+    userId: h.userId,
+    weaponType: h.weaponType,
+    equipped: h.equipped ?? {},
+    materials: migrateMaterials(h.materials ?? fallbackMaterials),
+    ownedGear: h.ownedGear ?? [...fallbackOwned],
+    notes: h.notes,
+  };
+}
+
+function migrateCampaign(raw: LegacyCampaignV4): Campaign {
   const questCompletions: Record<string, number> = {
     ...(raw.questCompletions ?? {}),
   };
@@ -61,17 +90,31 @@ function migrateCampaign(raw: LegacyCampaign): Campaign {
       }
     }
   }
-  const { huntsCompleted: _removed, ...rest } = raw;
+
+  const sharedMaterials = migrateMaterials(raw.materials ?? {});
+  const sharedOwned = raw.ownedGear ?? [];
+  const hunters = (raw.hunters ?? []).map((h, i) =>
+    normalizeHunter(
+      h,
+      i === 0 ? sharedMaterials : emptyHunterStash(),
+      i === 0 ? sharedOwned : [],
+    ),
+  );
+
+  const { huntsCompleted: _h, materials: _m, ownedGear: _o, ...rest } = raw;
   return {
     ...rest,
-    materials: migrateMaterials(rest.materials),
-    leaderId: rest.leaderId ?? rest.hunters[0]?.id ?? "",
+    hunters,
+    leaderId: rest.leaderId ?? hunters[0]?.id ?? "",
     questCompletions,
+    activeQuest: rest.activeQuest ?? null,
+    items: rest.items ?? {},
+    zenny: rest.zenny ?? 0,
   };
 }
 
-const PERSIST_KEY = "mhwbg-campaign-v4";
-const LEGACY_KEYS = ["mhwbg-campaign-v3", "mhwbg-campaign-v2"];
+const PERSIST_KEY = "mhwbg-campaign-v5";
+const LEGACY_KEYS = ["mhwbg-campaign-v4", "mhwbg-campaign-v3", "mhwbg-campaign-v2"];
 
 const campaignStorage = createJSONStorage<CampaignState>(() => ({
   getItem: (name) => {
@@ -79,7 +122,7 @@ const campaignStorage = createJSONStorage<CampaignState>(() => ({
     if (current) {
       try {
         const parsed = JSON.parse(current) as {
-          state?: { campaign?: LegacyCampaign | null };
+          state?: { campaign?: LegacyCampaignV4 | null };
         };
         if (parsed.state?.campaign) {
           parsed.state.campaign = migrateCampaign(parsed.state.campaign);
@@ -95,7 +138,7 @@ const campaignStorage = createJSONStorage<CampaignState>(() => ({
       if (!legacy) continue;
       try {
         const parsed = JSON.parse(legacy) as {
-          state?: { campaign?: LegacyCampaign | null };
+          state?: { campaign?: LegacyCampaignV4 | null };
         };
         if (parsed.state?.campaign) {
           parsed.state.campaign = migrateCampaign(parsed.state.campaign);
@@ -124,7 +167,6 @@ interface CampaignState {
   campaign: Campaign | null;
   hydrated: boolean;
 
-  /** Create a fresh campaign with one starting hunter (local draft before cloud upload). */
   startCampaign: (input: StartCampaignInput) => void;
   resetCampaign: () => void;
 
@@ -137,26 +179,27 @@ interface CampaignState {
   removeHunter: (id: string) => void;
   equipGear: (hunterId: string, slot: GearSlot, gearId: string | null) => void;
 
-  /** Adjust a material by a delta (clamped at 0). */
-  adjustMaterial: (materialId: string, delta: number) => void;
-  setMaterial: (materialId: string, qty: number) => void;
+  adjustMaterial: (hunterId: string, materialId: string, delta: number) => void;
+  setMaterial: (hunterId: string, materialId: string, qty: number) => void;
   adjustItem: (itemId: string, delta: number) => void;
 
-  /** Forge gear: spend materials, add to ownedGear. */
-  craftGear: (gearId: string) => { ok: boolean; reason?: string };
+  craftGear: (hunterId: string, gearId: string) => { ok: boolean; reason?: string };
 
   setDay: (day: number) => void;
   incrementQuest: (questId: string) => void;
 
-  /**
-   * Replace the local campaign with state pulled from the cloud. Used by the
-   * sync layer; does not bump updatedAt (the remote value is authoritative)
-   * so it won't bounce straight back as a new push.
-   */
   applyRemoteCampaign: (campaign: Campaign) => void;
-
-  /** Grant and equip starter kit for a hunter missing their starting gear. */
   applyStarterKit: (hunterId: string) => void;
+
+  startQuest: (questId: string, hunterId: string) => { ok: boolean; reason?: string };
+  joinQuest: (hunterId: string) => { ok: boolean; reason?: string };
+  leaveQuestLobby: (hunterId: string) => void;
+  completeQuestFailure: () => void;
+  completeQuestSuccess: () => void;
+  setLootDice: (hunterId: string, dice: [number, number]) => void;
+  setLootChoice: (hunterId: string, choice: "split" | "sum") => void;
+  togglePartBreak: (hunterId: string, part: MonsterPartId) => void;
+  confirmLoot: (hunterId: string) => void;
 }
 
 function needsStarterKit(hunter: Hunter): boolean {
@@ -168,14 +211,42 @@ function mergeOwnedGear(existing: string[], additions: string[]): string[] {
 }
 
 function backfillStarterKits(campaign: Campaign): Campaign {
-  let ownedGear = campaign.ownedGear;
   const hunters = campaign.hunters.map((h) => {
     if (!needsStarterKit(h)) return h;
     const kit = starterKitFor(h.weaponType);
-    ownedGear = mergeOwnedGear(ownedGear, kit.owned);
-    return { ...h, equipped: { ...h.equipped, ...kit.equipped } };
+    return {
+      ...h,
+      equipped: { ...h.equipped, ...kit.equipped },
+      ownedGear: mergeOwnedGear(h.ownedGear, kit.owned),
+    };
   });
-  return { ...campaign, hunters, ownedGear };
+  return { ...campaign, hunters };
+}
+
+function allHuntersReady(campaign: Campaign, aq: ActiveQuest): boolean {
+  return campaign.hunters.every((h) => aq.readyHunterIds.includes(h.id));
+}
+
+function tryAdvanceToActive(campaign: Campaign): Campaign {
+  const aq = campaign.activeQuest;
+  if (!aq || aq.phase !== "lobby") return campaign;
+  if (!allHuntersReady(campaign, aq)) return campaign;
+  return touch({
+    ...campaign,
+    activeQuest: { ...aq, phase: "active" },
+  });
+}
+
+function emptyLootProgress(): HunterLootProgress {
+  return { dice: [1, 1], brokenParts: [], confirmed: false };
+}
+
+function applyLootToHunter(hunter: Hunter, rewards: Record<string, number>): Hunter {
+  const materials = { ...hunter.materials };
+  for (const [id, qty] of Object.entries(rewards)) {
+    materials[id] = (materials[id] ?? 0) + qty;
+  }
+  return { ...hunter, materials };
 }
 
 export const useCampaign = create<CampaignState>()(
@@ -199,6 +270,8 @@ export const useCampaign = create<CampaignState>()(
           palicoName,
           weaponType,
           equipped: kit.equipped,
+          materials: {},
+          ownedGear: [...kit.owned],
         };
         const now = Date.now();
         set({
@@ -211,10 +284,9 @@ export const useCampaign = create<CampaignState>()(
             leaderId: newHunter.id,
             hunters: [newHunter],
             zenny: 0,
-            materials: {},
             items: { potion: potions },
-            ownedGear: kit.owned,
             questCompletions: {},
+            activeQuest: null,
             createdAt: now,
             updatedAt: now,
           },
@@ -233,12 +305,13 @@ export const useCampaign = create<CampaignState>()(
             palicoName: input.palicoName,
             weaponType: input.weaponType,
             equipped: kit.equipped,
+            materials: {},
+            ownedGear: [...kit.owned],
           };
           return {
             campaign: touch({
               ...s.campaign,
               hunters: [...s.campaign.hunters, h],
-              ownedGear: mergeOwnedGear(s.campaign.ownedGear, kit.owned),
             }),
           };
         }),
@@ -284,29 +357,43 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      adjustMaterial: (materialId, delta) =>
+      adjustMaterial: (hunterId, materialId, delta) =>
         set((s) => {
           if (!s.campaign) return s;
-          const cur = s.campaign.materials[materialId] ?? 0;
-          const next = Math.max(0, cur + delta);
           return {
             campaign: touch({
               ...s.campaign,
-              materials: { ...s.campaign.materials, [materialId]: next },
+              hunters: s.campaign.hunters.map((h) => {
+                if (h.id !== hunterId) return h;
+                const cur = h.materials[materialId] ?? 0;
+                return {
+                  ...h,
+                  materials: {
+                    ...h.materials,
+                    [materialId]: Math.max(0, cur + delta),
+                  },
+                };
+              }),
             }),
           };
         }),
 
-      setMaterial: (materialId, qty) =>
+      setMaterial: (hunterId, materialId, qty) =>
         set((s) => {
           if (!s.campaign) return s;
           return {
             campaign: touch({
               ...s.campaign,
-              materials: {
-                ...s.campaign.materials,
-                [materialId]: Math.max(0, Math.floor(qty) || 0),
-              },
+              hunters: s.campaign.hunters.map((h) => {
+                if (h.id !== hunterId) return h;
+                return {
+                  ...h,
+                  materials: {
+                    ...h.materials,
+                    [materialId]: Math.max(0, Math.floor(qty) || 0),
+                  },
+                };
+              }),
             }),
           };
         }),
@@ -326,30 +413,39 @@ export const useCampaign = create<CampaignState>()(
         void import("../lib/sync/engine").then((m) => m.requestImmediatePush());
       },
 
-      craftGear: (gearId) => {
+      craftGear: (hunterId, gearId) => {
         const s = get();
         if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
+        const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
+        if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
         const def = gameData.gear.find((g) => g.id === gearId);
         if (!def) return { ok: false, reason: "Unbekanntes Gear." };
-        if (s.campaign.ownedGear.includes(gearId))
+        if (hunter.ownedGear.includes(gearId))
           return { ok: false, reason: "Bereits gebaut." };
-        if (!canCraftGear(def, s.campaign))
+        if (!canCraftGear(def, hunter))
           return { ok: false, reason: "Voraussetzungen nicht erfüllt." };
 
         for (const c of def.cost) {
-          if ((s.campaign.materials[c.materialId] ?? 0) < c.qty)
+          if ((hunter.materials[c.materialId] ?? 0) < c.qty)
             return { ok: false, reason: "Material fehlt." };
         }
 
-        const materials = { ...s.campaign.materials };
+        const materials = { ...hunter.materials };
         for (const c of def.cost) {
           materials[c.materialId] = (materials[c.materialId] ?? 0) - c.qty;
         }
         set({
           campaign: touch({
             ...s.campaign,
-            materials,
-            ownedGear: [...s.campaign.ownedGear, gearId],
+            hunters: s.campaign.hunters.map((h) =>
+              h.id === hunterId
+                ? {
+                    ...h,
+                    materials,
+                    ownedGear: [...h.ownedGear, gearId],
+                  }
+                : h,
+            ),
           }),
         });
         return { ok: true };
@@ -385,7 +481,7 @@ export const useCampaign = create<CampaignState>()(
       applyRemoteCampaign: (campaign) =>
         set({
           campaign: backfillStarterKits(
-            migrateCampaign(campaign as LegacyCampaign),
+            migrateCampaign(campaign as LegacyCampaignV4),
           ),
         }),
 
@@ -398,15 +494,250 @@ export const useCampaign = create<CampaignState>()(
           return {
             campaign: touch({
               ...s.campaign,
-              ownedGear: mergeOwnedGear(s.campaign.ownedGear, kit.owned),
               hunters: s.campaign.hunters.map((h) =>
                 h.id === hunterId
-                  ? { ...h, equipped: { ...h.equipped, ...kit.equipped } }
+                  ? {
+                      ...h,
+                      equipped: { ...h.equipped, ...kit.equipped },
+                      ownedGear: mergeOwnedGear(h.ownedGear, kit.owned),
+                    }
                   : h,
               ),
             }),
           };
         }),
+
+      startQuest: (questId, hunterId) => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
+        const quest = questById(questId);
+        if (!quest) return { ok: false, reason: "Quest unbekannt." };
+        if (
+          !canStartQuest(
+            quest,
+            s.campaign.questCompletions,
+            s.campaign.activeQuest != null,
+          )
+        ) {
+          return { ok: false, reason: "Quest nicht verfügbar." };
+        }
+        if (s.campaign.activeQuest) {
+          return { ok: false, reason: "Es läuft bereits eine Quest." };
+        }
+        const activeQuest: ActiveQuest = {
+          questId,
+          phase: "lobby",
+          readyHunterIds: [hunterId],
+          startedByHunterId: hunterId,
+          lootProgress: {},
+        };
+        set({
+          campaign: tryAdvanceToActive(
+            touch({ ...s.campaign, activeQuest }),
+          ),
+        });
+        return { ok: true };
+      },
+
+      joinQuest: (hunterId) => {
+        const s = get();
+        if (!s.campaign?.activeQuest) {
+          return { ok: false, reason: "Keine aktive Quest." };
+        }
+        const aq = s.campaign.activeQuest;
+        if (aq.phase !== "lobby") {
+          return { ok: false, reason: "Quest bereits gestartet." };
+        }
+        if (aq.readyHunterIds.includes(hunterId)) {
+          return { ok: true };
+        }
+        const next: ActiveQuest = {
+          ...aq,
+          readyHunterIds: [...aq.readyHunterIds, hunterId],
+        };
+        set({
+          campaign: tryAdvanceToActive(
+            touch({ ...s.campaign, activeQuest: next }),
+          ),
+        });
+        return { ok: true };
+      },
+
+      leaveQuestLobby: (hunterId) =>
+        set((s) => {
+          if (!s.campaign?.activeQuest) return s;
+          const aq = s.campaign.activeQuest;
+          if (aq.phase !== "lobby") return s;
+          const readyHunterIds = aq.readyHunterIds.filter((id) => id !== hunterId);
+          if (readyHunterIds.length === 0) {
+            return { campaign: touch({ ...s.campaign, activeQuest: null }) };
+          }
+          return {
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: { ...aq, readyHunterIds },
+            }),
+          };
+        }),
+
+      completeQuestFailure: () =>
+        set((s) => {
+          if (!s.campaign?.activeQuest) return s;
+          const quest = questById(s.campaign.activeQuest.questId);
+          let questCompletions = s.campaign.questCompletions;
+          if (quest && shouldIncrementOnFailure(quest)) {
+            const cur = questCompletions[quest.id] ?? 0;
+            if (cur < MAX_QUEST_COMPLETIONS) {
+              questCompletions = {
+                ...questCompletions,
+                [quest.id]: cur + 1,
+              };
+            }
+          }
+          return {
+            campaign: touch({
+              ...s.campaign,
+              questCompletions,
+              activeQuest: null,
+            }),
+          };
+        }),
+
+      completeQuestSuccess: () =>
+        set((s) => {
+          if (!s.campaign?.activeQuest) return s;
+          const lootProgress: Record<string, HunterLootProgress> = {};
+          for (const h of s.campaign.hunters) {
+            lootProgress[h.id] = { ...emptyLootProgress(), dice: rollDice() };
+          }
+          return {
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: {
+                ...s.campaign.activeQuest,
+                phase: "looting",
+                lootProgress,
+              },
+            }),
+          };
+        }),
+
+      setLootDice: (hunterId, dice) =>
+        set((s) => {
+          if (!s.campaign?.activeQuest?.lootProgress[hunterId]) return s;
+          const progress = s.campaign.activeQuest.lootProgress[hunterId];
+          return {
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: {
+                ...s.campaign.activeQuest,
+                lootProgress: {
+                  ...s.campaign.activeQuest.lootProgress,
+                  [hunterId]: {
+                    ...progress,
+                    dice,
+                    choice: undefined,
+                  },
+                },
+              },
+            }),
+          };
+        }),
+
+      setLootChoice: (hunterId, choice) =>
+        set((s) => {
+          if (!s.campaign?.activeQuest?.lootProgress[hunterId]) return s;
+          const progress = s.campaign.activeQuest.lootProgress[hunterId];
+          return {
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: {
+                ...s.campaign.activeQuest,
+                lootProgress: {
+                  ...s.campaign.activeQuest.lootProgress,
+                  [hunterId]: { ...progress, choice },
+                },
+              },
+            }),
+          };
+        }),
+
+      togglePartBreak: (hunterId, part) =>
+        set((s) => {
+          if (!s.campaign?.activeQuest?.lootProgress[hunterId]) return s;
+          const progress = s.campaign.activeQuest.lootProgress[hunterId];
+          const has = progress.brokenParts.includes(part);
+          const brokenParts = has
+            ? progress.brokenParts.filter((p) => p !== part)
+            : [...progress.brokenParts, part];
+          return {
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: {
+                ...s.campaign.activeQuest,
+                lootProgress: {
+                  ...s.campaign.activeQuest.lootProgress,
+                  [hunterId]: { ...progress, brokenParts },
+                },
+              },
+            }),
+          };
+        }),
+
+      confirmLoot: (hunterId) => {
+        const s = get();
+        if (!s.campaign?.activeQuest) return;
+        const aq = s.campaign.activeQuest;
+        const progress = aq.lootProgress[hunterId];
+        if (!progress?.choice) return;
+
+        const quest = questById(aq.questId);
+        if (!quest) return;
+        const table = lootTableForMonster(quest.monsterId);
+        if (!table) return;
+
+        const rewards = resolveLootChoice(
+          table,
+          progress.dice,
+          progress.choice,
+          progress.brokenParts,
+        );
+
+        let campaign = touch({
+          ...s.campaign,
+          activeQuest: {
+            ...aq,
+            lootProgress: {
+              ...aq.lootProgress,
+              [hunterId]: { ...progress, confirmed: true },
+            },
+          },
+          hunters: s.campaign.hunters.map((h) =>
+            h.id === hunterId ? applyLootToHunter(h, rewards) : h,
+          ),
+        });
+
+        const allConfirmed = campaign.hunters.every(
+          (h) => campaign.activeQuest?.lootProgress[h.id]?.confirmed,
+        );
+
+        if (allConfirmed) {
+          const cur = campaign.questCompletions[aq.questId] ?? 0;
+          campaign = touch({
+            ...campaign,
+            questCompletions:
+              cur < MAX_QUEST_COMPLETIONS
+                ? {
+                    ...campaign.questCompletions,
+                    [aq.questId]: cur + 1,
+                  }
+                : campaign.questCompletions,
+            activeQuest: null,
+          });
+        }
+
+        set({ campaign });
+      },
     }),
     {
       name: PERSIST_KEY,
@@ -418,7 +749,6 @@ export const useCampaign = create<CampaignState>()(
 useCampaign.persist.onFinishHydration(() => {
   useCampaign.setState({ hydrated: true });
 });
-// Hydration can finish in a microtask before this listener is registered.
 if (useCampaign.persist.hasHydrated()) {
   useCampaign.setState({ hydrated: true });
 }

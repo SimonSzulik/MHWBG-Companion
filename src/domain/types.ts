@@ -136,10 +136,14 @@ export interface Hunter {
   weaponType: WeaponType;
   /** Equipped gear ids, by slot. */
   equipped: Partial<Record<GearSlot, string>>;
+  /** Personal material stash. */
+  materials: MaterialStash;
+  /** Crafted/owned gear ids for this hunter. */
+  ownedGear: string[];
   notes?: string;
 }
 
-/** materialId -> quantity (shared party stash). */
+/** materialId -> quantity. */
 export type MaterialStash = Record<string, number>;
 /** itemId -> quantity. */
 export type ItemStash = Record<string, number>;
@@ -155,14 +159,36 @@ export interface Campaign {
   leaderId: string;
   hunters: Hunter[];
   zenny: number;
-  materials: MaterialStash;
   items: ItemStash;
-  /** Crafted/owned gear ids (unlocks beyond starting kit). */
-  ownedGear: string[];
   /** Quest id -> completion count (0–4). */
   questCompletions: Record<string, number>;
+  /** In-progress quest state (synced, shared). */
+  activeQuest: ActiveQuest | null;
   /** Share code for co-op (from cloud). */
   joinCode?: string;
   createdAt: number;
   updatedAt: number;
+}
+
+export type MonsterPartId =
+  | "head"
+  | "tail"
+  | "claws"
+  | "body"
+  | "back"
+  | "wings";
+
+export interface HunterLootProgress {
+  dice: [number, number];
+  choice?: "split" | "sum";
+  brokenParts: MonsterPartId[];
+  confirmed: boolean;
+}
+
+export interface ActiveQuest {
+  questId: string;
+  phase: "lobby" | "active" | "looting";
+  readyHunterIds: string[];
+  startedByHunterId: string;
+  lootProgress: Record<string, HunterLootProgress>;
 }

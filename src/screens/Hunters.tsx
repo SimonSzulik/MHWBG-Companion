@@ -36,7 +36,7 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
   const [openSlot, setOpenSlot] = useState<GearSlot | null>(null);
   if (!campaign) return null;
 
-  const ownedSet = new Set(campaign.ownedGear);
+  const ownedSet = new Set(hunter.ownedGear);
   const weapon = hunter.equipped.weapon
     ? catalog.gear(hunter.equipped.weapon)
     : undefined;

@@ -61,6 +61,8 @@ export interface Database {
           player_name: string | null;
           weapon_type: string;
           equipped: Record<string, string>;
+          materials: Record<string, number>;
+          owned_gear: string[];
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -74,6 +76,8 @@ export interface Database {
           player_name?: string | null;
           weapon_type: string;
           equipped?: Record<string, string>;
+          materials?: Record<string, number>;
+          owned_gear?: string[];
           notes?: string | null;
         };
         Update: Partial<{
@@ -83,6 +87,8 @@ export interface Database {
           player_name: string | null;
           weapon_type: string;
           equipped: Record<string, string>;
+          materials: Record<string, number>;
+          owned_gear: string[];
           notes: string | null;
         }>;
         Relationships: [];
@@ -95,6 +101,7 @@ export interface Database {
           items: Record<string, number>;
           owned_gear: string[];
           hunts_completed: Record<string, number | boolean>;
+          active_quest: unknown | null;
           updated_at: string;
         };
         Insert: {
@@ -104,6 +111,7 @@ export interface Database {
           items?: Record<string, number>;
           owned_gear?: string[];
           hunts_completed?: Record<string, number | boolean>;
+          active_quest?: unknown | null;
         };
         Update: Partial<{
           zenny: number;
@@ -111,6 +119,7 @@ export interface Database {
           items: Record<string, number>;
           owned_gear: string[];
           hunts_completed: Record<string, number | boolean>;
+          active_quest: unknown | null;
         }>;
         Relationships: [];
       };

@@ -428,12 +428,14 @@ function snapshot(c: Campaign): string {
     day: c.day,
     maxDay: c.maxDay,
     zenny: c.zenny,
-    materials: c.materials,
     items: c.items,
-    ownedGear: [...c.ownedGear].sort(),
     leaderId: c.leaderId,
     questCompletions: c.questCompletions,
-    hunters: c.hunters,
+    activeQuest: c.activeQuest,
+    hunters: c.hunters.map((h) => ({
+      ...h,
+      ownedGear: [...h.ownedGear].sort(),
+    })),
   });
 }
 
