@@ -16,19 +16,11 @@ import {
   type CraftState,
   type ForgePathLike,
 } from "../domain/catalog";
-import { starterArmorForWeapon } from "../domain/starterKit";
 import { iconUrl } from "../domain/icons";
-import type { Campaign, DeckChanges, GearDef, Hunter, WeaponType } from "../domain/types";
+import { ownHunter } from "../lib/hunter";
+import type { DeckChanges, GearDef } from "../domain/types";
 
 type Tab = "weapons" | "armour";
-
-function ownHunter(campaign: Campaign, userId: string | null): Hunter | undefined {
-  if (userId) {
-    const match = campaign.hunters.find((h) => h.userId === userId);
-    if (match) return match;
-  }
-  return campaign.hunters[0];
-}
 
 /**
  * Forge drill-in. Weapon tab shows collapsible forge paths; armour tab shows
@@ -94,17 +86,12 @@ export function Forge() {
           onCraft={onCraft}
         />
       ) : (
-        <>
-          {mainWeapon && (
-            <StarterArmorSection weaponType={mainWeapon} />
-          )}
-          <PathForgeList
-            paths={armorSets()}
-            progressLabel={(path) => setProgressLabel(path, campaign)}
-            sequential={false}
-            onCraft={onCraft}
-          />
-        </>
+        <PathForgeList
+          paths={armorSets()}
+          progressLabel={(path) => setProgressLabel(path, campaign)}
+          sequential={false}
+          onCraft={onCraft}
+        />
       )}
     </Screen>
   );
@@ -395,55 +382,6 @@ function badgeFor(state: CraftState, equipped: boolean) {
     return { label: "BAUBAR", cls: "bg-ok-soft text-ok" };
   }
   return { label: "TEILE FEHLEN", cls: "bg-paper-2 text-ink-soft" };
-}
-
-function StarterArmorSection({ weaponType }: { weaponType: WeaponType }) {
-  const campaign = useCampaign((s) => s.campaign);
-  if (!campaign) return null;
-
-  const ids = starterArmorForWeapon(weaponType);
-  const pieces = ids
-    .map((id) => catalog.gear(id))
-    .filter(Boolean) as GearDef[];
-  if (pieces.length === 0) return null;
-
-  return (
-    <div className="mb-4">
-      <p className="mb-2 px-1 text-xs uppercase tracking-wide text-accent">
-        Startausrüstung
-      </p>
-      <div className="flex flex-col gap-2">
-        {pieces.map((gear) => {
-          const state = craftState(gear, campaign);
-          const equipped = isEquipped(gear.id, campaign);
-          const badge = badgeFor(state, equipped);
-          return (
-            <div
-              key={gear.id}
-              className="paper-card flex items-center gap-3 p-3"
-            >
-              {gear.tierIcon && (
-                <img
-                  src={iconUrl(gear.tierIcon)}
-                  alt=""
-                  className="h-8 w-8 object-contain"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold leading-tight">{gear.name}</p>
-                <p className="text-xs text-ink-soft">Startausrüstung</p>
-              </div>
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${badge.cls}`}
-              >
-                {badge.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 function FlatGearList({

@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import { useCampaign } from "../store/campaign";
+import { useAuth } from "../store/auth";
 import { gameData } from "../data/gameData";
-import { catalog, craftState } from "../domain/catalog";
-import { iconUrl } from "../domain/icons";
-import type { GearSlot, Hunter } from "../domain/types";
-
-const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
+import { craftState } from "../domain/catalog";
+import { ownHunter } from "../lib/hunter";
+import { HunterSummaryCard } from "../ui/HunterSummaryCard";
 
 /**
  * Camp hub (home). Banner with the active hunter + status tiles, then a grid
@@ -13,9 +12,10 @@ const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
  */
 export function Camp() {
   const campaign = useCampaign((s) => s.campaign);
+  const userId = useAuth((s) => s.userId);
   if (!campaign) return null;
 
-  const hunter = campaign.hunters[0];
+  const hunter = ownHunter(campaign, userId);
   const potions = campaign.items["potion"] ?? 0;
   const craftableCount = gameData.gear.filter(
     (g) => craftState(g, campaign) === "craftable",
@@ -34,21 +34,14 @@ export function Camp() {
         </Link>
       </div>
 
-      <Link to="/hunters" className="paper-card flex items-center gap-3 p-4 active:translate-y-px">
-        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-2xl">
-          🧍
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-display truncate text-2xl leading-tight">
-            {hunter?.name ?? "Hunter"}
-          </p>
-          <p className="truncate text-sm text-ink-soft">
-            {hunter?.weaponType} · {campaign.hunters.length} Jäger
-          </p>
-          {hunter && <EquippedIconRow hunter={hunter} />}
-        </div>
-        <span className="ml-auto text-ink-soft">›</span>
-      </Link>
+      {hunter && (
+        <HunterSummaryCard
+          hunter={hunter}
+          to="/hunters"
+          isSelf
+          subtitle={`${hunter.weaponType} · ${campaign.hunters.length} Jäger`}
+        />
+      )}
 
       <Link
         to="/campaign"
@@ -77,35 +70,6 @@ export function Camp() {
         />
         <Tile to="/reference" emoji="📖" title="Referenz" sub="Regeln & Skills" />
       </div>
-    </div>
-  );
-}
-
-function EquippedIconRow({ hunter }: { hunter: Hunter }) {
-  return (
-    <div className="mt-2 flex gap-1.5">
-      {EQUIP_SLOTS.map((slot) => {
-        const gearId = hunter.equipped[slot];
-        const gear = gearId ? catalog.gear(gearId) : undefined;
-        if (gear?.tierIcon) {
-          return (
-            <img
-              key={slot}
-              src={iconUrl(gear.tierIcon)}
-              alt=""
-              className="h-7 w-7 object-contain"
-            />
-          );
-        }
-        return (
-          <span
-            key={slot}
-            className="grid h-7 w-7 place-items-center rounded-md border border-dashed border-line bg-paper-2 text-[9px] text-ink-soft"
-          >
-            {slot === "weapon" ? "⚔" : slot === "head" ? "H" : slot === "chest" ? "M" : "G"}
-          </span>
-        );
-      })}
     </div>
   );
 }

@@ -57,7 +57,7 @@ export function WeaponPicker({
               onClick={() => onChange(w.type)}
               className={`relative px-3 py-3 text-left text-sm font-semibold active:translate-y-px ${
                 state === "selected"
-                  ? "paper-card ring-2 ring-accent bg-accent-faint shadow-sm"
+                  ? "rounded-2xl border-[1.5px] border-accent bg-accent text-white shadow-[2px_3px_0_rgba(43,38,32,0.15)] ring-2 ring-accent/70"
                   : state === "available"
                     ? "paper-card"
                     : "paper-card opacity-40 grayscale cursor-not-allowed"

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
+import { useAuth } from "../store/auth";
 import { gameData } from "../data/gameData";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import type { GearDef, GearSlot, Hunter, WeaponType } from "../domain/types";
+import { ownHunter } from "../lib/hunter";
+import type { GearDef, GearSlot, Hunter } from "../domain/types";
 
 const ARMOUR_SLOTS: { slot: GearSlot; label: string }[] = [
   { slot: "head", label: "Helm" },
@@ -12,85 +14,18 @@ const ARMOUR_SLOTS: { slot: GearSlot; label: string }[] = [
   { slot: "legs", label: "Greaves" },
 ];
 
-const WEAPON_TYPES: WeaponType[] = [
-  "Switch Axe",
-  "Charge Blade",
-  "Insect Glaive",
-  "Heavy Bowgun",
-];
-
-/** Hunter sheet(s): switch between hunters, equip owned gear, see derived skills. */
+/** Hunter sheet: equip owned gear, see derived skills. */
 export function Hunters() {
   const campaign = useCampaign((s) => s.campaign);
-  const addHunter = useCampaign((s) => s.addHunter);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newWeapon, setNewWeapon] = useState<WeaponType>("Switch Axe");
+  const userId = useAuth((s) => s.userId);
 
   if (!campaign) return null;
-  const hunters = campaign.hunters;
-  const active = hunters.find((h) => h.id === activeId) ?? hunters[0];
+  const hunter = ownHunter(campaign, userId);
+  if (!hunter) return null;
 
   return (
-    <Screen title="Jäger" subtitle={`${hunters.length} im Team`}>
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {hunters.map((h) => (
-          <button
-            key={h.id}
-            type="button"
-            onClick={() => setActiveId(h.id)}
-            className={`flex shrink-0 items-center gap-2 rounded-full border-[1.5px] border-line-strong px-3 py-1.5 text-sm font-semibold active:translate-y-px ${
-              active?.id === h.id ? "bg-accent text-white" : "bg-card"
-            }`}
-          >
-            🧍 {h.name}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => setAdding((v) => !v)}
-          className="shrink-0 rounded-full border-[1.5px] border-dashed border-line-strong bg-card px-3 py-1.5 text-sm font-semibold active:translate-y-px"
-        >
-          + Jäger
-        </button>
-      </div>
-
-      {adding && (
-        <div className="paper-card mb-4 flex flex-col gap-3 p-4">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Name"
-            className="rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-          />
-          <select
-            value={newWeapon}
-            onChange={(e) => setNewWeapon(e.target.value as WeaponType)}
-            className="rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-          >
-            {WEAPON_TYPES.map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              addHunter({ name: newName, weaponType: newWeapon });
-              setNewName("");
-              setAdding(false);
-            }}
-            disabled={!newName.trim()}
-            className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2 font-semibold text-white active:translate-y-px disabled:opacity-40"
-          >
-            Hinzufügen
-          </button>
-        </div>
-      )}
-
-      {active && <HunterSheet hunter={active} />}
+    <Screen title="Jäger" subtitle={hunter.name}>
+      <HunterSheet hunter={hunter} />
     </Screen>
   );
 }

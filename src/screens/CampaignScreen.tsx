@@ -2,11 +2,15 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
+import { useAuth } from "../store/auth";
+import { isOwnHunter } from "../lib/hunter";
+import { HunterSummaryCard } from "../ui/HunterSummaryCard";
 
 /** Campaign hub: day tracker, potion use, calendar, quest/downtime entry. */
 export function CampaignScreen() {
   const campaign = useCampaign((s) => s.campaign);
   const adjustItem = useCampaign((s) => s.adjustItem);
+  const userId = useAuth((s) => s.userId);
   const [confirmPotion, setConfirmPotion] = useState(false);
   if (!campaign) return null;
 
@@ -55,6 +59,27 @@ export function CampaignScreen() {
           <span className="font-semibold">Downtime</span>
         </Link>
       </div>
+
+      {campaign.hunters.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 px-1 text-xs uppercase tracking-wide text-accent">
+            Jäger · {campaign.hunters.length}
+          </p>
+          <div className="flex flex-col gap-2">
+            {campaign.hunters.map((hunter) => {
+              const self = isOwnHunter(hunter, userId);
+              return (
+                <HunterSummaryCard
+                  key={hunter.id}
+                  hunter={hunter}
+                  to={self ? "/hunters" : undefined}
+                  isSelf={self}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {confirmPotion && (
         <ConfirmDialog
