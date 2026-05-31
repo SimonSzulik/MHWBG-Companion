@@ -1,86 +1,50 @@
-import { useEffect, useState } from "react";
-import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
+import { useCampaign } from "./store/campaign";
+import { BottomNav } from "./ui/BottomNav";
+import { Onboarding } from "./screens/Onboarding";
+import { Camp } from "./screens/Camp";
+import { Hunters } from "./screens/Hunters";
+import { Inventory } from "./screens/Inventory";
+import { Forge } from "./screens/Forge";
+import { CampaignScreen } from "./screens/CampaignScreen";
+import { Reference } from "./screens/Reference";
 
-type Status = "checking" | "connected" | "unconfigured" | "error";
-
-export default function App() {
-  const [status, setStatus] = useState<Status>("checking");
-  const [detail, setDetail] = useState<string>("");
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setStatus("unconfigured");
-      return;
-    }
-
-    // A lightweight call that succeeds as long as the project URL + anon key
-    // are valid, even before any tables exist.
-    supabase.auth
-      .getSession()
-      .then(({ error }) => {
-        if (error) {
-          setStatus("error");
-          setDetail(error.message);
-        } else {
-          setStatus("connected");
-        }
-      })
-      .catch((err: unknown) => {
-        setStatus("error");
-        setDetail(err instanceof Error ? err.message : String(err));
-      });
-  }, []);
-
+/**
+ * Shell with persistent bottom nav. Guards routes behind an existing
+ * campaign — first run sends the player through onboarding.
+ */
+function Shell() {
+  const hasCampaign = useCampaign((s) => s.campaign !== null);
+  if (!hasCampaign) return <Navigate to="/onboarding" replace />;
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-6 px-6 py-10 text-center">
-      <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-amber-500/80">
-          Monster Hunter World
-        </p>
-        <h1 className="mt-1 text-3xl font-bold text-amber-100">
-          Board Game Companion
-        </h1>
-      </div>
-
-      <StatusCard status={status} detail={detail} />
-
-      <p className="text-xs text-stone-500">
-        Verbindungs-Gerüst · v0.0.1
-      </p>
-    </main>
+    <div className="relative">
+      <Outlet />
+      <BottomNav />
+    </div>
   );
 }
 
-function StatusCard({ status, detail }: { status: Status; detail: string }) {
-  const map: Record<Status, { label: string; tone: string; hint: string }> = {
-    checking: {
-      label: "Prüfe Verbindung…",
-      tone: "border-stone-700 text-stone-300",
-      hint: "Verbinde mit Supabase.",
-    },
-    connected: {
-      label: "✓ Supabase verbunden",
-      tone: "border-emerald-600/60 text-emerald-300",
-      hint: "Backend erreichbar. Bereit für Schritt A.",
-    },
-    unconfigured: {
-      label: "● Supabase noch nicht konfiguriert",
-      tone: "border-amber-600/60 text-amber-300",
-      hint: "Lege VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY in .env.local an.",
-    },
-    error: {
-      label: "✕ Verbindungsfehler",
-      tone: "border-red-600/60 text-red-300",
-      hint: detail || "Keys prüfen.",
-    },
-  };
-  const s = map[status];
+export default function App() {
   return (
-    <div
-      className={`w-full rounded-2xl border bg-stone-900/60 px-5 py-6 ${s.tone}`}
-    >
-      <p className="text-lg font-semibold">{s.label}</p>
-      <p className="mt-2 text-sm text-stone-400">{s.hint}</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route element={<Shell />}>
+          <Route path="/" element={<Camp />} />
+          <Route path="/hunters" element={<Hunters />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/forge" element={<Forge />} />
+          <Route path="/campaign" element={<CampaignScreen />} />
+          <Route path="/reference" element={<Reference />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

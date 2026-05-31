@@ -1,7 +1,34 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens — central place to re-skin the whole app later.
+ * Phase 1 = "simpel & offen": a calm notebook / kraft-paper look.
+ * Switching to the full Monster Hunter theme later = change these values.
+ */
+@theme {
+  --color-paper: #f5f1e6;
+  --color-paper-2: #efe9da;
+  --color-card: #faf7ef;
+  --color-ink: #3a332a;
+  --color-ink-soft: #6b6253;
+  --color-line: #d9cfba;
+  --color-line-strong: #2b2620;
+
+  --color-accent: #c47a2c;
+  --color-accent-soft: #e9c79a;
+  --color-accent-faint: #f3e2cb;
+
+  --color-ok: #5b8a51;
+  --color-ok-soft: #d9e6cf;
+  --color-warn: #b07a2e;
+
+  --radius-card: 1rem;
+  --font-display:
+    "Caveat", "Segoe Print", "Comic Sans MS", system-ui, sans-serif;
+}
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -12,12 +39,41 @@ body,
 
 body {
   margin: 0;
-  background-color: #0f0d0a;
-  color: #f5efe6;
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  /* faint notebook grid */
+  background-image:
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+  background-size: 26px 26px;
+  background-attachment: fixed;
   font-family:
     system-ui,
     -apple-system,
     "Segoe UI",
     Roboto,
     sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Handwritten display font for headings — loaded if available, graceful fallback otherwise. */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: local("Caveat");
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+/* Hand-drawn card: soft paper with a slightly irregular dark outline feel. */
+.paper-card {
+  background: var(--color-card);
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-card);
+  box-shadow: 2px 3px 0 rgba(43, 38, 32, 0.12);
 }
