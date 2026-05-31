@@ -4,6 +4,7 @@ import type { WeaponType } from "../domain/types";
 import { Screen } from "../ui/Screen";
 import { Stepper } from "../ui/Stepper";
 import { WeaponPicker } from "../ui/WeaponPicker";
+import { WeaponForgePreview } from "../ui/WeaponForgePreview";
 import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
 import { isWeaponImplemented } from "../data/weapons";
@@ -136,6 +137,10 @@ export function CreateCampaignScreen() {
         </label>
 
         <WeaponPicker value={weaponType} onChange={setWeaponType} />
+
+        {weaponType && isWeaponImplemented(weaponType) && (
+          <WeaponForgePreview weaponType={weaponType} />
+        )}
 
         <Row label="Group Potions">
           <Stepper value={potions} onChange={setPotions} min={0} max={99} />

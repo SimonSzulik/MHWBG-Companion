@@ -6,6 +6,7 @@ import { supabase, isSupabaseConfigured } from "../supabase";
 import { useCampaign } from "../../store/campaign";
 import { useAuth } from "../../store/auth";
 import type { Campaign, Hunter, WeaponType } from "../../domain/types";
+import { hunterNeedsStarterKit } from "../../domain/starterKit";
 import {
   campaignToCampaignUpdate,
   campaignToStateUpdate,
@@ -151,12 +152,14 @@ export async function createCloudCampaign(
   }
 
   await startSync(camp.id);
+  ensureOwnHuntersStarterKits(userId);
   return { ok: true, code: camp.join_code };
 }
 
 export interface PeekJoinResult {
   campaignId: string;
   takenWeapons: WeaponType[];
+  alreadyMember: boolean;
 }
 
 /** Preview which weapons are taken before joining. */
@@ -183,12 +186,17 @@ export async function peekJoinCampaign(
   if (!data) {
     return { ok: false, error: "Kampagne nicht gefunden." };
   }
-  const parsed = data as { campaign_id: string; taken_weapons: string[] };
+  const parsed = data as {
+    campaign_id: string;
+    taken_weapons: string[];
+    already_member?: boolean;
+  };
   return {
     ok: true,
     data: {
       campaignId: parsed.campaign_id,
       takenWeapons: parsed.taken_weapons as WeaponType[],
+      alreadyMember: Boolean(parsed.already_member),
     },
   };
 }
@@ -218,14 +226,29 @@ export async function joinCampaignWithHunter(
   }
   await startSync(cid as string);
 
-  const campaign = useCampaign.getState().campaign;
-  const hunter = campaign?.hunters.find((h) => h.userId === userId);
+  const hunter = useCampaign
+    .getState()
+    .campaign?.hunters.find((h) => h.userId === userId);
   if (hunter) {
-    useCampaign.getState().applyStarterKit(hunter.id);
+    useCampaign.getState().forceStarterKit(hunter.id);
     requestImmediatePush();
   }
 
   return true;
+}
+
+/** Repair starter kits for own hunter(s) after create, then sync if needed. */
+function ensureOwnHuntersStarterKits(userId: string): void {
+  const campaign = useCampaign.getState().campaign;
+  if (!campaign) return;
+  let changed = false;
+  for (const h of campaign.hunters) {
+    if (h.userId !== userId) continue;
+    if (!hunterNeedsStarterKit(h)) continue;
+    useCampaign.getState().applyStarterKit(h.id);
+    changed = true;
+  }
+  if (changed) requestImmediatePush();
 }
 
 export interface UserCampaignSummary {

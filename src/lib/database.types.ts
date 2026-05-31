@@ -149,7 +149,11 @@ export interface Database {
       };
       peek_join_campaign: {
         Args: { code: string };
-        Returns: { campaign_id: string; taken_weapons: string[] };
+        Returns: {
+          campaign_id: string;
+          taken_weapons: string[];
+          already_member: boolean;
+        };
       };
       is_campaign_member: {
         Args: { cid: string };

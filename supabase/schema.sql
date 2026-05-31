@@ -295,17 +295,26 @@ declare
   cid uuid;
   taken json;
   normalized text;
+  already_member boolean;
 begin
   normalized := upper(trim(both from code));
   select id into cid from public.campaign where join_code = normalized;
   if cid is null then
     raise exception 'Kampagne nicht gefunden';
   end if;
+  select exists (
+    select 1 from public.campaign_member m
+    where m.campaign_id = cid and m.user_id = auth.uid()
+  ) into already_member;
   select coalesce(json_agg(h.weapon_type), '[]'::json)
     into taken
     from public.hunter h
     where h.campaign_id = cid;
-  return json_build_object('campaign_id', cid, 'taken_weapons', taken);
+  return json_build_object(
+    'campaign_id', cid,
+    'taken_weapons', taken,
+    'already_member', already_member
+  );
 end;
 $$;
 
@@ -375,16 +384,16 @@ begin
     raise exception 'Kampagne nicht gefunden';
   end if;
   if exists (
+    select 1 from public.campaign_member m
+    where m.campaign_id = cid and m.user_id = auth.uid()
+  ) then
+    raise exception 'Du bist bereits in dieser Kampagne';
+  end if;
+  if exists (
     select 1 from public.hunter h
     where h.campaign_id = cid and h.weapon_type = join_campaign_hunter.weapon_type
   ) then
     raise exception 'Waffe bereits belegt';
-  end if;
-  if exists (
-    select 1 from public.hunter h
-    where h.campaign_id = cid and h.user_id = auth.uid()
-  ) then
-    raise exception 'Du bist bereits in dieser Kampagne';
   end if;
   insert into public.campaign_member (campaign_id, user_id, role)
     values (cid, auth.uid(), 'player')

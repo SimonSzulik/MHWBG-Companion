@@ -1,6 +1,7 @@
 /**
  * Main quests for Ancient Forest — from reDBo0n/mhwbg-comp items.json.
- * Grouped by monster, star tier (* level). Max 4 completions per quest.
+ * Grouped by monster, star tier (* level).
+ * 1★: max 1 success (failures do not count). 2★+: max 4 attempts (success or failure).
  */
 
 export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";

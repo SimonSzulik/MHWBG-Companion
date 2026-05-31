@@ -10,11 +10,19 @@ import type {
   GearSlot,
   MaterialStash,
 } from "../domain/types";
-import { MAX_QUEST_COMPLETIONS } from "../data/quests";
 import { gameData } from "../data/gameData";
 import { canCraftGear } from "../domain/catalog";
-import { starterKitFor } from "../domain/starterKit";
-import { canStartQuest, questById, shouldIncrementOnFailure } from "../domain/quests";
+import {
+  applyStarterKitToHunter,
+  hunterNeedsStarterKit,
+  starterKitFor,
+} from "../domain/starterKit";
+import {
+  canIncrementQuestCompletion,
+  canStartQuest,
+  questById,
+  shouldIncrementOnFailure,
+} from "../domain/quests";
 import { resolveLootChoice, rollDice } from "../domain/loot";
 import { lootTableForMonster } from "../data/lootTables";
 import { useAuth } from "./auth";
@@ -191,6 +199,8 @@ interface CampaignState {
 
   applyRemoteCampaign: (campaign: Campaign) => void;
   applyStarterKit: (hunterId: string) => void;
+  /** Always apply the kit for the hunter's weapon (e.g. after cloud join). */
+  forceStarterKit: (hunterId: string) => void;
 
   startQuest: (questId: string, hunterId: string) => { ok: boolean; reason?: string };
   joinQuest: (hunterId: string) => { ok: boolean; reason?: string };
@@ -203,25 +213,12 @@ interface CampaignState {
   confirmLoot: (hunterId: string) => void;
 }
 
-function needsStarterKit(hunter: Hunter): boolean {
-  return !hunter.equipped.weapon;
-}
-
-function mergeOwnedGear(existing: string[], additions: string[]): string[] {
-  return Array.from(new Set([...existing, ...additions]));
-}
-
 function backfillStarterKits(campaign: Campaign): Campaign {
-  const hunters = campaign.hunters.map((h) => {
-    if (!needsStarterKit(h)) return h;
-    const kit = starterKitFor(h.weaponType);
-    return {
-      ...h,
-      equipped: { ...h.equipped, ...kit.equipped },
-      ownedGear: mergeOwnedGear(h.ownedGear, kit.owned),
-    };
-  });
-  return { ...campaign, hunters };
+  const hunters = campaign.hunters.map((h) =>
+    hunterNeedsStarterKit(h) ? applyStarterKitToHunter(h) : h,
+  );
+  const changed = hunters.some((h, i) => h !== campaign.hunters[i]);
+  return changed ? { ...campaign, hunters } : campaign;
 }
 
 function allHuntersReady(campaign: Campaign, aq: ActiveQuest): boolean {
@@ -468,8 +465,10 @@ export const useCampaign = create<CampaignState>()(
       incrementQuest: (questId) =>
         set((s) => {
           if (!s.campaign) return s;
+          const quest = questById(questId);
+          if (!quest) return s;
           const cur = s.campaign.questCompletions[questId] ?? 0;
-          if (cur >= MAX_QUEST_COMPLETIONS) return s;
+          if (!canIncrementQuestCompletion(quest, cur)) return s;
           return {
             campaign: touch({
               ...s.campaign,
@@ -492,19 +491,27 @@ export const useCampaign = create<CampaignState>()(
         set((s) => {
           if (!s.campaign) return s;
           const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
-          if (!hunter || !needsStarterKit(hunter)) return s;
-          const kit = starterKitFor(hunter.weaponType);
+          if (!hunter || !hunterNeedsStarterKit(hunter)) return s;
           return {
             campaign: touch({
               ...s.campaign,
               hunters: s.campaign.hunters.map((h) =>
-                h.id === hunterId
-                  ? {
-                      ...h,
-                      equipped: { ...h.equipped, ...kit.equipped },
-                      ownedGear: mergeOwnedGear(h.ownedGear, kit.owned),
-                    }
-                  : h,
+                h.id === hunterId ? applyStarterKitToHunter(h) : h,
+              ),
+            }),
+          };
+        }),
+
+      forceStarterKit: (hunterId) =>
+        set((s) => {
+          if (!s.campaign) return s;
+          const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
+          if (!hunter) return s;
+          return {
+            campaign: touch({
+              ...s.campaign,
+              hunters: s.campaign.hunters.map((h) =>
+                h.id === hunterId ? applyStarterKitToHunter(h) : h,
               ),
             }),
           };
@@ -590,7 +597,7 @@ export const useCampaign = create<CampaignState>()(
           let questCompletions = s.campaign.questCompletions;
           if (quest && shouldIncrementOnFailure(quest)) {
             const cur = questCompletions[quest.id] ?? 0;
-            if (cur < MAX_QUEST_COMPLETIONS) {
+            if (canIncrementQuestCompletion(quest, cur)) {
               questCompletions = {
                 ...questCompletions,
                 [quest.id]: cur + 1,
@@ -724,17 +731,16 @@ export const useCampaign = create<CampaignState>()(
           (h) => campaign.activeQuest?.lootProgress[h.id]?.confirmed,
         );
 
-        if (allConfirmed) {
+        if (allConfirmed && quest) {
           const cur = campaign.questCompletions[aq.questId] ?? 0;
           campaign = touch({
             ...campaign,
-            questCompletions:
-              cur < MAX_QUEST_COMPLETIONS
-                ? {
-                    ...campaign.questCompletions,
-                    [aq.questId]: cur + 1,
-                  }
-                : campaign.questCompletions,
+            questCompletions: canIncrementQuestCompletion(quest, cur)
+              ? {
+                  ...campaign.questCompletions,
+                  [aq.questId]: cur + 1,
+                }
+              : campaign.questCompletions,
             activeQuest: null,
           });
         }

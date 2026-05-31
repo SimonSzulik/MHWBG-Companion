@@ -18,7 +18,11 @@ export function Camp() {
   const hunter = ownHunter(campaign, userId);
   const potions = campaign.items["potion"] ?? 0;
   const craftableCount = hunter
-    ? gameData.gear.filter((g) => craftState(g, hunter) === "craftable").length
+    ? gameData.gear.filter((g) => {
+        if (craftState(g, hunter) !== "craftable") return false;
+        if (g.slot === "weapon") return g.weaponType === hunter.weaponType;
+        return true;
+      }).length
     : 0;
 
   return (

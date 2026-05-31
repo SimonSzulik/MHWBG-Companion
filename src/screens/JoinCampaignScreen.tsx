@@ -6,7 +6,13 @@ import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
 import { isWeaponImplemented } from "../data/weapons";
 import { isValidJoinCode, normalizeJoinCode } from "../lib/joinCode";
-import { peekJoinCampaign, joinCampaignWithHunter } from "../lib/sync/engine";
+import {
+  activateCampaign,
+  joinCampaignWithHunter,
+  listUserCampaigns,
+  peekJoinCampaign,
+} from "../lib/sync/engine";
+import { WeaponForgePreview } from "../ui/WeaponForgePreview";
 
 type Step = "code" | "setup";
 
@@ -20,6 +26,9 @@ export function JoinCampaignScreen() {
   const [hunterName, setHunterName] = useState(username ?? "");
   const [weaponType, setWeaponType] = useState<WeaponType | null>(null);
   const [takenWeapons, setTakenWeapons] = useState<WeaponType[]>([]);
+  const [existingCampaignId, setExistingCampaignId] = useState<string | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,14 +45,44 @@ export function JoinCampaignScreen() {
     }
     setBusy(true);
     setError(null);
-    const peek = await peekJoinCampaign(joinCode.trim());
+    setExistingCampaignId(null);
+    const normalized = joinCode.trim().toUpperCase();
+
+    const { campaigns } = await listUserCampaigns();
+    const known = campaigns.find((c) => c.joinCode === normalized);
+    if (known) {
+      setBusy(false);
+      setExistingCampaignId(known.id);
+      setError("Du nimmst bereits an dieser Kampagne teil.");
+      return;
+    }
+
+    const peek = await peekJoinCampaign(normalized);
     setBusy(false);
     if (!peek.ok) {
       setError(peek.error);
       return;
     }
+    if (peek.data.alreadyMember) {
+      setExistingCampaignId(peek.data.campaignId);
+      setError("Du nimmst bereits an dieser Kampagne teil.");
+      return;
+    }
     setTakenWeapons(peek.data.takenWeapons);
     setStep("setup");
+  };
+
+  const openExistingCampaign = async () => {
+    if (!existingCampaignId) return;
+    setBusy(true);
+    setError(null);
+    const ok = await activateCampaign(existingCampaignId);
+    setBusy(false);
+    if (!ok) {
+      setError("Kampagne konnte nicht geöffnet werden.");
+      return;
+    }
+    nav("/", { replace: true });
   };
 
   const confirm = async () => {
@@ -80,6 +119,16 @@ export function JoinCampaignScreen() {
             />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {existingCampaignId && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void openExistingCampaign()}
+              className="rounded-lg border-[1.5px] border-line-strong bg-card py-2.5 text-sm font-semibold active:translate-y-px"
+            >
+              Kampagne öffnen
+            </button>
+          )}
           <button
             type="button"
             disabled={busy || !codeValid}
@@ -110,6 +159,10 @@ export function JoinCampaignScreen() {
             takenWeapons={takenWeapons}
           />
 
+          {weaponType && isWeaponImplemented(weaponType) && (
+            <WeaponForgePreview weaponType={weaponType} />
+          )}
+
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button
@@ -133,6 +186,7 @@ export function JoinCampaignScreen() {
               setStep("code");
               setWeaponType(null);
               setError(null);
+              setExistingCampaignId(null);
             }}
             className="text-sm text-ink-soft underline"
           >
