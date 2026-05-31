@@ -381,6 +381,10 @@ export const useCampaign = create<CampaignState>()(
 useCampaign.persist.onFinishHydration(() => {
   useCampaign.setState({ hydrated: true });
 });
+// Hydration can finish in a microtask before this listener is registered.
+if (useCampaign.persist.hasHydrated()) {
+  useCampaign.setState({ hydrated: true });
+}
 
 /** Default starter weapon id per weapon type. */
 function starterGearFor(weaponType: WeaponType): string | null {
