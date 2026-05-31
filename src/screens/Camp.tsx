@@ -19,6 +19,18 @@ export function Camp() {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-4 pb-24 pt-5">
+      {/* Top bar: campaign name + settings */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="font-display text-lg text-ink-soft">{campaign.name}</p>
+        <Link
+          to="/settings"
+          aria-label="Einstellungen"
+          className="grid h-9 w-9 place-items-center rounded-full border-[1.5px] border-line-strong bg-card text-lg active:translate-y-px"
+        >
+          ⚙
+        </Link>
+      </div>
+
       {/* Banner */}
       <Link to="/hunters" className="paper-card flex items-center gap-3 p-4 active:translate-y-px">
         <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-2xl">

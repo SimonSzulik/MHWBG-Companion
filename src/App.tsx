@@ -14,6 +14,7 @@ import { Inventory } from "./screens/Inventory";
 import { Forge } from "./screens/Forge";
 import { CampaignScreen } from "./screens/CampaignScreen";
 import { Reference } from "./screens/Reference";
+import { Settings } from "./screens/Settings";
 
 /**
  * Shell with persistent bottom nav. Guards routes behind an existing
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/forge" element={<Forge />} />
           <Route path="/campaign" element={<CampaignScreen />} />
           <Route path="/reference" element={<Reference />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

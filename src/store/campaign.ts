@@ -48,6 +48,13 @@ interface CampaignState {
 
   setDay: (day: number) => void;
   toggleHunt: (huntId: string) => void;
+
+  /**
+   * Replace the local campaign with state pulled from the cloud. Used by the
+   * sync layer; does not bump updatedAt (the remote value is authoritative)
+   * so it won't bounce straight back as a new push.
+   */
+  applyRemoteCampaign: (campaign: Campaign) => void;
 }
 
 function touch(c: Campaign): Campaign {
@@ -262,6 +269,8 @@ export const useCampaign = create<CampaignState>()(
             }),
           };
         }),
+
+      applyRemoteCampaign: (campaign) => set({ campaign }),
     }),
     { name: "mhwbg-campaign-v1" },
   ),

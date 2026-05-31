@@ -32,6 +32,7 @@ export interface Database {
           day: number;
           max_day: number;
         }>;
+        Relationships: [];
       };
       campaign_member: {
         Row: {
@@ -46,6 +47,7 @@ export interface Database {
           role?: "owner" | "player";
         };
         Update: Partial<{ role: "owner" | "player" }>;
+        Relationships: [];
       };
       hunter: {
         Row: {
@@ -81,6 +83,7 @@ export interface Database {
           equipped: Record<string, string>;
           notes: string | null;
         }>;
+        Relationships: [];
       };
       campaign_state: {
         Row: {
@@ -107,8 +110,10 @@ export interface Database {
           owned_gear: string[];
           hunts_completed: Record<string, boolean>;
         }>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
     Functions: {
       join_campaign: {
         Args: { code: string };
@@ -119,5 +124,7 @@ export interface Database {
         Returns: boolean;
       };
     };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }
