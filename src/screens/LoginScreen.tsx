@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { isSupabaseConfigured } from "../lib/supabase";
+import { isSupabaseConfigured, getSupabaseConfigIssue } from "../lib/supabase";
 import { useAuth } from "../store/auth";
 
 type Mode = "login" | "signup";
@@ -23,9 +23,21 @@ export function LoginScreen() {
         <div className="paper-card p-6 text-center">
           <p className="font-display text-xl">Supabase fehlt</p>
           <p className="mt-2 text-sm text-ink-soft">
-            Trage <code>VITE_SUPABASE_URL</code> und{" "}
-            <code>VITE_SUPABASE_ANON_KEY</code> in <code>.env</code> ein.
+            Trage <code>SUPABASE_URL</code> und{" "}
+            <code>SUPABASE_ANON_KEY</code> in <code>.env</code> ein.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  const configIssue = getSupabaseConfigIssue();
+  if (configIssue) {
+    return (
+      <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6">
+        <div className="paper-card p-6 text-center">
+          <p className="font-display text-xl">Supabase falsch konfiguriert</p>
+          <p className="mt-2 text-sm text-ink-soft">{configIssue}</p>
         </div>
       </div>
     );

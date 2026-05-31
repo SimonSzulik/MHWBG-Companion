@@ -49,7 +49,7 @@ npm run dev
 1. Auf [supabase.com](https://supabase.com) ein neues Projekt anlegen.
 2. **Project Settings → API** öffnen.
 3. `Project URL` und `anon public` Key kopieren.
-4. In `.env.local` als `VITE_SUPABASE_URL` bzw. `VITE_SUPABASE_ANON_KEY` eintragen.
+4. In `.env.local` als `SUPABASE_URL` bzw. `SUPABASE_ANON_KEY` eintragen.
 5. `npm run dev` — der Status-Screen zeigt **✓ Supabase verbunden**.
 
 ### Vercel verbinden (Deployment)
@@ -57,7 +57,7 @@ npm run dev
 1. Auf [vercel.com](https://vercel.com) **Add New → Project** und das GitHub-Repo importieren.
 2. Framework Preset: **Vite** (wird automatisch erkannt).
 3. Unter **Environment Variables** dieselben zwei Variablen hinterlegen
-   (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+   (`SUPABASE_URL`, `SUPABASE_ANON_KEY`).
 4. Deploy.
 
 > Die `anon`-Keys sind clientseitig öffentlich — der Datenschutz läuft über
