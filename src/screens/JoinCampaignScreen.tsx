@@ -5,11 +5,10 @@ import { Screen } from "../ui/Screen";
 import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
 import { isWeaponImplemented } from "../data/weapons";
+import { isValidJoinCode, normalizeJoinCode } from "../lib/joinCode";
 import { peekJoinCampaign, joinCampaignWithHunter } from "../lib/sync/engine";
 
 type Step = "code" | "setup";
-
-const JOIN_CODE_RE = /^[A-Z0-9]{8}$/;
 
 /** Join an existing campaign via join code. */
 export function JoinCampaignScreen() {
@@ -24,7 +23,7 @@ export function JoinCampaignScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const codeValid = JOIN_CODE_RE.test(joinCode.trim());
+  const codeValid = isValidJoinCode(joinCode);
 
   const validateCode = async () => {
     if (!navigator.onLine) {
@@ -74,9 +73,7 @@ export function JoinCampaignScreen() {
             </span>
             <input
               value={joinCode}
-              onChange={(e) =>
-                setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
-              }
+              onChange={(e) => setJoinCode(normalizeJoinCode(e.target.value))}
               placeholder="z. B. A1B2C3D4"
               maxLength={8}
               className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 font-display tracking-widest uppercase outline-none"

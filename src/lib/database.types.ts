@@ -21,6 +21,7 @@ export interface Database {
           id?: string;
           name?: string;
           box?: string;
+          join_code?: string;
           day?: number;
           max_day?: number;
           owner_id: string;

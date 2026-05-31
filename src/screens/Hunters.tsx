@@ -152,6 +152,7 @@ function SlotEditor({
           {current?.isStarter && (
             <p className="text-[10px] text-ink-soft">Startausrüstung</p>
           )}
+          {slot !== "weapon" && current && <ArmorPieceStats gear={current} />}
         </div>
         <span
           className={`shrink-0 text-lg text-ink-soft transition-transform duration-200 ${
@@ -182,7 +183,10 @@ function SlotEditor({
                   }`}
                 >
                   <GearIcon gear={g} slot={slot} />
-                  <span className="truncate text-sm font-medium">{g.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="truncate text-sm font-medium">{g.name}</span>
+                    {slot !== "weapon" && <ArmorPieceStats gear={g} />}
+                  </div>
                 </button>
               ))}
             </div>
@@ -198,6 +202,23 @@ function SlotEditor({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ArmorPieceStats({ gear }: { gear: GearDef }) {
+  const defense = gear.defense ?? 0;
+  return (
+    <div className="mt-0.5 flex flex-col gap-0.5 text-xs text-ink-soft">
+      <span>
+        Verteidigung{" "}
+        <span className="font-semibold text-ink">{defense > 0 ? `+${defense}` : defense}</span>
+      </span>
+      {gear.effect && (
+        <span>
+          Effekt: <span className="text-ink">{gear.effect}</span>
+        </span>
+      )}
     </div>
   );
 }

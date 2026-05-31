@@ -8,6 +8,7 @@ import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
 import { isWeaponImplemented } from "../data/weapons";
 import { randomPalicoName } from "../data/palicoNames";
+import { isValidJoinCode, normalizeJoinCode } from "../lib/joinCode";
 import { createCloudCampaign } from "../lib/sync/engine";
 
 /** Single-screen campaign creation with cloud upload. */
@@ -18,16 +19,24 @@ export function CreateCampaignScreen() {
 
   const [campaignName, setCampaignName] = useState("");
   const [hunterName, setHunterName] = useState(username ?? "");
+  const [chosenJoinCode, setChosenJoinCode] = useState("");
   const [randomPalico, setRandomPalico] = useState(false);
   const [weaponType, setWeaponType] = useState<WeaponType | null>(null);
   const [potions, setPotions] = useState(1);
   const [maxDay, setMaxDay] = useState(25);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [joinCode, setJoinCode] = useState<string | null>(null);
+  const [createdJoinCode, setCreatedJoinCode] = useState<string | null>(null);
+
+  const joinCodeValid = isValidJoinCode(chosenJoinCode);
 
   const finish = async () => {
-    if (!weaponType || !isWeaponImplemented(weaponType) || !campaignName.trim()) {
+    if (
+      !weaponType ||
+      !isWeaponImplemented(weaponType) ||
+      !campaignName.trim() ||
+      !joinCodeValid
+    ) {
       return;
     }
     if (!navigator.onLine) {
@@ -46,25 +55,27 @@ export function CreateCampaignScreen() {
       maxDay: Math.max(1, maxDay),
     });
 
-    const code = await createCloudCampaign();
+    const result = await createCloudCampaign(chosenJoinCode.trim());
     setBusy(false);
-    if (!code) {
-      setError("Kampagne konnte nicht erstellt werden.");
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
-    setJoinCode(code);
+    setCreatedJoinCode(result.code);
   };
 
-  if (joinCode) {
+  if (createdJoinCode) {
     return (
       <Screen title="Kampagne erstellt" back={false}>
         <div className="paper-card p-6 text-center">
           <p className="text-sm text-ink-soft">Teile diesen Join-Code:</p>
-          <p className="mt-2 font-display text-3xl tracking-widest">{joinCode}</p>
+          <p className="mt-2 font-display text-3xl tracking-widest">
+            {createdJoinCode}
+          </p>
           <button
             type="button"
             onClick={() => {
-              void navigator.clipboard.writeText(joinCode);
+              void navigator.clipboard.writeText(createdJoinCode);
             }}
             className="mt-4 text-sm text-accent underline"
           >
@@ -93,6 +104,23 @@ export function CreateCampaignScreen() {
           onChange={setHunterName}
         />
 
+        <label className="text-sm">
+          <span className="text-xs uppercase tracking-wide text-ink-soft">
+            Join-Code
+          </span>
+          <input
+            value={chosenJoinCode}
+            onChange={(e) => setChosenJoinCode(normalizeJoinCode(e.target.value))}
+            placeholder="z. B. A1B2C3D4"
+            maxLength={8}
+            className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 font-display tracking-widest uppercase outline-none"
+          />
+          <span className="mt-1 block text-xs text-ink-soft">
+            8 Zeichen (Buchstaben & Zahlen) — wird von anderen zum Beitreten
+            eingegeben.
+          </span>
+        </label>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -113,11 +141,6 @@ export function CreateCampaignScreen() {
           <Stepper value={maxDay} onChange={setMaxDay} min={0} max={60} />
         </Row>
 
-        <div className="rounded-lg border border-dashed border-accent/50 bg-accent-faint/30 px-3 py-2 text-sm text-ink-soft">
-          Nach dem Erstellen erhältst du einen Join-Code zum Teilen mit deiner
-          Gruppe.
-        </div>
-
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
@@ -125,6 +148,7 @@ export function CreateCampaignScreen() {
           disabled={
             busy ||
             !campaignName.trim() ||
+            !joinCodeValid ||
             !weaponType ||
             !isWeaponImplemented(weaponType) ||
             !hunterName.trim()

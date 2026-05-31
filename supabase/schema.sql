@@ -30,7 +30,8 @@ create table if not exists public.campaign (
   name        text not null default 'Neue Kampagne',
   box         text not null default 'Ancient Forest',
   -- short human-friendly code others type in to join, e.g. "MHW-7Q2K"
-  join_code   text not null unique default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
+  join_code   text not null unique default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))
+    check (join_code ~ '^[A-Z0-9]{8}$'),
   day         int  not null default 1 check (day >= 1),
   max_day     int  not null default 60 check (max_day >= 1),
   owner_id    uuid not null references auth.users (id) on delete cascade,
@@ -359,5 +360,12 @@ end $$;
 
 do $$ begin
   alter publication supabase_realtime add table public.campaign;
+exception when duplicate_object then null;
+end $$;
+
+-- Migration: enforce 8-char join code format on existing projects (re-run safe).
+do $$ begin
+  alter table public.campaign
+    add constraint campaign_join_code_format check (join_code ~ '^[A-Z0-9]{8}$');
 exception when duplicate_object then null;
 end $$;

@@ -69,18 +69,23 @@ export function requestImmediatePush(): void {
 
 /**
  * Create a cloud campaign from the current local campaign and start syncing.
- * Returns the shareable join code.
+ * Returns the shareable join code, or an error message.
  */
-export async function createCloudCampaign(): Promise<string | null> {
+export async function createCloudCampaign(
+  joinCode: string,
+): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
   const local = useCampaign.getState().campaign;
-  if (!local || !isSupabaseConfigured) return null;
+  if (!local || !isSupabaseConfigured) {
+    return { ok: false, error: "Kampagne konnte nicht erstellt werden." };
+  }
   setStatus("connecting");
   const userId = requireUserId();
   if (!userId) {
     setStatus("error", "Nicht eingeloggt.");
-    return null;
+    return { ok: false, error: "Nicht eingeloggt." };
   }
 
+  const code = joinCode.trim().toUpperCase();
   const maxDay = Math.max(1, local.maxDay);
 
   const { data: camp, error } = await supabase
@@ -91,12 +96,17 @@ export async function createCloudCampaign(): Promise<string | null> {
       day: local.day,
       max_day: maxDay,
       owner_id: userId,
+      join_code: code,
     })
     .select()
     .single();
   if (error || !camp) {
-    setStatus("error", error?.message);
-    return null;
+    const msg =
+      error?.code === "23505"
+        ? "Join-Code bereits vergeben."
+        : (error?.message ?? "Kampagne konnte nicht erstellt werden.");
+    setStatus("error", msg);
+    return { ok: false, error: msg };
   }
 
   await supabase
@@ -117,7 +127,7 @@ export async function createCloudCampaign(): Promise<string | null> {
   }
 
   await startSync(camp.id);
-  return camp.join_code;
+  return { ok: true, code: camp.join_code };
 }
 
 export interface PeekJoinResult {

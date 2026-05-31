@@ -36,12 +36,8 @@ export function Settings() {
 
   return (
     <Screen title="Einstellungen" subtitle={campaign?.name}>
-      <Section title="Sync">
-        <p className={`text-sm font-semibold ${st.cls}`}>
-          {st.text}
-          {detail ? ` — ${detail}` : ""}
-        </p>
-        {campaign?.joinCode && (
+      <Section title="Kampagne">
+        {campaign?.joinCode ? (
           <div className="rounded-lg border border-dashed border-accent/70 bg-accent-faint/50 px-3 py-2 text-center">
             <p className="text-xs text-ink-soft">
               Teile diesen Code, damit andere der Kampagne beitreten können:
@@ -59,7 +55,16 @@ export function Settings() {
               Code kopieren
             </button>
           </div>
+        ) : (
+          <p className="text-sm text-ink-soft">Join-Code wird geladen…</p>
         )}
+      </Section>
+
+      <Section title="Sync">
+        <p className={`text-sm font-semibold ${st.cls}`}>
+          {st.text}
+          {detail ? ` — ${detail}` : ""}
+        </p>
       </Section>
 
       <Section title="Backup">
