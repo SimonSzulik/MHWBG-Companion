@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
-import { isOwnHunter } from "../lib/hunter";
+import { otherHunters } from "../lib/hunter";
 import { HunterSummaryCard } from "../ui/HunterSummaryCard";
 
 /** Campaign hub: day tracker, potion use, calendar, quest/downtime entry. */
@@ -15,6 +15,30 @@ export function CampaignScreen() {
   if (!campaign) return null;
 
   const potions = campaign.items["potion"] ?? 0;
+  const teammates = otherHunters(campaign, userId);
+
+  // #region agent log
+  fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "5a8220",
+    },
+    body: JSON.stringify({
+      sessionId: "5a8220",
+      runId: "post-fix",
+      hypothesisId: "UI",
+      location: "CampaignScreen.tsx:render",
+      message: "campaign teammate list",
+      data: {
+        authUserId: userId,
+        totalHunters: campaign.hunters.length,
+        teammateIds: teammates.map((h) => ({ id: h.id, name: h.name })),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
 
   const usePotion = () => {
     adjustItem("potion", -1);
@@ -60,23 +84,15 @@ export function CampaignScreen() {
         </Link>
       </div>
 
-      {campaign.hunters.length > 0 && (
+      {teammates.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 px-1 text-xs uppercase tracking-wide text-accent">
-            Jäger · {campaign.hunters.length}
+            Mitjäger · {teammates.length}
           </p>
           <div className="flex flex-col gap-2">
-            {campaign.hunters.map((hunter) => {
-              const self = isOwnHunter(hunter, userId);
-              return (
-                <HunterSummaryCard
-                  key={hunter.id}
-                  hunter={hunter}
-                  to={self ? "/hunters" : undefined}
-                  isSelf={self}
-                />
-              );
-            })}
+            {teammates.map((hunter) => (
+              <HunterSummaryCard key={hunter.id} hunter={hunter} />
+            ))}
           </div>
         </div>
       )}

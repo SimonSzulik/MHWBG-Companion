@@ -17,6 +17,7 @@ import { starterKitFor } from "../domain/starterKit";
 import { canStartQuest, questById, shouldIncrementOnFailure } from "../domain/quests";
 import { resolveLootChoice, rollDice } from "../domain/loot";
 import { lootTableForMonster } from "../data/lootTables";
+import { useAuth } from "./auth";
 
 const uid = () =>
   globalThis.crypto?.randomUUID?.() ??
@@ -268,6 +269,7 @@ export const useCampaign = create<CampaignState>()(
           id: uid(),
           name: name || "Hunter",
           palicoName,
+          userId: useAuth.getState().userId ?? undefined,
           weaponType,
           equipped: kit.equipped,
           materials: {},
@@ -303,6 +305,7 @@ export const useCampaign = create<CampaignState>()(
             id: uid(),
             name: input.name || "Hunter",
             palicoName: input.palicoName,
+            userId: useAuth.getState().userId ?? undefined,
             weaponType: input.weaponType,
             equipped: kit.equipped,
             materials: {},

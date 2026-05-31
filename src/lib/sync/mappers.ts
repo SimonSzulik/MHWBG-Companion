@@ -153,10 +153,8 @@ export function hunterToInsert(
 
 export function hunterToUpdate(
   h: Hunter,
-  userId?: string | null,
 ): Database["public"]["Tables"]["hunter"]["Update"] {
   return {
-    user_id: userId ?? undefined,
     name: h.name,
     palico_name: h.palicoName ?? null,
     player_name: h.playerName ?? null,

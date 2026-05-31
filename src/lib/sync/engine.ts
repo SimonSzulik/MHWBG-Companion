@@ -140,7 +140,7 @@ export async function createCloudCampaign(
 
   if (local.hunters.length) {
     await supabase.from("hunter").insert(
-      local.hunters.map((h) => hunterToInsert(camp.id, h, userId)),
+      local.hunters.map((h) => hunterToInsert(camp.id, h, h.userId ?? userId)),
     );
     if (local.leaderId) {
       await supabase
@@ -254,6 +254,33 @@ export async function listUserCampaigns(): Promise<ListUserCampaignsResult> {
   }
 
   const { data, error } = await supabase.rpc("list_my_campaigns");
+  // #region agent log
+  fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "5a8220",
+    },
+    body: JSON.stringify({
+      sessionId: "5a8220",
+      runId: "pre-fix",
+      hypothesisId: "C",
+      location: "engine.ts:listUserCampaigns",
+      message: "list_my_campaigns result",
+      data: {
+        userId,
+        error: error?.message ?? null,
+        campaignIds: Array.isArray(data)
+          ? (data as { id: string }[]).map((r) => r.id)
+          : typeof data === "object" && data !== null
+            ? "non-array"
+            : String(data),
+        count: Array.isArray(data) ? data.length : null,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   if (error) {
     return { campaigns: [], error: error.message };
   }
@@ -288,6 +315,18 @@ export async function activateCampaign(campaignId: string): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
   const userId = await ensureAuthUserId();
   if (!userId) return false;
+
+  const { data: membership } = await supabase
+    .from("campaign_member")
+    .select("user_id")
+    .eq("campaign_id", campaignId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!membership) {
+    setStatus("error", "Kein Zugriff auf diese Kampagne.");
+    return false;
+  }
+
   await stopSync();
   useCampaign.getState().resetCampaign();
   try {
@@ -313,6 +352,32 @@ export async function pull(campaignId: string): Promise<Campaign | null> {
     ]);
   if (!camp) return null;
   const campaign = rowsToCampaign(camp, state ?? null, hunters ?? []);
+  // #region agent log
+  fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "5a8220",
+    },
+    body: JSON.stringify({
+      sessionId: "5a8220",
+      runId: "pre-fix",
+      hypothesisId: "A",
+      location: "engine.ts:pull",
+      message: "pulled campaign hunters",
+      data: {
+        campaignId,
+        authUserId: useAuth.getState().userId,
+        hunters: campaign.hunters.map((h) => ({
+          id: h.id,
+          name: h.name,
+          userId: h.userId ?? null,
+        })),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   applyingRemote = true;
   useCampaign.getState().applyRemoteCampaign(campaign);
   applyingRemote = false;
@@ -404,6 +469,19 @@ export async function resumeSyncIfNeeded(): Promise<void> {
   if (!id || !isSupabaseConfigured) return;
   const userId = await ensureAuthUserId();
   if (!userId) return;
+
+  const { data: membership } = await supabase
+    .from("campaign_member")
+    .select("user_id")
+    .eq("campaign_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!membership) {
+    await stopSync();
+    useCampaign.getState().resetCampaign();
+    return;
+  }
+
   if (activeCampaignId === id && status === "live") return;
   await startSync(id);
 }
@@ -483,14 +561,39 @@ async function syncHunters(
 
   for (const h of hunters) {
     if (remoteIds.has(h.id)) {
+      const updatePayload = hunterToUpdate(h);
+      // #region agent log
+      fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "5a8220",
+        },
+        body: JSON.stringify({
+          sessionId: "5a8220",
+          runId: "post-fix",
+          hypothesisId: "A",
+          location: "engine.ts:syncHunters",
+          message: "hunter update payload",
+          data: {
+            hunterId: h.id,
+            hunterName: h.name,
+            localUserId: h.userId ?? null,
+            authUserId: userId,
+            payloadHasUserId: "user_id" in updatePayload,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       await supabase
         .from("hunter")
-        .update(hunterToUpdate(h, userId))
+        .update(updatePayload)
         .eq("id", h.id);
     } else {
       await supabase
         .from("hunter")
-        .insert(hunterToInsert(campaignId, h, userId));
+        .insert(hunterToInsert(campaignId, h, h.userId ?? userId));
     }
   }
   const toDelete = [...remoteIds].filter((id) => !localIds.has(id));
