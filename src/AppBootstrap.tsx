@@ -50,36 +50,6 @@ export function CampaignGuard({ children }: { children: ReactNode }) {
   const [booting, setBooting] = useState(Boolean(campaign));
 
   useEffect(() => {
-    if (!campaign) return;
-    // #region agent log
-    fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "5a8220",
-      },
-      body: JSON.stringify({
-        sessionId: "5a8220",
-        runId: "pre-fix",
-        hypothesisId: "E",
-        location: "AppBootstrap.tsx:CampaignGuard",
-        message: "campaign guard active",
-        data: {
-          authUserId: userId,
-          campaignId: campaign.id,
-          persistedId: localStorage.getItem("mhwbg-active-campaign-id"),
-          hunterUserIds: campaign.hunters.map((h) => ({
-            id: h.id,
-            userId: h.userId ?? null,
-          })),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [campaign?.id, userId]);
-
-  useEffect(() => {
     if (!campaign) {
       setBooting(false);
       return;

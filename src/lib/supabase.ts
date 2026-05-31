@@ -15,7 +15,6 @@ const rawAnonKey = import.meta.env.SUPABASE_ANON_KEY as string | undefined;
 const url = normalizeSupabaseUrl(rawUrl);
 const anonKey = rawAnonKey;
 
-// #region agent log
 function jwtRef(key: string | undefined): string | null {
   if (!key?.startsWith("eyJ")) return null;
   try {
@@ -25,43 +24,6 @@ function jwtRef(key: string | undefined): string | null {
     return null;
   }
 }
-function urlRefFromHost(host: string | undefined): string | null {
-  const m = host?.match(/^([a-z0-9]+)\.supabase\.co$/i);
-  return m?.[1] ?? null;
-}
-fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "X-Debug-Session-Id": "b16310",
-  },
-  body: JSON.stringify({
-    sessionId: "b16310",
-    runId: "pre-fix",
-    hypothesisId: "A,B,C,D,E",
-    location: "supabase.ts:boot",
-    message: "Supabase env snapshot",
-    data: {
-      rawUrlEndsWithRestV1: Boolean(rawUrl?.replace(/\/+$/, "").match(/\/rest\/v1\/?$/i)),
-      normalizedUrlHost: url ? new URL(url).hostname : null,
-      keyLength: anonKey?.length ?? 0,
-      keyLooksLikeJwt: Boolean(anonKey?.startsWith("eyJ") && anonKey.split(".").length === 3),
-      keyLooksLikeUrl: Boolean(anonKey?.includes("supabase.co")),
-      keyHasQuotes: Boolean(anonKey && (anonKey.startsWith('"') || anonKey.endsWith('"'))),
-      keyTrimDiff: anonKey ? anonKey.length - anonKey.trim().length : 0,
-      urlRef: url ? urlRefFromHost(new URL(url).hostname) : null,
-      jwtRef: jwtRef(anonKey),
-      refsMatch:
-        url && anonKey
-          ? urlRefFromHost(new URL(url).hostname) === jwtRef(anonKey)
-          : null,
-      isSupabaseConfigured: Boolean(url && anonKey),
-      hostname: typeof location !== "undefined" ? location.hostname : "ssr",
-    },
-    timestamp: Date.now(),
-  }),
-}).catch(() => {});
-// #endregion
 
 /**
  * True only when both env vars are present. Lets the UI show a helpful

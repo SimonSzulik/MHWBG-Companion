@@ -17,29 +17,6 @@ export function CampaignScreen() {
   const potions = campaign.items["potion"] ?? 0;
   const teammates = otherHunters(campaign, userId);
 
-  // #region agent log
-  fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "5a8220",
-    },
-    body: JSON.stringify({
-      sessionId: "5a8220",
-      runId: "post-fix",
-      hypothesisId: "UI",
-      location: "CampaignScreen.tsx:render",
-      message: "campaign teammate list",
-      data: {
-        authUserId: userId,
-        totalHunters: campaign.hunters.length,
-        teammateIds: teammates.map((h) => ({ id: h.id, name: h.name })),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   const usePotion = () => {
     adjustItem("potion", -1);
     setConfirmPotion(false);

@@ -60,30 +60,6 @@ export const useAuth = create<AuthState>((set) => ({
 
     const email = toAuthEmail(username);
     const { data, error } = await supabase.auth.signUp({ email, password });
-    // #region agent log
-    if (error) {
-      fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "b16310",
-        },
-        body: JSON.stringify({
-          sessionId: "b16310",
-          runId: "pre-fix",
-          hypothesisId: "A",
-          location: "auth.ts:signUp",
-          message: "signUp auth error",
-          data: {
-            errorMessage: error.message,
-            errorStatus: error.status,
-            errorCode: error.code,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
     if (error) return { ok: false, error: error.message };
     const userId = data.user?.id;
     if (!userId) return { ok: false, error: "Registrierung fehlgeschlagen." };
@@ -125,30 +101,6 @@ export const useAuth = create<AuthState>((set) => ({
       email,
       password,
     });
-    // #region agent log
-    if (error) {
-      fetch("http://127.0.0.1:7881/ingest/a7cdc541-ed7c-4afe-87a4-662a27c5f95a", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "b16310",
-        },
-        body: JSON.stringify({
-          sessionId: "b16310",
-          runId: "pre-fix",
-          hypothesisId: "A",
-          location: "auth.ts:signIn",
-          message: "signIn auth error",
-          data: {
-            errorMessage: error.message,
-            errorStatus: error.status,
-            errorCode: error.code,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
     if (error) return { ok: false, error: error.message };
     const userId = data.user?.id;
     if (!userId) return { ok: false, error: "Login fehlgeschlagen." };
