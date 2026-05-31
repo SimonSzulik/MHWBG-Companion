@@ -12,7 +12,6 @@ import {
   listUserCampaigns,
   peekJoinCampaign,
 } from "../lib/sync/engine";
-import { WeaponForgePreview } from "../ui/WeaponForgePreview";
 
 type Step = "code" | "setup";
 
@@ -158,10 +157,6 @@ export function JoinCampaignScreen() {
             onChange={setWeaponType}
             takenWeapons={takenWeapons}
           />
-
-          {weaponType && isWeaponImplemented(weaponType) && (
-            <WeaponForgePreview weaponType={weaponType} />
-          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

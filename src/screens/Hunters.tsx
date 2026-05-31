@@ -5,9 +5,7 @@ import { useAuth } from "../store/auth";
 import { gameData } from "../data/gameData";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import { Link } from "react-router-dom";
 import { ownHunter } from "../lib/hunter";
-import { WeaponForgePreview } from "../ui/WeaponForgePreview";
 import type { GearDef, GearSlot, Hunter } from "../domain/types";
 
 const ARMOUR_SLOTS: { slot: GearSlot; label: string }[] = [
@@ -28,17 +26,6 @@ export function Hunters() {
   return (
     <Screen title="Jäger" subtitle={hunter.name}>
       <HunterSheet hunter={hunter} />
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between px-1">
-          <p className="text-xs uppercase tracking-wide text-accent">
-            Schmiederezepte
-          </p>
-          <Link to="/forge" className="text-xs font-semibold text-accent underline">
-            Zur Schmiede →
-          </Link>
-        </div>
-        <WeaponForgePreview weaponType={hunter.weaponType} />
-      </div>
     </Screen>
   );
 }

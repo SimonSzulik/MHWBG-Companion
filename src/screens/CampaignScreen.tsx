@@ -5,6 +5,8 @@ import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { otherHunters } from "../lib/hunter";
 import { HunterSummaryCard } from "../ui/HunterSummaryCard";
+import type { CalendarDayEntry } from "../domain/types";
+import { iconUrl } from "../domain/icons";
 
 /** Campaign hub: day tracker, potion use, calendar, quest/downtime entry. */
 export function CampaignScreen() {
@@ -41,7 +43,11 @@ export function CampaignScreen() {
           </button>
         </div>
 
-        <CampaignCalendar day={campaign.day} maxDay={campaign.maxDay} />
+        <CampaignCalendar
+          day={campaign.day}
+          maxDay={campaign.maxDay}
+          dayLog={campaign.dayLog ?? {}}
+        />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
@@ -86,7 +92,15 @@ export function CampaignScreen() {
   );
 }
 
-function CampaignCalendar({ day, maxDay }: { day: number; maxDay: number }) {
+function CampaignCalendar({
+  day,
+  maxDay,
+  dayLog,
+}: {
+  day: number;
+  maxDay: number;
+  dayLog: Record<number, CalendarDayEntry>;
+}) {
   const cols = 10;
   const rows = Math.ceil(maxDay / cols);
 
@@ -106,18 +120,46 @@ function CampaignCalendar({ day, maxDay }: { day: number; maxDay: number }) {
           }
           const isCurrent = d === day;
           const isPast = d < day;
+          const entry = dayLog[d];
+          const failed = entry?.result === "failure";
+
           return (
             <span
               key={d}
-              title={`Tag ${d}`}
-              className={`aspect-square rounded-sm border ${
+              title={
+                entry
+                  ? `Tag ${d} · ${entry.result === "success" ? "Erfolg" : "Fehlschlag"}`
+                  : `Tag ${d}`
+              }
+              className={`relative flex min-h-[28px] flex-col items-center justify-center rounded-sm border p-0.5 ${
                 isCurrent
-                  ? "border-accent bg-accent text-white"
+                  ? "border-accent bg-accent"
                   : isPast
                     ? "border-line bg-paper-2"
                     : "border-line bg-paper"
               }`}
-            />
+            >
+              {entry ? (
+                <span
+                  className={`flex flex-col items-center gap-0 ${
+                    failed ? "opacity-50 grayscale" : ""
+                  }`}
+                >
+                  <img
+                    src={iconUrl(entry.monsterId)}
+                    alt=""
+                    className="h-3.5 w-3.5 object-contain"
+                  />
+                  <img
+                    src={iconUrl(entry.stars)}
+                    alt=""
+                    className="h-2.5 w-2.5 object-contain"
+                  />
+                </span>
+              ) : isCurrent ? (
+                <span className="text-[9px] font-semibold text-white">{d}</span>
+              ) : null}
+            </span>
           );
         })}
       </div>

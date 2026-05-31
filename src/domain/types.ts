@@ -148,6 +148,14 @@ export type MaterialStash = Record<string, number>;
 /** itemId -> quantity. */
 export type ItemStash = Record<string, number>;
 
+export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";
+
+export interface CalendarDayEntry {
+  monsterId: string;
+  stars: QuestStars;
+  result: "success" | "failure";
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -164,6 +172,8 @@ export interface Campaign {
   questCompletions: Record<string, number>;
   /** In-progress quest state (synced, shared). */
   activeQuest: ActiveQuest | null;
+  /** Quest marker per calendar day (day number -> entry). */
+  dayLog: Record<number, CalendarDayEntry>;
   /** Share code for co-op (from cloud). */
   joinCode?: string;
   createdAt: number;
@@ -182,6 +192,8 @@ export interface HunterLootProgress {
   dice: [number, number];
   choice?: "split" | "sum";
   brokenParts: MonsterPartId[];
+  /** Manually confirmed loot; seeded from dice preview when rules change. */
+  lootQuantities: Record<string, number>;
   confirmed: boolean;
 }
 

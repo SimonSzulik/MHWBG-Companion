@@ -84,6 +84,8 @@ create table if not exists public.campaign_state (
   hunts_completed jsonb not null default '{}'::jsonb,
   -- in-progress quest lobby / active / looting state
   active_quest    jsonb,
+  -- day number -> { monsterId, stars, result }
+  day_log         jsonb not null default '{}'::jsonb,
   updated_at      timestamptz not null default now()
 );
 
@@ -442,3 +444,5 @@ alter table public.hunter
   add column if not exists owned_gear jsonb not null default '[]'::jsonb;
 alter table public.campaign_state
   add column if not exists active_quest jsonb;
+alter table public.campaign_state
+  add column if not exists day_log jsonb not null default '{}'::jsonb;

@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth, initAuthListener } from "./store/auth";
 import { useCampaign } from "./store/campaign";
 import { resumeSyncIfNeeded } from "./lib/sync/engine";
@@ -78,12 +78,39 @@ export function CampaignGuard({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** Leave quest lobby when navigating away via bottom tabs (re-shows invite popup). */
+function QuestLobbyNavGuard() {
+  const location = useLocation();
+  const userId = useAuth((s) => s.userId);
+  const campaign = useCampaign((s) => s.campaign);
+  const leaveQuestLobby = useCampaign((s) => s.leaveQuestLobby);
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    const from = prevPath.current;
+    const to = location.pathname;
+    prevPath.current = to;
+
+    if (from !== "/campaign/quest" || to === "/campaign/quest") return;
+    const aq = campaign?.activeQuest;
+    if (!aq || aq.phase !== "lobby" || !userId) return;
+
+    const hunter = ownHunter(campaign, userId);
+    if (!hunter || !aq.readyHunterIds.includes(hunter.id)) return;
+
+    leaveQuestLobby(hunter.id);
+  }, [location.pathname, campaign, userId, leaveQuestLobby]);
+
+  return null;
+}
+
 /** App shell with bottom nav and online/sync gate. */
 export function Shell() {
   return (
     <OnlineGate>
       <div className="relative">
         <Outlet />
+        <QuestLobbyNavGuard />
         <QuestInvitePopup />
         <BottomNav />
       </div>

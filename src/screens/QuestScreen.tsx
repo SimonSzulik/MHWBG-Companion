@@ -15,7 +15,9 @@ import {
   canStartQuest,
   formatQuestCompletionCount,
   isQuestFullyCompleted,
+  isQuestTierUnlocked,
   maxCompletionsForQuest,
+  questTierLockReason,
 } from "../domain/quests";
 import { iconUrl } from "../domain/icons";
 
@@ -114,12 +116,22 @@ export function QuestScreen() {
                               <QuestRow
                                 key={q.id}
                                 quest={q}
+                                monsterQuests={monsterQuests}
+                                completions={campaign.questCompletions}
                                 count={campaign.questCompletions[q.id] ?? 0}
+                                locked={
+                                  !isQuestTierUnlocked(
+                                    q,
+                                    campaign.questCompletions,
+                                    monsterQuests,
+                                  )
+                                }
                                 disabled={
                                   !canStartQuest(
                                     q,
                                     campaign.questCompletions,
                                     hasActiveQuest,
+                                    monsterQuests,
                                   )
                                 }
                                 onStart={() => handleStart(q)}
@@ -142,24 +154,35 @@ export function QuestScreen() {
 
 function QuestRow({
   quest,
+  monsterQuests,
+  completions,
   count,
+  locked,
   disabled,
   onStart,
 }: {
   quest: QuestDef;
+  monsterQuests: QuestDef[];
+  completions: Record<string, number>;
   count: number;
+  locked: boolean;
   disabled: boolean;
   onStart: () => void;
 }) {
   const done = isQuestFullyCompleted(quest, count);
+  const inactive = locked || disabled || done;
+  const lockHint = locked
+    ? questTierLockReason(quest, completions, monsterQuests)
+    : undefined;
 
   return (
     <button
       type="button"
-      disabled={disabled || done}
+      disabled={inactive}
       onClick={onStart}
+      title={lockHint}
       className={`flex w-full items-center gap-3 rounded-xl border-[1.5px] border-line-strong px-3 py-2 text-left active:translate-y-px ${
-        disabled || done ? "bg-paper-2 opacity-60" : "bg-card"
+        inactive ? "bg-paper-2 opacity-60" : "bg-card"
       }`}
     >
       <img

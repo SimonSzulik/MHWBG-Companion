@@ -35,3 +35,39 @@ export function resolveLootChoice(
 export function rowForRoll(table: LootRow[], roll: number): LootRow | undefined {
   return table.find((r) => r.roll === roll);
 }
+
+export interface LootPreview {
+  materials: Record<string, number>;
+  brokenParts: MonsterPartId[];
+  partBreakMaterials: Record<string, number>;
+}
+
+/** Full loot preview including part-break bonus breakdown. */
+export function buildLootPreview(
+  table: LootRow[],
+  dice: [number, number],
+  choice: LootChoice | undefined,
+  brokenParts: MonsterPartId[],
+): LootPreview {
+  if (!choice) {
+    return { materials: {}, brokenParts, partBreakMaterials: {} };
+  }
+  const materials = resolveLootChoice(table, dice, choice, brokenParts);
+  const baseOnly = resolveLootChoice(table, dice, choice, []);
+  const partBreakMaterials: Record<string, number> = {};
+  for (const [id, qty] of Object.entries(materials)) {
+    const bonus = qty - (baseOnly[id] ?? 0);
+    if (bonus > 0) partBreakMaterials[id] = bonus;
+  }
+  return { materials, brokenParts, partBreakMaterials };
+}
+
+/** Seed manual loot quantities from dice rules. */
+export function seedLootQuantities(
+  table: LootRow[],
+  dice: [number, number],
+  choice: LootChoice,
+  brokenParts: MonsterPartId[],
+): Record<string, number> {
+  return resolveLootChoice(table, dice, choice, brokenParts);
+}

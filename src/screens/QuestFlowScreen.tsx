@@ -5,7 +5,7 @@ import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { ownHunter } from "../lib/hunter";
 import { questById } from "../domain/quests";
-import { rollDice, resolveLootChoice } from "../domain/loot";
+import { buildLootPreview, rollDice } from "../domain/loot";
 import {
   BREAKABLE_PARTS,
   PART_LABELS,
@@ -13,6 +13,10 @@ import {
 } from "../data/lootTables";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
+import {
+  LootMaterialPreviewList,
+  LootMaterialRow,
+} from "../ui/LootMaterialRow";
 
 /** Full-screen quest flow: lobby, active hunt, looting. */
 export function QuestFlowScreen() {
@@ -28,6 +32,7 @@ export function QuestFlowScreen() {
   const setLootDice = useCampaign((s) => s.setLootDice);
   const setLootChoice = useCampaign((s) => s.setLootChoice);
   const togglePartBreak = useCampaign((s) => s.togglePartBreak);
+  const setLootQuantity = useCampaign((s) => s.setLootQuantity);
   const confirmLoot = useCampaign((s) => s.confirmLoot);
 
   const aq = campaign?.activeQuest;
@@ -185,12 +190,21 @@ export function QuestFlowScreen() {
   const canSum = sum <= 12;
   const parts = BREAKABLE_PARTS[quest.monsterId] ?? [];
 
-  const preview =
-    progress.choice === "split"
-      ? resolveLootChoice(table, progress.dice, "split", progress.brokenParts)
-      : progress.choice === "sum" && canSum
-        ? resolveLootChoice(table, progress.dice, "sum", progress.brokenParts)
-        : null;
+  const splitPreview = buildLootPreview(
+    table,
+    progress.dice,
+    "split",
+    progress.brokenParts,
+  );
+  const sumPreview = canSum
+    ? buildLootPreview(table, progress.dice, "sum", progress.brokenParts)
+    : null;
+
+  const lootPreview = progress.choice
+    ? buildLootPreview(table, progress.dice, progress.choice, progress.brokenParts)
+    : null;
+
+  const materialIds = Object.keys(progress.lootQuantities).sort();
 
   return (
     <Screen title="Loot" subtitle={hunter.name} back={false}>
@@ -213,28 +227,14 @@ export function QuestFlowScreen() {
             label={`Zeile ${x} + ${y}`}
             active={progress.choice === "split"}
             onSelect={() => setLootChoice(hunter.id, "split")}
-            preview={resolveLootChoice(
-              table,
-              progress.dice,
-              "split",
-              progress.brokenParts,
-            )}
+            preview={splitPreview.materials}
           />
           <LootOption
             label={`Zeile ${sum}`}
             disabled={!canSum}
             active={progress.choice === "sum"}
             onSelect={() => setLootChoice(hunter.id, "sum")}
-            preview={
-              canSum
-                ? resolveLootChoice(
-                    table,
-                    progress.dice,
-                    "sum",
-                    progress.brokenParts,
-                  )
-                : undefined
-            }
+            preview={sumPreview?.materials}
           />
         </div>
 
@@ -262,16 +262,64 @@ export function QuestFlowScreen() {
           </div>
         )}
 
-        {preview && Object.keys(preview).length > 0 && (
+        {lootPreview && progress.choice && (
           <div className="paper-card p-4">
             <p className="mb-2 text-xs uppercase tracking-wide text-accent">
               Vorschau
             </p>
-            <ul className="flex flex-col gap-1 text-sm">
-              {Object.entries(preview).map(([id, qty]) => (
-                <li key={id} className="flex items-center gap-2">
-                  <span className="font-semibold tabular-nums">{qty}×</span>
-                  <span>{catalog.material(id)?.name ?? id}</span>
+
+            {lootPreview.brokenParts.length > 0 && (
+              <div className="mb-3">
+                <p className="mb-1 text-[10px] uppercase tracking-wide text-ink-soft">
+                  Teilbruch
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {lootPreview.brokenParts.map((part) => (
+                    <span
+                      key={part}
+                      className="rounded-md border border-ok bg-ok-soft px-2 py-0.5 text-xs font-semibold text-ok"
+                    >
+                      {PART_LABELS[part]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Object.keys(lootPreview.partBreakMaterials).length > 0 && (
+              <div className="mb-3">
+                <p className="mb-1 text-[10px] uppercase tracking-wide text-ink-soft">
+                  Bonus durch Teilbruch
+                </p>
+                <LootMaterialPreviewList
+                  quantities={lootPreview.partBreakMaterials}
+                  readOnly
+                  compact
+                />
+              </div>
+            )}
+
+            <LootMaterialPreviewList
+              quantities={lootPreview.materials}
+              readOnly
+              compact
+            />
+          </div>
+        )}
+
+        {progress.choice && materialIds.length > 0 && (
+          <div className="paper-card p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-accent">
+              Beute (manuell anpassen)
+            </p>
+            <ul className="flex flex-col gap-1">
+              {materialIds.map((id) => (
+                <li key={id}>
+                  <LootMaterialRow
+                    materialId={id}
+                    qty={progress.lootQuantities[id] ?? 0}
+                    onSet={(next) => setLootQuantity(hunter.id, id, next)}
+                  />
                 </li>
               ))}
             </ul>
@@ -324,15 +372,10 @@ function LootOption({
       }`}
     >
       <p className="font-semibold">{label}</p>
-      {preview && (
-        <p className="mt-1 text-xs text-ink-soft">
-          {Object.entries(preview)
-            .map(
-              ([id, qty]) =>
-                `${qty}× ${catalog.material(id)?.shortName ?? catalog.material(id)?.name ?? id}`,
-            )
-            .join(", ")}
-        </p>
+      {preview && Object.keys(preview).length > 0 && (
+        <div className="mt-2">
+          <LootMaterialPreviewList quantities={preview} readOnly compact />
+        </div>
       )}
     </button>
   );

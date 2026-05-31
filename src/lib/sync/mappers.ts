@@ -5,9 +5,11 @@
  */
 import type {
   ActiveQuest,
+  CalendarDayEntry,
   Campaign,
   GearSlot,
   Hunter,
+  HunterLootProgress,
   MaterialStash,
   WeaponType,
 } from "../../domain/types";
@@ -29,11 +31,37 @@ function parseQuestCompletions(
   return out;
 }
 
+function parseDayLog(
+  raw: Record<string, CalendarDayEntry> | null | undefined,
+): Record<number, CalendarDayEntry> {
+  const out: Record<number, CalendarDayEntry> = {};
+  if (!raw) return out;
+  for (const [key, val] of Object.entries(raw)) {
+    const day = Number(key);
+    if (!Number.isFinite(day) || day < 1 || !val?.monsterId || !val?.stars) continue;
+    out[day] = {
+      monsterId: val.monsterId,
+      stars: val.stars,
+      result: val.result === "failure" ? "failure" : "success",
+    };
+  }
+  return out;
+}
+
 function parseActiveQuest(raw: unknown): ActiveQuest | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as ActiveQuest;
   if (!o.questId || !o.phase) return null;
-  return o;
+  const lootProgress: Record<string, HunterLootProgress> = {};
+  for (const [id, p] of Object.entries(o.lootProgress ?? {})) {
+    lootProgress[id] = {
+      ...p,
+      brokenParts: p.brokenParts ?? [],
+      lootQuantities: p.lootQuantities ?? {},
+      confirmed: p.confirmed ?? false,
+    };
+  }
+  return { ...o, lootProgress };
 }
 
 /** Migrate legacy shared stash from campaign_state onto first hunter. */
@@ -86,6 +114,9 @@ export function rowsToCampaign(
     items: state?.items ?? {},
     questCompletions: parseQuestCompletions(state?.hunts_completed),
     activeQuest: parseActiveQuest(state?.active_quest),
+    dayLog: parseDayLog(
+      state?.day_log as Record<string, CalendarDayEntry> | null | undefined,
+    ),
     hunters: migratedHunters,
     joinCode: campaign.join_code,
     createdAt: Date.parse(campaign.created_at) || Date.now(),
@@ -116,6 +147,7 @@ export function campaignToStateUpdate(
     items: c.items,
     hunts_completed: c.questCompletions,
     active_quest: c.activeQuest,
+    day_log: c.dayLog,
   };
 }
 

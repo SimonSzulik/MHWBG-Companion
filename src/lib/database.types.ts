@@ -102,6 +102,7 @@ export interface Database {
           owned_gear: string[];
           hunts_completed: Record<string, number | boolean>;
           active_quest: unknown | null;
+          day_log: Record<string, unknown>;
           updated_at: string;
         };
         Insert: {
@@ -112,6 +113,7 @@ export interface Database {
           owned_gear?: string[];
           hunts_completed?: Record<string, number | boolean>;
           active_quest?: unknown | null;
+          day_log?: Record<string, unknown>;
         };
         Update: Partial<{
           zenny: number;
@@ -120,6 +122,7 @@ export interface Database {
           owned_gear: string[];
           hunts_completed: Record<string, number | boolean>;
           active_quest: unknown | null;
+          day_log: Record<string, unknown>;
         }>;
         Relationships: [];
       };

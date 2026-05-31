@@ -11,6 +11,7 @@ import type {
   MaterialStash,
 } from "../domain/types";
 import { gameData } from "../data/gameData";
+import { questsForMonster } from "../data/quests";
 import { canCraftGear } from "../domain/catalog";
 import {
   applyStarterKitToHunter,
@@ -23,7 +24,8 @@ import {
   questById,
   shouldIncrementOnFailure,
 } from "../domain/quests";
-import { resolveLootChoice, rollDice } from "../domain/loot";
+import { recordQuestOnCalendar } from "../domain/calendar";
+import { seedLootQuantities, rollDice } from "../domain/loot";
 import { lootTableForMonster } from "../data/lootTables";
 import { useAuth } from "./auth";
 
@@ -88,6 +90,20 @@ function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | un
   };
 }
 
+function normalizeActiveQuest(aq: ActiveQuest | null | undefined): ActiveQuest | null {
+  if (!aq) return null;
+  const lootProgress: Record<string, HunterLootProgress> = {};
+  for (const [id, p] of Object.entries(aq.lootProgress ?? {})) {
+    lootProgress[id] = {
+      ...p,
+      brokenParts: p.brokenParts ?? [],
+      lootQuantities: p.lootQuantities ?? {},
+      confirmed: p.confirmed ?? false,
+    };
+  }
+  return { ...aq, lootProgress };
+}
+
 function migrateCampaign(raw: LegacyCampaignV4): Campaign {
   const questCompletions: Record<string, number> = {
     ...(raw.questCompletions ?? {}),
@@ -116,7 +132,8 @@ function migrateCampaign(raw: LegacyCampaignV4): Campaign {
     hunters,
     leaderId: rest.leaderId ?? hunters[0]?.id ?? "",
     questCompletions,
-    activeQuest: rest.activeQuest ?? null,
+    activeQuest: normalizeActiveQuest(rest.activeQuest),
+    dayLog: rest.dayLog ?? {},
     items: rest.items ?? {},
     zenny: rest.zenny ?? 0,
   };
@@ -210,6 +227,7 @@ interface CampaignState {
   setLootDice: (hunterId: string, dice: [number, number]) => void;
   setLootChoice: (hunterId: string, choice: "split" | "sum") => void;
   togglePartBreak: (hunterId: string, part: MonsterPartId) => void;
+  setLootQuantity: (hunterId: string, materialId: string, qty: number) => void;
   confirmLoot: (hunterId: string) => void;
 }
 
@@ -236,15 +254,56 @@ function tryAdvanceToActive(campaign: Campaign): Campaign {
 }
 
 function emptyLootProgress(): HunterLootProgress {
-  return { dice: [1, 1], brokenParts: [], confirmed: false };
+  return { dice: [1, 1], brokenParts: [], lootQuantities: {}, confirmed: false };
 }
 
 function applyLootToHunter(hunter: Hunter, rewards: Record<string, number>): Hunter {
   const materials = { ...hunter.materials };
   for (const [id, qty] of Object.entries(rewards)) {
+    if (qty <= 0) continue;
     materials[id] = (materials[id] ?? 0) + qty;
   }
   return { ...hunter, materials };
+}
+
+function lootTableForActiveQuest(campaign: Campaign) {
+  const questId = campaign.activeQuest?.questId;
+  if (!questId) return null;
+  const quest = questById(questId);
+  if (!quest) return null;
+  return lootTableForMonster(quest.monsterId);
+}
+
+function patchLootProgress(
+  campaign: Campaign,
+  hunterId: string,
+  patch: Partial<HunterLootProgress>,
+): Campaign {
+  const aq = campaign.activeQuest;
+  if (!aq?.lootProgress[hunterId]) return campaign;
+
+  const prev = aq.lootProgress[hunterId];
+  const next: HunterLootProgress = { ...prev, ...patch };
+  const table = lootTableForActiveQuest(campaign);
+
+  if (table && next.choice) {
+    next.lootQuantities = seedLootQuantities(
+      table,
+      next.dice,
+      next.choice,
+      next.brokenParts,
+    );
+  } else if (!next.choice) {
+    next.lootQuantities = {};
+  }
+
+  return touch({
+    ...campaign,
+    activeQuest: {
+      ...aq,
+      lootProgress: { ...aq.lootProgress, [hunterId]: next },
+    },
+  });
 }
 
 export const useCampaign = create<CampaignState>()(
@@ -286,6 +345,7 @@ export const useCampaign = create<CampaignState>()(
             items: { potion: potions },
             questCompletions: {},
             activeQuest: null,
+            dayLog: {},
             createdAt: now,
             updatedAt: now,
           },
@@ -527,6 +587,7 @@ export const useCampaign = create<CampaignState>()(
             quest,
             s.campaign.questCompletions,
             s.campaign.activeQuest != null,
+            questsForMonster(quest.monsterId),
           )
         ) {
           return { ok: false, reason: "Quest nicht verfügbar." };
@@ -604,13 +665,15 @@ export const useCampaign = create<CampaignState>()(
               };
             }
           }
-          return {
-            campaign: touch({
-              ...s.campaign,
-              questCompletions,
-              activeQuest: null,
-            }),
-          };
+          let campaign = touch({
+            ...s.campaign,
+            questCompletions,
+            activeQuest: null,
+          });
+          if (quest) {
+            campaign = touch(recordQuestOnCalendar(campaign, quest, "failure"));
+          }
+          return { campaign };
         }),
 
       completeQuestSuccess: () =>
@@ -635,21 +698,10 @@ export const useCampaign = create<CampaignState>()(
       setLootDice: (hunterId, dice) =>
         set((s) => {
           if (!s.campaign?.activeQuest?.lootProgress[hunterId]) return s;
-          const progress = s.campaign.activeQuest.lootProgress[hunterId];
           return {
-            campaign: touch({
-              ...s.campaign,
-              activeQuest: {
-                ...s.campaign.activeQuest,
-                lootProgress: {
-                  ...s.campaign.activeQuest.lootProgress,
-                  [hunterId]: {
-                    ...progress,
-                    dice,
-                    choice: undefined,
-                  },
-                },
-              },
+            campaign: patchLootProgress(s.campaign, hunterId, {
+              dice,
+              choice: undefined,
             }),
           };
         }),
@@ -657,19 +709,7 @@ export const useCampaign = create<CampaignState>()(
       setLootChoice: (hunterId, choice) =>
         set((s) => {
           if (!s.campaign?.activeQuest?.lootProgress[hunterId]) return s;
-          const progress = s.campaign.activeQuest.lootProgress[hunterId];
-          return {
-            campaign: touch({
-              ...s.campaign,
-              activeQuest: {
-                ...s.campaign.activeQuest,
-                lootProgress: {
-                  ...s.campaign.activeQuest.lootProgress,
-                  [hunterId]: { ...progress, choice },
-                },
-              },
-            }),
-          };
+          return { campaign: patchLootProgress(s.campaign, hunterId, { choice }) };
         }),
 
       togglePartBreak: (hunterId, part) =>
@@ -681,13 +721,25 @@ export const useCampaign = create<CampaignState>()(
             ? progress.brokenParts.filter((p) => p !== part)
             : [...progress.brokenParts, part];
           return {
+            campaign: patchLootProgress(s.campaign, hunterId, { brokenParts }),
+          };
+        }),
+
+      setLootQuantity: (hunterId, materialId, qty) =>
+        set((s) => {
+          if (!s.campaign?.activeQuest?.lootProgress[hunterId]) return s;
+          const progress = s.campaign.activeQuest.lootProgress[hunterId];
+          const lootQuantities = { ...progress.lootQuantities };
+          if (qty <= 0) delete lootQuantities[materialId];
+          else lootQuantities[materialId] = qty;
+          return {
             campaign: touch({
               ...s.campaign,
               activeQuest: {
                 ...s.campaign.activeQuest,
                 lootProgress: {
                   ...s.campaign.activeQuest.lootProgress,
-                  [hunterId]: { ...progress, brokenParts },
+                  [hunterId]: { ...progress, lootQuantities },
                 },
               },
             }),
@@ -706,12 +758,7 @@ export const useCampaign = create<CampaignState>()(
         const table = lootTableForMonster(quest.monsterId);
         if (!table) return;
 
-        const rewards = resolveLootChoice(
-          table,
-          progress.dice,
-          progress.choice,
-          progress.brokenParts,
-        );
+        const rewards = progress.lootQuantities;
 
         let campaign = touch({
           ...s.campaign,
@@ -743,6 +790,7 @@ export const useCampaign = create<CampaignState>()(
               : campaign.questCompletions,
             activeQuest: null,
           });
+          campaign = touch(recordQuestOnCalendar(campaign, quest, "success"));
         }
 
         set({ campaign });
