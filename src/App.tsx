@@ -4,8 +4,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import type { ReactNode } from "react";
-import { useCampaign } from "./store/campaign";
 import { useAuth } from "./store/auth";
 import { useAppReady } from "./AppBootstrap";
 import { AuthGuard, CampaignGuard, Shell } from "./AppBootstrap";
@@ -29,15 +27,7 @@ function LoginRoute() {
   return <LoginScreen />;
 }
 
-function NoCampaignRoute({ children }: { children: ReactNode }) {
-  const campaign = useCampaign((s) => s.campaign);
-  if (campaign) return <Navigate to="/" replace />;
-  return <>{children}</>;
-}
-
 function OnboardingRoute() {
-  const campaign = useCampaign((s) => s.campaign);
-  if (campaign) return <Navigate to="/" replace />;
   return (
     <AuthGuard>
       <OnboardingHub />
@@ -67,9 +57,7 @@ export default function App() {
           path="/onboarding/new"
           element={
             <AuthGuard>
-              <NoCampaignRoute>
-                <CreateCampaignScreen />
-              </NoCampaignRoute>
+              <CreateCampaignScreen />
             </AuthGuard>
           }
         />
@@ -77,9 +65,7 @@ export default function App() {
           path="/onboarding/join"
           element={
             <AuthGuard>
-              <NoCampaignRoute>
-                <JoinCampaignScreen />
-              </NoCampaignRoute>
+              <JoinCampaignScreen />
             </AuthGuard>
           }
         />

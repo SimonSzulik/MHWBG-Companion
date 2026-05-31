@@ -146,6 +146,10 @@ export interface Database {
         Args: { cid: string };
         Returns: boolean;
       };
+      list_my_campaigns: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

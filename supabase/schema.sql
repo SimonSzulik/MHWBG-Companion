@@ -267,7 +267,7 @@ as $$
 declare
   cid uuid;
 begin
-  select id into cid from public.campaign where join_code = upper(code);
+  select id into cid from public.campaign where join_code = upper(trim(both from code));
   if cid is null then
     raise exception 'Kampagne nicht gefunden';
   end if;
@@ -288,8 +288,10 @@ as $$
 declare
   cid uuid;
   taken json;
+  normalized text;
 begin
-  select id into cid from public.campaign where join_code = upper(code);
+  normalized := upper(trim(both from code));
+  select id into cid from public.campaign where join_code = normalized;
   if cid is null then
     raise exception 'Kampagne nicht gefunden';
   end if;
@@ -298,6 +300,51 @@ begin
     from public.hunter h
     where h.campaign_id = cid;
   return json_build_object('campaign_id', cid, 'taken_weapons', taken);
+end;
+$$;
+
+-- List all campaigns for the current user (with owner membership backfill).
+create or replace function public.list_my_campaigns()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result json;
+begin
+  if auth.uid() is null then
+    raise exception 'Nicht eingeloggt';
+  end if;
+
+  insert into public.campaign_member (campaign_id, user_id, role)
+  select c.id, c.owner_id, 'owner'
+  from public.campaign c
+  where c.owner_id = auth.uid()
+    and not exists (
+      select 1 from public.campaign_member m
+      where m.campaign_id = c.id and m.user_id = auth.uid()
+    );
+
+  select coalesce(json_agg(row_to_json(t) order by t.updated_at desc), '[]'::json)
+  into result
+  from (
+    select
+      c.id,
+      c.name,
+      c.join_code,
+      c.day,
+      c.max_day,
+      c.updated_at,
+      m.role,
+      h.name as hunter_name,
+      h.weapon_type
+    from public.campaign_member m
+    join public.campaign c on c.id = m.campaign_id
+    left join public.hunter h on h.campaign_id = c.id and h.user_id = auth.uid()
+    where m.user_id = auth.uid()
+  ) t;
+  return result;
 end;
 $$;
 
@@ -314,8 +361,10 @@ set search_path = public
 as $$
 declare
   cid uuid;
+  normalized text;
 begin
-  select id into cid from public.campaign where join_code = upper(code);
+  normalized := upper(trim(both from code));
+  select id into cid from public.campaign where join_code = normalized;
   if cid is null then
     raise exception 'Kampagne nicht gefunden';
   end if;
@@ -343,6 +392,7 @@ $$;
 grant execute on function public.join_campaign(text) to authenticated;
 grant execute on function public.peek_join_campaign(text) to authenticated;
 grant execute on function public.join_campaign_hunter(text, text, text) to authenticated;
+grant execute on function public.list_my_campaigns() to authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Realtime: broadcast row changes for live shared state.

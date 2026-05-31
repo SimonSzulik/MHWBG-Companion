@@ -88,6 +88,21 @@ export const useAuth = create<AuthState>((set) => ({
     const userId = data.user?.id;
     if (!userId) return { ok: false, error: "Registrierung fehlgeschlagen." };
 
+    let session = data.session;
+    if (!session) {
+      const signInRes = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInRes.error || !signInRes.data.session) {
+        return {
+          ok: false,
+          error: "Konto erstellt. Bitte einloggen.",
+        };
+      }
+      session = signInRes.data.session;
+    }
+
     const { error: profileErr } = await supabase.from("player_profile").insert({
       user_id: userId,
       username: username.trim(),
@@ -96,7 +111,7 @@ export const useAuth = create<AuthState>((set) => ({
       return { ok: false, error: profileErr.message };
     }
 
-    set({ userId, username: username.trim() });
+    set({ userId, username: username.trim(), loading: false });
     return { ok: true };
   },
 

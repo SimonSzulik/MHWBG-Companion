@@ -38,11 +38,11 @@ export function JoinCampaignScreen() {
     setError(null);
     const peek = await peekJoinCampaign(joinCode.trim());
     setBusy(false);
-    if (!peek) {
-      setError("Kampagne nicht gefunden.");
+    if (!peek.ok) {
+      setError(peek.error);
       return;
     }
-    setTakenWeapons(peek.takenWeapons);
+    setTakenWeapons(peek.data.takenWeapons);
     setStep("setup");
   };
 

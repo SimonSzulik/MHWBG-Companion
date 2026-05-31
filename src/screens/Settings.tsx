@@ -34,6 +34,12 @@ export function Settings() {
     nav("/login", { replace: true });
   };
 
+  const switchCampaign = async () => {
+    await stopSync();
+    resetCampaign();
+    nav("/onboarding", { replace: true });
+  };
+
   return (
     <Screen title="Einstellungen" subtitle={campaign?.name}>
       <Section title="Kampagne">
@@ -58,6 +64,13 @@ export function Settings() {
         ) : (
           <p className="text-sm text-ink-soft">Join-Code wird geladen…</p>
         )}
+        <button
+          type="button"
+          onClick={() => void switchCampaign()}
+          className="rounded-lg border-[1.5px] border-line-strong bg-card py-2 text-sm font-semibold active:translate-y-px"
+        >
+          Kampagne wechseln
+        </button>
       </Section>
 
       <Section title="Sync">

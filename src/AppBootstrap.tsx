@@ -6,13 +6,11 @@ import { resumeSyncIfNeeded } from "./lib/sync/engine";
 import { BottomNav } from "./ui/BottomNav";
 import { OnlineGate } from "./ui/OnlineGate";
 
-/** Waits for auth + campaign hydration, then resumes cloud sync. */
+/** Waits for auth + campaign store hydration. */
 export function useAppReady(): boolean {
   const [ready, setReady] = useState(false);
   const authLoading = useAuth((s) => s.loading);
-  const userId = useAuth((s) => s.userId);
   const hydrated = useCampaign((s) => s.hydrated);
-  const campaign = useCampaign((s) => s.campaign);
   const restoreSession = useAuth((s) => s.restoreSession);
 
   useEffect(() => {
@@ -23,13 +21,9 @@ export function useAppReady(): boolean {
 
   useEffect(() => {
     if (!authLoading && hydrated) {
-      if (userId && campaign) {
-        void resumeSyncIfNeeded().finally(() => setReady(true));
-      } else {
-        setReady(true);
-      }
+      setReady(true);
     }
-  }, [authLoading, hydrated, userId, campaign]);
+  }, [authLoading, hydrated]);
 
   return ready;
 }
@@ -50,7 +44,31 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 
 export function CampaignGuard({ children }: { children: ReactNode }) {
   const campaign = useCampaign((s) => s.campaign);
+  const [booting, setBooting] = useState(Boolean(campaign));
+
+  useEffect(() => {
+    if (!campaign) {
+      setBooting(false);
+      return;
+    }
+    let cancelled = false;
+    setBooting(true);
+    void resumeSyncIfNeeded().finally(() => {
+      if (!cancelled) setBooting(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign?.id]);
+
   if (!campaign) return <Navigate to="/onboarding" replace />;
+  if (booting) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center text-sm text-ink-soft">
+        Lade Kampagne…
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 

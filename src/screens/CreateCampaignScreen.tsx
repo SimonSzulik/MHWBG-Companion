@@ -9,13 +9,14 @@ import { useCampaign } from "../store/campaign";
 import { isWeaponImplemented } from "../data/weapons";
 import { randomPalicoName } from "../data/palicoNames";
 import { isValidJoinCode, normalizeJoinCode } from "../lib/joinCode";
-import { createCloudCampaign } from "../lib/sync/engine";
+import { createCloudCampaign, stopSync } from "../lib/sync/engine";
 
 /** Single-screen campaign creation with cloud upload. */
 export function CreateCampaignScreen() {
   const nav = useNavigate();
   const username = useAuth((s) => s.username);
   const startCampaign = useCampaign((s) => s.startCampaign);
+  const resetCampaign = useCampaign((s) => s.resetCampaign);
 
   const [campaignName, setCampaignName] = useState("");
   const [hunterName, setHunterName] = useState(username ?? "");
@@ -45,6 +46,9 @@ export function CreateCampaignScreen() {
     }
     setBusy(true);
     setError(null);
+
+    await stopSync();
+    resetCampaign();
 
     startCampaign({
       campaignName: campaignName.trim(),
