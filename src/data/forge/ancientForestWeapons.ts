@@ -42,6 +42,7 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("buster-sword", "Buster Sword", gs, "gs-ore", 0, {
     tierIcon: "white-great-sword",
     pathIcon: "white-ore",
+    isStarter: true,
   }),
   w("buster-blade", "Buster Blade", gs, "gs-ore", 1, {
     tierIcon: "yellow-great-sword",
@@ -74,7 +75,6 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("bone-blade", "Bone Blade", gs, "gs-bone", 0, {
     tierIcon: "white-great-sword",
     pathIcon: "yellow-bone",
-    isStarter: true,
     cost: [{ materialId: "monster-bone-small", qty: 1 }],
   }),
   w("bone-slasher", "Bone Slasher", gs, "gs-bone", 1, {
@@ -166,6 +166,7 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("hunters-knife", "Hunter's Knife", sns, "sns-ore", 0, {
     tierIcon: "white-sword-shield",
     pathIcon: "white-ore",
+    isStarter: true,
   }),
   w("steel-knife", "Steel Knife", sns, "sns-ore", 1, {
     tierIcon: "yellow-sword-shield",
@@ -198,7 +199,6 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("bone-kukri", "Bone Kukri", sns, "sns-bone", 0, {
     tierIcon: "white-sword-shield",
     pathIcon: "yellow-bone",
-    isStarter: true,
     cost: [{ materialId: "monster-bone-small", qty: 1 }],
   }),
   w("chief-kukri", "Chief Kukri", sns, "sns-bone", 1, {
@@ -289,6 +289,7 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("iron-bow", "Iron Bow", bow, "bow-ore", 0, {
     tierIcon: "white-bow",
     pathIcon: "white-ore",
+    isStarter: true,
   }),
   w("steel-bow", "Steel Bow", bow, "bow-ore", 1, {
     tierIcon: "yellow-bow",
@@ -321,7 +322,6 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("hunters-bow", "Hunter's Bow", bow, "bow-bone", 0, {
     tierIcon: "white-bow",
     pathIcon: "yellow-bone",
-    isStarter: true,
     cost: [{ materialId: "monster-bone-small", qty: 1 }],
   }),
   w("hunters-stoutbow", "Hunter's Stoutbow", bow, "bow-bone", 1, {
@@ -425,6 +425,7 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("matched-slicers", "Matched Slicers", db, "db-ore", 0, {
     tierIcon: "white-dual-blades",
     pathIcon: "white-ore",
+    isStarter: true,
   }),
   w("dual-slicers", "Dual Slicers", db, "db-ore", 1, {
     tierIcon: "yellow-dual-blades",
@@ -449,7 +450,6 @@ export const ancientForestWeaponGear: GearDef[] = [
   w("bone-hatchets", "Bone Hatchets", db, "db-bone", 0, {
     tierIcon: "white-dual-blades",
     pathIcon: "yellow-bone",
-    isStarter: true,
     cost: [{ materialId: "monster-bone-small", qty: 1 }],
   }),
   w("wild-hatchets", "Wild Hatchets", db, "db-bone", 1, {

@@ -2,11 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { WeaponType } from "../domain/types";
 import { Screen } from "../ui/Screen";
+import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
-import { ALL_WEAPONS } from "../data/weapons";
+import { isWeaponImplemented } from "../data/weapons";
 import { peekJoinCampaign, joinCampaignWithHunter } from "../lib/sync/engine";
 
 type Step = "code" | "setup";
+
+const JOIN_CODE_RE = /^[A-Z0-9]{8}$/;
 
 /** Join an existing campaign via join code. */
 export function JoinCampaignScreen() {
@@ -21,11 +24,15 @@ export function JoinCampaignScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const available = ALL_WEAPONS.filter((w) => !takenWeapons.includes(w.type));
+  const codeValid = JOIN_CODE_RE.test(joinCode.trim());
 
   const validateCode = async () => {
     if (!navigator.onLine) {
       setError("Internetverbindung erforderlich.");
+      return;
+    }
+    if (!codeValid) {
+      setError("Join-Code muss 8 Zeichen haben (z. B. A1B2C3D4).");
       return;
     }
     setBusy(true);
@@ -37,15 +44,11 @@ export function JoinCampaignScreen() {
       return;
     }
     setTakenWeapons(peek.takenWeapons);
-    const avail = ALL_WEAPONS.filter((w) => !peek.takenWeapons.includes(w.type));
-    if (avail.length === 0) {
-      setError("Alle Waffen sind bereits belegt.");
-    }
     setStep("setup");
   };
 
   const confirm = async () => {
-    if (!weaponType) return;
+    if (!weaponType || !isWeaponImplemented(weaponType)) return;
     setBusy(true);
     setError(null);
     const ok = await joinCampaignWithHunter(
@@ -71,15 +74,18 @@ export function JoinCampaignScreen() {
             </span>
             <input
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="z.B. MHW-7Q2K"
-              className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 uppercase outline-none"
+              onChange={(e) =>
+                setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+              }
+              placeholder="z. B. A1B2C3D4"
+              maxLength={8}
+              className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 font-display tracking-widest uppercase outline-none"
             />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="button"
-            disabled={busy || joinCode.trim().length < 4}
+            disabled={busy || !codeValid}
             onClick={() => void validateCode()}
             className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2.5 font-semibold text-white active:translate-y-px disabled:opacity-40"
           >
@@ -101,39 +107,39 @@ export function JoinCampaignScreen() {
             />
           </label>
 
-          <div>
-            <p className="mb-2 text-xs uppercase tracking-wide text-ink-soft">Waffe</p>
-            {available.length === 0 ? (
-              <p className="text-sm text-ink-soft">Keine freien Waffen.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {available.map((w) => (
-                  <button
-                    key={w.type}
-                    type="button"
-                    onClick={() => setWeaponType(w.type)}
-                    className={`paper-card px-3 py-3 text-left text-sm font-semibold active:translate-y-px ${
-                      weaponType === w.type
-                        ? "ring-2 ring-accent bg-accent-faint"
-                        : ""
-                    }`}
-                  >
-                    {w.type}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <WeaponPicker
+            value={weaponType}
+            onChange={setWeaponType}
+            takenWeapons={takenWeapons}
+          />
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button
             type="button"
-            disabled={busy || !weaponType || !hunterName.trim()}
+            disabled={
+              busy ||
+              !weaponType ||
+              !isWeaponImplemented(weaponType) ||
+              takenWeapons.includes(weaponType) ||
+              !hunterName.trim()
+            }
             onClick={() => void confirm()}
             className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2.5 font-semibold text-white active:translate-y-px disabled:opacity-40"
           >
             {busy ? "Beitreten…" : "Beitreten"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStep("code");
+              setWeaponType(null);
+              setError(null);
+            }}
+            className="text-sm text-ink-soft underline"
+          >
+            ← Anderen Code eingeben
           </button>
         </div>
       )}

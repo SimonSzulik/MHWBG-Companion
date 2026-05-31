@@ -59,6 +59,7 @@ export function rowToHunter(row: HunterRow): Hunter {
     name: row.name,
     palicoName: row.palico_name ?? undefined,
     playerName: row.player_name ?? undefined,
+    userId: row.user_id ?? undefined,
     weaponType: row.weapon_type as WeaponType,
     equipped: (row.equipped ?? {}) as Partial<Record<GearSlot, string>>,
     notes: row.notes ?? undefined,

@@ -10,6 +10,7 @@ import type {
 import { MAX_QUEST_COMPLETIONS } from "../data/quests";
 import { gameData } from "../data/gameData";
 import { canCraftGear } from "../domain/catalog";
+import { starterKitFor } from "../domain/starterKit";
 
 /**
  * Local-first campaign store. Everything persists to localStorage so the app
@@ -153,10 +154,28 @@ interface CampaignState {
    * so it won't bounce straight back as a new push.
    */
   applyRemoteCampaign: (campaign: Campaign) => void;
+
+  /** Grant and equip starter kit for a hunter missing their starting gear. */
+  applyStarterKit: (hunterId: string) => void;
 }
 
-function touch(c: Campaign): Campaign {
-  return { ...c, updatedAt: Date.now() };
+function needsStarterKit(hunter: Hunter): boolean {
+  return !hunter.equipped.weapon;
+}
+
+function mergeOwnedGear(existing: string[], additions: string[]): string[] {
+  return Array.from(new Set([...existing, ...additions]));
+}
+
+function backfillStarterKits(campaign: Campaign): Campaign {
+  let ownedGear = campaign.ownedGear;
+  const hunters = campaign.hunters.map((h) => {
+    if (!needsStarterKit(h)) return h;
+    const kit = starterKitFor(h.weaponType);
+    ownedGear = mergeOwnedGear(ownedGear, kit.owned);
+    return { ...h, equipped: { ...h.equipped, ...kit.equipped } };
+  });
+  return { ...campaign, hunters, ownedGear };
 }
 
 export const useCampaign = create<CampaignState>()(
@@ -173,13 +192,13 @@ export const useCampaign = create<CampaignState>()(
         maxDay = 25,
         potions = 1,
       }) => {
-        const starter = starterGearFor(weaponType);
+        const kit = starterKitFor(weaponType);
         const newHunter: Hunter = {
           id: uid(),
           name: name || "Hunter",
           palicoName,
           weaponType,
-          equipped: starter ? { weapon: starter } : {},
+          equipped: kit.equipped,
         };
         const now = Date.now();
         set({
@@ -194,7 +213,7 @@ export const useCampaign = create<CampaignState>()(
             zenny: 0,
             materials: {},
             items: { potion: potions },
-            ownedGear: starter ? [starter] : [],
+            ownedGear: kit.owned,
             questCompletions: {},
             createdAt: now,
             updatedAt: now,
@@ -207,22 +226,19 @@ export const useCampaign = create<CampaignState>()(
       addHunter: (input) =>
         set((s) => {
           if (!s.campaign) return s;
-          const starter = starterGearFor(input.weaponType);
+          const kit = starterKitFor(input.weaponType);
           const h: Hunter = {
             id: uid(),
             name: input.name || "Hunter",
             palicoName: input.palicoName,
             weaponType: input.weaponType,
-            equipped: starter ? { weapon: starter } : {},
+            equipped: kit.equipped,
           };
-          const ownedGear = starter
-            ? Array.from(new Set([...s.campaign.ownedGear, starter]))
-            : s.campaign.ownedGear;
           return {
             campaign: touch({
               ...s.campaign,
               hunters: [...s.campaign.hunters, h],
-              ownedGear,
+              ownedGear: mergeOwnedGear(s.campaign.ownedGear, kit.owned),
             }),
           };
         }),
@@ -368,7 +384,28 @@ export const useCampaign = create<CampaignState>()(
 
       applyRemoteCampaign: (campaign) =>
         set({
-          campaign: migrateCampaign(campaign as LegacyCampaign),
+          campaign: backfillStarterKits(
+            migrateCampaign(campaign as LegacyCampaign),
+          ),
+        }),
+
+      applyStarterKit: (hunterId) =>
+        set((s) => {
+          if (!s.campaign) return s;
+          const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
+          if (!hunter || !needsStarterKit(hunter)) return s;
+          const kit = starterKitFor(hunter.weaponType);
+          return {
+            campaign: touch({
+              ...s.campaign,
+              ownedGear: mergeOwnedGear(s.campaign.ownedGear, kit.owned),
+              hunters: s.campaign.hunters.map((h) =>
+                h.id === hunterId
+                  ? { ...h, equipped: { ...h.equipped, ...kit.equipped } }
+                  : h,
+              ),
+            }),
+          };
         }),
     }),
     {
@@ -386,18 +423,6 @@ if (useCampaign.persist.hasHydrated()) {
   useCampaign.setState({ hydrated: true });
 }
 
-/** Default starter weapon id per weapon type. */
-function starterGearFor(weaponType: WeaponType): string | null {
-  const starter = gameData.gear.find(
-    (g) =>
-      g.slot === "weapon" &&
-      g.weaponType === weaponType &&
-      g.isStarter === true,
-  );
-  if (starter) return starter.id;
-  const fallback = gameData.gear.find(
-    (g) =>
-      g.slot === "weapon" && g.weaponType === weaponType && g.cost.length === 0,
-  );
-  return fallback?.id ?? null;
+function touch(c: Campaign): Campaign {
+  return { ...c, updatedAt: Date.now() };
 }

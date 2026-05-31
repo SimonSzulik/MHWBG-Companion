@@ -148,7 +148,8 @@ export async function joinCampaignWithHunter(
 ): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
   setStatus("connecting");
-  if (!requireUserId()) {
+  const userId = requireUserId();
+  if (!userId) {
     setStatus("error", "Nicht eingeloggt.");
     return false;
   }
@@ -163,6 +164,14 @@ export async function joinCampaignWithHunter(
     return false;
   }
   await startSync(cid as string);
+
+  const campaign = useCampaign.getState().campaign;
+  const hunter = campaign?.hunters.find((h) => h.userId === userId);
+  if (hunter) {
+    useCampaign.getState().applyStarterKit(hunter.id);
+    requestImmediatePush();
+  }
+
   return true;
 }
 

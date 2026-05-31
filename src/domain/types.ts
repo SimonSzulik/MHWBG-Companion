@@ -131,6 +131,8 @@ export interface Hunter {
   name: string;
   palicoName?: string;
   playerName?: string;
+  /** Auth user id when synced from cloud. */
+  userId?: string;
   weaponType: WeaponType;
   /** Equipped gear ids, by slot. */
   equipped: Partial<Record<GearSlot, string>>;

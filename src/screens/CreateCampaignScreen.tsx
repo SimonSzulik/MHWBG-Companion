@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import type { WeaponType } from "../domain/types";
 import { Screen } from "../ui/Screen";
 import { Stepper } from "../ui/Stepper";
+import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
-import { ALL_WEAPONS } from "../data/weapons";
+import { isWeaponImplemented } from "../data/weapons";
 import { randomPalicoName } from "../data/palicoNames";
 import { createCloudCampaign } from "../lib/sync/engine";
 
@@ -26,7 +27,9 @@ export function CreateCampaignScreen() {
   const [joinCode, setJoinCode] = useState<string | null>(null);
 
   const finish = async () => {
-    if (!weaponType || !campaignName.trim()) return;
+    if (!weaponType || !isWeaponImplemented(weaponType) || !campaignName.trim()) {
+      return;
+    }
     if (!navigator.onLine) {
       setError("Internetverbindung erforderlich.");
       return;
@@ -100,23 +103,7 @@ export function CreateCampaignScreen() {
           Random Palico
         </label>
 
-        <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-ink-soft">Waffe</p>
-          <div className="grid grid-cols-2 gap-2">
-            {ALL_WEAPONS.map((w) => (
-              <button
-                key={w.type}
-                type="button"
-                onClick={() => setWeaponType(w.type)}
-                className={`paper-card px-3 py-3 text-left text-sm font-semibold active:translate-y-px ${
-                  weaponType === w.type ? "ring-2 ring-accent bg-accent-faint" : ""
-                }`}
-              >
-                {w.type}
-              </button>
-            ))}
-          </div>
-        </div>
+        <WeaponPicker value={weaponType} onChange={setWeaponType} />
 
         <Row label="Group Potions">
           <Stepper value={potions} onChange={setPotions} min={0} max={99} />
@@ -126,12 +113,21 @@ export function CreateCampaignScreen() {
           <Stepper value={maxDay} onChange={setMaxDay} min={0} max={60} />
         </Row>
 
+        <div className="rounded-lg border border-dashed border-accent/50 bg-accent-faint/30 px-3 py-2 text-sm text-ink-soft">
+          Nach dem Erstellen erhältst du einen Join-Code zum Teilen mit deiner
+          Gruppe.
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="button"
           disabled={
-            busy || !campaignName.trim() || !weaponType || !hunterName.trim()
+            busy ||
+            !campaignName.trim() ||
+            !weaponType ||
+            !isWeaponImplemented(weaponType) ||
+            !hunterName.trim()
           }
           onClick={() => void finish()}
           className="rounded-lg border-[1.5px] border-line-strong bg-accent py-3 font-semibold text-white active:translate-y-px disabled:opacity-40"

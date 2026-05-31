@@ -43,10 +43,21 @@ export function Settings() {
         </p>
         {campaign?.joinCode && (
           <div className="rounded-lg border border-dashed border-accent/70 bg-accent-faint/50 px-3 py-2 text-center">
-            <p className="text-xs text-ink-soft">Join-Code:</p>
+            <p className="text-xs text-ink-soft">
+              Teile diesen Code, damit andere der Kampagne beitreten können:
+            </p>
             <p className="font-display text-2xl tracking-widest">
               {campaign.joinCode}
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(campaign.joinCode!);
+              }}
+              className="mt-2 text-sm text-accent underline"
+            >
+              Code kopieren
+            </button>
           </div>
         )}
       </Section>

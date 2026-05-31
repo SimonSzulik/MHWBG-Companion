@@ -214,6 +214,9 @@ function SlotEditor({
         <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-wide text-ink-soft">{label}</p>
           <p className="truncate font-medium">{current?.name ?? "— leer —"}</p>
+          {current?.isStarter && (
+            <p className="text-[10px] text-ink-soft">Startausrüstung</p>
+          )}
         </div>
         <span
           className={`shrink-0 text-lg text-ink-soft transition-transform duration-200 ${
