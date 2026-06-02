@@ -20,7 +20,7 @@ export function Screen({
 }) {
   const nav = useNavigate();
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col">
+    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
         {back && (
           <button
@@ -42,7 +42,7 @@ export function Screen({
         </div>
         {right}
       </header>
-      <main className="flex-1 px-4 pb-24 pt-1">{children}</main>
+      <main className="flex-1 overflow-x-clip px-4 pb-24 pt-1">{children}</main>
     </div>
   );
 }

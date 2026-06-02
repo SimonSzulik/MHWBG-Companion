@@ -4,8 +4,10 @@ import { useAuth, initAuthListener } from "./store/auth";
 import { useCampaign } from "./store/campaign";
 import { resumeSyncIfNeeded } from "./lib/sync/engine";
 import { ownHunter } from "./lib/hunter";
+import { usePwaInstall } from "./lib/pwa/usePwaInstall";
 import { BottomNav } from "./ui/BottomNav";
 import { OnlineGate } from "./ui/OnlineGate";
+import { PwaInstallPrompt } from "./ui/PwaInstallPrompt";
 import { QuestInvitePopup } from "./ui/QuestInvitePopup";
 
 /** Waits for auth + campaign store hydration. */
@@ -106,12 +108,29 @@ function QuestLobbyNavGuard() {
 
 /** App shell with bottom nav and online/sync gate. */
 export function Shell() {
+  const {
+    canShowInstallPrompt,
+    isIos,
+    hasNativeInstallPrompt,
+    promptInstall,
+    dismissPrompt,
+  } = usePwaInstall();
+
   return (
     <OnlineGate>
       <div className="relative">
         <Outlet />
         <QuestLobbyNavGuard />
         <QuestInvitePopup />
+        {canShowInstallPrompt && (
+          <PwaInstallPrompt
+            iosMode={isIos || !hasNativeInstallPrompt}
+            onInstall={() => {
+              void promptInstall();
+            }}
+            onClose={dismissPrompt}
+          />
+        )}
         <BottomNav />
       </div>
     </OnlineGate>

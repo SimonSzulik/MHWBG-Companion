@@ -7,6 +7,7 @@ import { useAuth } from "../store/auth";
 import { useSyncStatus } from "../lib/sync/useSync";
 import { stopSync } from "../lib/sync/engine";
 import { exportCampaign, importCampaign } from "../lib/backup";
+import { usePwaInstall } from "../lib/pwa/usePwaInstall";
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   off: { text: "Getrennt", cls: "text-ink-soft" },
@@ -22,6 +23,7 @@ export function Settings() {
   const resetCampaign = useCampaign((s) => s.resetCampaign);
   const signOut = useAuth((s) => s.signOut);
   const { status, detail } = useSyncStatus();
+  const { isInstalled, isIos, hasNativeInstallPrompt, promptInstall } = usePwaInstall();
   const fileInput = useRef<HTMLInputElement>(null);
 
   const st = STATUS_LABEL[status] ?? STATUS_LABEL.off;
@@ -78,6 +80,26 @@ export function Settings() {
           {st.text}
           {detail ? ` — ${detail}` : ""}
         </p>
+      </Section>
+
+      <Section title="App">
+        {isInstalled ? (
+          <p className="text-sm text-ok">Diese App ist bereits installiert.</p>
+        ) : isIos || !hasNativeInstallPrompt ? (
+          <p className="text-sm text-ink-soft">
+            In Safari: Teilen antippen und dann „Zum Home-Bildschirm“ wählen.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              void promptInstall();
+            }}
+            className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white active:translate-y-px"
+          >
+            App installieren
+          </button>
+        )}
       </Section>
 
       <Section title="Backup">
