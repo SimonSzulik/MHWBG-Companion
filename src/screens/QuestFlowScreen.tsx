@@ -205,6 +205,12 @@ export function QuestFlowScreen() {
     : null;
 
   const materialIds = Object.keys(progress.lootQuantities).sort();
+  const setDieFace = (index: 0 | 1, raw: string) => {
+    const parsed = Number.parseInt(raw, 10);
+    const nextFace = Number.isNaN(parsed) ? 1 : clampDieFace(parsed);
+    const nextDice: [number, number] = index === 0 ? [nextFace, y] : [x, nextFace];
+    setLootDice(hunter.id, nextDice);
+  };
 
   return (
     <Screen title="Loot" subtitle={hunter.name} back={false}>
@@ -212,6 +218,42 @@ export function QuestFlowScreen() {
         <div className="paper-card flex items-center justify-center gap-6 p-6">
           <Die face={x} />
           <Die face={y} />
+        </div>
+
+        <div className="paper-card p-4">
+          <p className="mb-2 text-xs uppercase tracking-wide text-accent">
+            Manuell eintragen
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-xs text-ink-soft">
+              Würfel 1
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={6}
+                step={1}
+                value={x}
+                onChange={(e) => setDieFace(0, e.target.value)}
+                onBlur={(e) => setDieFace(0, e.target.value)}
+                className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-base font-semibold text-ink"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-ink-soft">
+              Würfel 2
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={6}
+                step={1}
+                value={y}
+                onChange={(e) => setDieFace(1, e.target.value)}
+                onBlur={(e) => setDieFace(1, e.target.value)}
+                className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-base font-semibold text-ink"
+              />
+            </label>
+          </div>
         </div>
 
         <button
@@ -379,4 +421,8 @@ function LootOption({
       )}
     </button>
   );
+}
+
+function clampDieFace(value: number): number {
+  return Math.max(1, Math.min(6, value));
 }

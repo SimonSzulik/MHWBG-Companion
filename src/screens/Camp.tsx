@@ -72,7 +72,12 @@ export function Camp() {
           sub={craftableCount > 0 ? `${craftableCount} baubar` : "Schmiede"}
           highlight={craftableCount > 0}
         />
-        <Tile to="/reference" emoji="📖" title="Referenz" sub="Regeln & Skills" />
+        <Tile
+          to="/reference"
+          emoji="📖"
+          title="Quick Guide"
+          sub="Regeln schnell finden"
+        />
       </div>
     </div>
   );
