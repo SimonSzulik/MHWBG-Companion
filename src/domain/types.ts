@@ -138,8 +138,17 @@ export interface Hunter {
   equipped: Partial<Record<GearSlot, string>>;
   /** Personal material stash. */
   materials: MaterialStash;
-  /** Crafted/owned gear ids for this hunter. */
+  /** Crafted/owned gear ids for this hunter (forge history — never shrinks). */
   ownedGear: string[];
+  /**
+   * Currently *held* weapon instances by gear id (forge consumption model).
+   * Forging an upgrade consumes one instance of its prerequisite. Re-craftable
+   * roots (cost > 0) can be forged again to open another branch; the free
+   * starter (cost 0) only ever yields one instance, locking sibling branches.
+   * Persisted locally; not part of the cloud row (derived from `equipped` on
+   * cloud load), so it never needs a schema migration.
+   */
+  weaponStock?: Record<string, number>;
   notes?: string;
 }
 

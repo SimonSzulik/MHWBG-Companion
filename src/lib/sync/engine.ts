@@ -17,11 +17,26 @@ import {
 
 const SYNC_CAMPAIGN_KEY = "mhwbg-active-campaign-id";
 
+/** Debounce for coalescing local edits into one push. */
+const PUSH_DEBOUNCE = 500;
+/** Debounce for coalescing realtime events into one pull. */
+const SOFT_PULL_DEBOUNCE = 300;
+
+/** Last-pushed snapshot of each table section, to skip unchanged writes. */
+interface PushSnaps {
+  meta: string;
+  state: string;
+  hunters: Record<string, string>;
+}
+
 let channel: RealtimeChannel | null = null;
 let unsubscribeStore: (() => void) | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let softPullTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPushedSnapshot = "";
+let lastSnaps: PushSnaps | null = null;
+let pushInFlight = false;
 let applyingRemote = false;
 let activeCampaignId: string | null = null;
 let reconnectAttempt = 0;
@@ -83,11 +98,14 @@ async function ensureAuthUserId(): Promise<string | null> {
   return null;
 }
 
-/** Push local state immediately (e.g. potion use). */
+/** Push local state immediately (e.g. after creating/joining a campaign). */
 export function requestImmediatePush(): void {
   const c = useCampaign.getState().campaign;
   if (c && activeCampaignId && c.id === activeCampaignId) {
-    if (pushTimer) clearTimeout(pushTimer);
+    if (pushTimer) {
+      clearTimeout(pushTimer);
+      pushTimer = null;
+    }
     void push(c);
   }
 }
@@ -334,8 +352,8 @@ export async function activateCampaign(campaignId: string): Promise<boolean> {
   }
 }
 
-/** Pull the full campaign from the cloud into the local store. */
-export async function pull(campaignId: string): Promise<Campaign | null> {
+/** Fetch the three campaign rows and assemble the domain shape (no store write). */
+async function fetchCampaign(campaignId: string): Promise<Campaign | null> {
   const [{ data: camp }, { data: state }, { data: hunters }] =
     await Promise.all([
       supabase.from("campaign").select("*").eq("id", campaignId).single(),
@@ -347,12 +365,62 @@ export async function pull(campaignId: string): Promise<Campaign | null> {
       supabase.from("hunter").select("*").eq("campaign_id", campaignId),
     ]);
   if (!camp) return null;
-  const campaign = rowsToCampaign(camp, state ?? null, hunters ?? []);
+  return rowsToCampaign(camp, state ?? null, hunters ?? []);
+}
+
+/** Fold a freshly-fetched campaign into the store and reset push baselines. */
+function applyRemote(campaign: Campaign): void {
   applyingRemote = true;
   useCampaign.getState().applyRemoteCampaign(campaign);
   applyingRemote = false;
   lastPushedSnapshot = snapshot(campaign);
+  lastSnaps = pushSnapsOf(campaign);
+}
+
+/** Pull the full campaign from the cloud into the local store (forced apply). */
+export async function pull(campaignId: string): Promise<Campaign | null> {
+  const campaign = await fetchCampaign(campaignId);
+  if (!campaign) return null;
+  applyRemote(campaign);
   return campaign;
+}
+
+/**
+ * Realtime-triggered pull. Coalesces bursts of row events and — crucially —
+ * skips our own write echoes and never clobbers newer local edits, so adding
+ * items doesn't fight the network round-trip.
+ */
+function scheduleSoftPull(campaignId: string): void {
+  if (softPullTimer) clearTimeout(softPullTimer);
+  softPullTimer = setTimeout(() => {
+    softPullTimer = null;
+    void softPull(campaignId);
+  }, SOFT_PULL_DEBOUNCE);
+}
+
+async function softPull(campaignId: string): Promise<void> {
+  if (activeCampaignId !== campaignId) return;
+  // Don't fight our own pending/in-flight writes — retry once they settle.
+  if (pushInFlight || pushTimer) {
+    scheduleSoftPull(campaignId);
+    return;
+  }
+  const campaign = await fetchCampaign(campaignId);
+  if (!campaign || activeCampaignId !== campaignId) return;
+  if (pushInFlight || pushTimer) {
+    scheduleSoftPull(campaignId);
+    return;
+  }
+  const remoteSnap = snapshot(campaign);
+  if (remoteSnap === lastPushedSnapshot) return; // our own echo — nothing new
+  const local = useCampaign.getState().campaign;
+  if (local && remoteSnap === snapshot(local)) {
+    // Already in sync; just refresh baselines.
+    lastPushedSnapshot = remoteSnap;
+    lastSnaps = pushSnapsOf(campaign);
+    return;
+  }
+  applyRemote(campaign);
 }
 
 /** Begin live sync for a campaign: pull, subscribe, and watch local changes. */
@@ -362,6 +430,8 @@ export async function startSync(campaignId: string): Promise<void> {
   persistActiveCampaignId(campaignId);
   setStatus("connecting");
   reconnectAttempt = 0;
+  lastSnaps = null;
+  lastPushedSnapshot = "";
   await pull(campaignId);
   subscribeChannel(campaignId);
 
@@ -383,7 +453,7 @@ function subscribeChannel(campaignId: string) {
         table: "campaign_state",
         filter: `campaign_id=eq.${campaignId}`,
       },
-      () => void pull(campaignId),
+      () => scheduleSoftPull(campaignId),
     )
     .on(
       "postgres_changes",
@@ -393,7 +463,7 @@ function subscribeChannel(campaignId: string) {
         table: "hunter",
         filter: `campaign_id=eq.${campaignId}`,
       },
-      () => void pull(campaignId),
+      () => scheduleSoftPull(campaignId),
     )
     .on(
       "postgres_changes",
@@ -403,7 +473,7 @@ function subscribeChannel(campaignId: string) {
         table: "campaign",
         filter: `id=eq.${campaignId}`,
       },
-      () => void pull(campaignId),
+      () => scheduleSoftPull(campaignId),
     )
     .subscribe((s) => {
       if (s === "SUBSCRIBED") {
@@ -460,6 +530,8 @@ export async function resumeSyncIfNeeded(): Promise<void> {
 export async function stopSync(): Promise<void> {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = null;
+  if (softPullTimer) clearTimeout(softPullTimer);
+  softPullTimer = null;
   if (reconnectTimer) clearTimeout(reconnectTimer);
   reconnectTimer = null;
   unsubscribeStore?.();
@@ -467,82 +539,126 @@ export async function stopSync(): Promise<void> {
   if (channel) await supabase.removeChannel(channel);
   channel = null;
   activeCampaignId = null;
+  lastSnaps = null;
+  lastPushedSnapshot = "";
+  pushInFlight = false;
   setStatus("off");
 }
 
+/**
+ * Deterministic JSON: object keys sorted recursively (arrays keep their order).
+ * Postgres `jsonb` does not preserve key order, so a pulled row must canonicalise
+ * to the same string we wrote — that's what lets us recognise our own echoes.
+ */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj)
+    .filter((k) => obj[k] !== undefined)
+    .sort();
+  return `{${keys
+    .map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`)
+    .join(",")}}`;
+}
+
+/** Per-hunter wire snapshot (excludes client-only fields like weaponStock). */
+function hunterSnap(h: Hunter): string {
+  return stableStringify(hunterToUpdate(h));
+}
+
+/** Per-section wire snapshots used to skip unchanged table writes. */
+function pushSnapsOf(c: Campaign): PushSnaps {
+  return {
+    meta: stableStringify(campaignToCampaignUpdate(c)),
+    state: stableStringify(campaignToStateUpdate(c)),
+    hunters: Object.fromEntries(c.hunters.map((h) => [h.id, hunterSnap(h)])),
+  };
+}
+
+/**
+ * Stable snapshot of everything that round-trips through the cloud. Derived from
+ * the same mappers used to write, so a freshly-pulled remote and the local copy
+ * produce an identical string when they agree — that's what lets us detect (and
+ * skip) our own realtime echoes.
+ */
 function snapshot(c: Campaign): string {
+  const snaps = pushSnapsOf(c);
+  const ids = Object.keys(snaps.hunters).sort();
   return JSON.stringify({
-    name: c.name,
-    day: c.day,
-    maxDay: c.maxDay,
-    zenny: c.zenny,
-    items: c.items,
-    leaderId: c.leaderId,
-    questCompletions: c.questCompletions,
-    activeQuest: c.activeQuest,
-    hunters: c.hunters.map((h) => ({
-      ...h,
-      ownedGear: [...h.ownedGear].sort(),
-    })),
+    meta: snaps.meta,
+    state: snaps.state,
+    hunters: ids.map((id) => [id, snaps.hunters[id]]),
   });
 }
 
 function schedulePush(campaign: Campaign) {
-  const snap = snapshot(campaign);
-  if (snap === lastPushedSnapshot) return;
+  if (snapshot(campaign) === lastPushedSnapshot) return;
   if (pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => void push(campaign), 600);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void push(campaign);
+  }, PUSH_DEBOUNCE);
 }
 
 async function push(campaign: Campaign): Promise<void> {
-  if (!activeCampaignId) return;
-  const snap = snapshot(campaign);
+  if (!activeCampaignId || campaign.id !== activeCampaignId) return;
   const userId = requireUserId();
+  const snaps = pushSnapsOf(campaign);
+  // Record the intended remote state up front so our own realtime echo is
+  // recognised (and skipped) even if it arrives before the writes resolve.
+  lastPushedSnapshot = snapshot(campaign);
+  pushInFlight = true;
   try {
-    await supabase
-      .from("campaign")
-      .update(campaignToCampaignUpdate(campaign))
-      .eq("id", campaign.id);
-
-    await supabase
-      .from("campaign_state")
-      .update(campaignToStateUpdate(campaign))
-      .eq("campaign_id", campaign.id);
-
-    await syncHunters(campaign.id, campaign.hunters, userId);
-
-    lastPushedSnapshot = snap;
+    if (!lastSnaps || snaps.meta !== lastSnaps.meta) {
+      await supabase
+        .from("campaign")
+        .update(campaignToCampaignUpdate(campaign))
+        .eq("id", campaign.id);
+    }
+    if (!lastSnaps || snaps.state !== lastSnaps.state) {
+      await supabase
+        .from("campaign_state")
+        .update(campaignToStateUpdate(campaign))
+        .eq("campaign_id", campaign.id);
+    }
+    await syncHunters(campaign.id, campaign.hunters, userId, snaps.hunters);
+    lastSnaps = snaps;
   } catch (e) {
+    // Force a full diff on the next attempt.
+    lastSnaps = null;
+    lastPushedSnapshot = "";
     setStatus("error", e instanceof Error ? e.message : String(e));
+  } finally {
+    pushInFlight = false;
   }
 }
 
+/**
+ * Upsert only the hunters whose data changed since the last push, and delete any
+ * removed since then — no per-push SELECT round-trip.
+ */
 async function syncHunters(
   campaignId: string,
   hunters: Hunter[],
   userId: string | null,
+  hunterSnaps: Record<string, string>,
 ) {
-  const { data: remote } = await supabase
-    .from("hunter")
-    .select("id")
-    .eq("campaign_id", campaignId);
-  const remoteIds = new Set((remote ?? []).map((r) => r.id));
-  const localIds = new Set(hunters.map((h) => h.id));
-
-  for (const h of hunters) {
-    if (remoteIds.has(h.id)) {
-      await supabase
-        .from("hunter")
-        .update(hunterToUpdate(h))
-        .eq("id", h.id);
-    } else {
-      await supabase
-        .from("hunter")
-        .insert(hunterToInsert(campaignId, h, h.userId ?? userId));
-    }
+  const dirty = hunters.filter(
+    (h) => !lastSnaps || lastSnaps.hunters[h.id] !== hunterSnaps[h.id],
+  );
+  if (dirty.length) {
+    await supabase
+      .from("hunter")
+      .upsert(dirty.map((h) => hunterToInsert(campaignId, h, h.userId ?? userId)));
   }
-  const toDelete = [...remoteIds].filter((id) => !localIds.has(id));
-  if (toDelete.length) {
-    await supabase.from("hunter").delete().in("id", toDelete);
+  if (lastSnaps) {
+    const currentIds = new Set(hunters.map((h) => h.id));
+    const removed = Object.keys(lastSnaps.hunters).filter(
+      (id) => !currentIds.has(id),
+    );
+    if (removed.length) {
+      await supabase.from("hunter").delete().in("id", removed);
+    }
   }
 }

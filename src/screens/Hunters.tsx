@@ -37,6 +37,13 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
   if (!campaign) return null;
 
   const ownedSet = new Set(hunter.ownedGear);
+  // Weapons you can equip are the ones you currently hold (forge stock), not
+  // every weapon ever forged — upgrading consumes the base.
+  const heldWeapons = new Set(
+    Object.entries(hunter.weaponStock ?? {})
+      .filter(([, n]) => n > 0)
+      .map(([id]) => id),
+  );
   const weapon = hunter.equipped.weapon
     ? catalog.gear(hunter.equipped.weapon)
     : undefined;
@@ -48,12 +55,12 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
   const skills = equippedDefs.map((g) => g?.effect).filter(Boolean) as string[];
 
   const ownedFor = (slot: GearSlot) =>
-    gameData.gear.filter(
-      (g) =>
-        g.slot === slot &&
-        ownedSet.has(g.id) &&
-        (slot !== "weapon" || g.weaponType === hunter.weaponType),
-    );
+    gameData.gear.filter((g) => {
+      if (g.slot !== slot) return false;
+      if (slot === "weapon")
+        return heldWeapons.has(g.id) && g.weaponType === hunter.weaponType;
+      return ownedSet.has(g.id);
+    });
 
   return (
     <div className="flex flex-col gap-3">

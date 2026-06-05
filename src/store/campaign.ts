@@ -12,7 +12,7 @@ import type {
 } from "../domain/types";
 import { gameData } from "../data/gameData";
 import { questsForMonster } from "../data/quests";
-import { canCraftGear } from "../domain/catalog";
+import { isRecraftableRoot } from "../domain/catalog";
 import {
   applyStarterKitToHunter,
   hunterNeedsStarterKit,
@@ -75,7 +75,21 @@ function emptyHunterStash(): MaterialStash {
   return {};
 }
 
+/**
+ * Held-weapon stock for the consumption forge model. Preserve an existing stock
+ * (it only lives client-side, never round-trips through Supabase) and otherwise
+ * derive a sensible default: the hunter holds whatever weapon they have equipped.
+ */
+function deriveWeaponStock(
+  existing: Record<string, number> | undefined,
+  equipped: Partial<Record<GearSlot, string>>,
+): Record<string, number> {
+  if (existing && Object.keys(existing).length > 0) return { ...existing };
+  return equipped.weapon ? { [equipped.weapon]: 1 } : {};
+}
+
 function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | undefined ? U : never, fallbackMaterials: MaterialStash, fallbackOwned: string[]): Hunter {
+  const equipped = h.equipped ?? {};
   return {
     id: h.id,
     name: h.name,
@@ -83,9 +97,10 @@ function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | un
     playerName: h.playerName,
     userId: h.userId,
     weaponType: h.weaponType,
-    equipped: h.equipped ?? {},
+    equipped,
     materials: migrateMaterials(h.materials ?? fallbackMaterials),
     ownedGear: h.ownedGear ?? [...fallbackOwned],
+    weaponStock: deriveWeaponStock(h.weaponStock, equipped),
     notes: h.notes,
   };
 }
@@ -330,6 +345,7 @@ export const useCampaign = create<CampaignState>()(
           equipped: kit.equipped,
           materials: {},
           ownedGear: [...kit.owned],
+          weaponStock: kit.equipped.weapon ? { [kit.equipped.weapon]: 1 } : {},
         };
         const now = Date.now();
         set({
@@ -367,6 +383,7 @@ export const useCampaign = create<CampaignState>()(
             equipped: kit.equipped,
             materials: {},
             ownedGear: [...kit.owned],
+            weaponStock: kit.equipped.weapon ? { [kit.equipped.weapon]: 1 } : {},
           };
           return {
             campaign: touch({
@@ -458,7 +475,7 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      adjustItem: (itemId, delta) => {
+      adjustItem: (itemId, delta) =>
         set((s) => {
           if (!s.campaign) return s;
           const cur = s.campaign.items[itemId] ?? 0;
@@ -469,9 +486,7 @@ export const useCampaign = create<CampaignState>()(
               items: { ...s.campaign.items, [itemId]: next },
             }),
           };
-        });
-        void import("../lib/sync/engine").then((m) => m.requestImmediatePush());
-      },
+        }),
 
       craftGear: (hunterId, gearId) => {
         const s = get();
@@ -480,10 +495,30 @@ export const useCampaign = create<CampaignState>()(
         if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
         const def = gameData.gear.find((g) => g.id === gearId);
         if (!def) return { ok: false, reason: "Unbekanntes Gear." };
-        if (hunter.ownedGear.includes(gearId))
-          return { ok: false, reason: "Bereits gebaut." };
-        if (!canCraftGear(def, hunter))
-          return { ok: false, reason: "Voraussetzungen nicht erfüllt." };
+
+        const isWeapon = def.slot === "weapon";
+        const order = def.pathOrder ?? 0;
+        const recraftableRoot = isRecraftableRoot(def);
+
+        // Re-craftable roots may be forged again (to open another path); every
+        // other piece is one-and-done.
+        if (hunter.ownedGear.includes(gearId) && !recraftableRoot)
+          return { ok: false, reason: "Bereits geschmiedet." };
+
+        // Weapon prerequisites: a tier consumes one held instance of its base.
+        let prevId: string | undefined;
+        if (isWeapon) {
+          if (order === 0) {
+            if (!recraftableRoot)
+              return { ok: false, reason: "Startwaffe – wird gestellt." };
+          } else {
+            const path = gameData.weaponPaths?.find((p) => p.id === def.pathId);
+            prevId = path?.gearIds[order - 1];
+            const held = prevId ? (hunter.weaponStock?.[prevId] ?? 0) : 0;
+            if (!prevId || held < 1)
+              return { ok: false, reason: "Basiswaffe fehlt." };
+          }
+        }
 
         for (const c of def.cost) {
           if ((hunter.materials[c.materialId] ?? 0) < c.qty)
@@ -494,16 +529,34 @@ export const useCampaign = create<CampaignState>()(
         for (const c of def.cost) {
           materials[c.materialId] = (materials[c.materialId] ?? 0) - c.qty;
         }
+
+        let weaponStock = hunter.weaponStock;
+        let equipped = hunter.equipped;
+        if (isWeapon) {
+          const stock = { ...(hunter.weaponStock ?? {}) };
+          if (prevId) {
+            const left = (stock[prevId] ?? 0) - 1;
+            if (left > 0) stock[prevId] = left;
+            else delete stock[prevId];
+          }
+          stock[gearId] = (stock[gearId] ?? 0) + 1;
+          weaponStock = stock;
+          // Forging an upgrade replaces the weapon you were wielding.
+          if (order > 0 && (hunter.equipped.weapon === prevId || !hunter.equipped.weapon)) {
+            equipped = { ...hunter.equipped, weapon: gearId };
+          }
+        }
+
+        const ownedGear = hunter.ownedGear.includes(gearId)
+          ? hunter.ownedGear
+          : [...hunter.ownedGear, gearId];
+
         set({
           campaign: touch({
             ...s.campaign,
             hunters: s.campaign.hunters.map((h) =>
               h.id === hunterId
-                ? {
-                    ...h,
-                    materials,
-                    ownedGear: [...h.ownedGear, gearId],
-                  }
+                ? { ...h, materials, ownedGear, weaponStock, equipped }
                 : h,
             ),
           }),
@@ -541,10 +594,22 @@ export const useCampaign = create<CampaignState>()(
         }),
 
       applyRemoteCampaign: (campaign) =>
-        set({
-          campaign: backfillStarterKits(
+        set((s) => {
+          const migrated = backfillStarterKits(
             migrateCampaign(campaign as LegacyCampaignV4),
-          ),
+          );
+          // weaponStock is client-only — keep ours so a remote pull (which has
+          // no stock column) never resets in-progress forge consumption.
+          const localById = new Map(
+            (s.campaign?.hunters ?? []).map((h) => [h.id, h]),
+          );
+          const hunters = migrated.hunters.map((h) => {
+            const localStock = localById.get(h.id)?.weaponStock;
+            return localStock && Object.keys(localStock).length > 0
+              ? { ...h, weaponStock: localStock }
+              : h;
+          });
+          return { campaign: { ...migrated, hunters } };
         }),
 
       applyStarterKit: (hunterId) =>

@@ -4,9 +4,6 @@ import {
   CHAINMAIL_ARMOR_IDS,
   LEATHER_ARMOR_IDS,
 } from "../data/starterArmor";
-import { catalog } from "./catalog";
-
-const ARMOR_SLOTS: GearSlot[] = ["head", "chest", "legs"];
 
 const STARTER_ARMOR_IDS = new Set<string>([
   ...CHAINMAIL_ARMOR_IDS,
@@ -70,40 +67,45 @@ function mergeOwned(existing: string[], additions: string[]): string[] {
   return Array.from(new Set([...existing, ...additions]));
 }
 
-/** True when weapon/armour/owned gear does not match the kit for this weapon type. */
+/**
+ * True when the hunter is missing their starter kit — i.e. a starter piece is
+ * not yet in their forge history, or nothing is equipped at all (fresh join).
+ * Progressing past the starter (equipping a forged upgrade) is NOT a reason to
+ * re-apply the kit; this runs on every remote pull and must never undo crafts.
+ */
 export function hunterNeedsStarterKit(hunter: Hunter): boolean {
   const kit = starterKitFor(hunter.weaponType);
   if (kit.owned.length === 0) return false;
-
-  const weaponId = hunter.equipped.weapon;
-  if (!weaponId) return true;
-
-  const weapon = catalog.gear(weaponId);
-  if (weapon?.weaponType !== hunter.weaponType) return true;
-  if (kit.equipped.weapon && weaponId !== kit.equipped.weapon) return true;
-
-  for (const slot of ARMOR_SLOTS) {
-    const expected = kit.equipped[slot];
-    if (expected && hunter.equipped[slot] !== expected) return true;
-  }
-
-  for (const id of kit.owned) {
-    if (!hunter.ownedGear.includes(id)) return true;
-  }
-
-  return false;
+  if (!hunter.equipped.weapon) return true;
+  return kit.owned.some((id) => !hunter.ownedGear.includes(id));
 }
 
-/** Apply (or replace) the full starter kit for the hunter's weapon type. */
+/**
+ * Ensure the starter kit is present without clobbering progression: starter
+ * pieces are merged into owned history, empty equip slots are filled, and the
+ * starter weapon is seeded into the held-weapon stock when none exists.
+ */
 export function applyStarterKitToHunter(hunter: Hunter): Hunter {
   const kit = starterKitFor(hunter.weaponType);
   const allowedStarter = new Set([...STARTER_ARMOR_IDS, ...STARTER_WEAPON_IDS]);
+  // Keep this weapon's starter + every forged piece; drop only stale starter
+  // gear belonging to a different (previous) weapon type.
   const owned = hunter.ownedGear.filter(
     (id) => !allowedStarter.has(id) || kit.owned.includes(id),
   );
+  // Only fill empty slots so a forged upgrade is never unequipped.
+  const equipped = { ...hunter.equipped };
+  for (const [slot, id] of Object.entries(kit.equipped)) {
+    if (!equipped[slot as GearSlot]) equipped[slot as GearSlot] = id;
+  }
+  const weaponStock = { ...(hunter.weaponStock ?? {}) };
+  if (kit.equipped.weapon && Object.keys(weaponStock).length === 0) {
+    weaponStock[kit.equipped.weapon] = 1;
+  }
   return {
     ...hunter,
-    equipped: { ...hunter.equipped, ...kit.equipped },
+    equipped,
     ownedGear: mergeOwned(owned, kit.owned),
+    weaponStock,
   };
 }

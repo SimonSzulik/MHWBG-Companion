@@ -1,9 +1,9 @@
 import { NavLink } from "react-router-dom";
 
 const TABS = [
-  { to: "/", emoji: "🏕️", label: "Camp", end: true },
   { to: "/hunters", emoji: "🧍", label: "Jäger" },
   { to: "/inventory", emoji: "🎒", label: "Lager" },
+  { to: "/", emoji: "🏕️", label: "Camp", end: true },
   { to: "/forge", emoji: "🔨", label: "Forge" },
   { to: "/reference", emoji: "📖", label: "Info" },
 ];
