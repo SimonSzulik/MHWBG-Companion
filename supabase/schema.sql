@@ -446,3 +446,9 @@ alter table public.campaign_state
   add column if not exists active_quest jsonb;
 alter table public.campaign_state
   add column if not exists day_log jsonb not null default '{}'::jsonb;
+alter table public.campaign_state
+  add column if not exists active_downtime jsonb;
+alter table public.campaign_state
+  add column if not exists pending_handler_quest text;
+alter table public.hunter
+  add column if not exists element_resistance text;

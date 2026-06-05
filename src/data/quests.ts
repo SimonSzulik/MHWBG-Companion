@@ -6,6 +6,9 @@
 
 export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";
 
+/** Assigned (1★), investigation (2★/3★), or tempered investigation (4★). */
+export type QuestCategory = "assigned" | "investigation" | "tempered";
+
 export interface QuestDef {
   id: string;
   name: string;

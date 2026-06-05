@@ -13,14 +13,17 @@ export function recordQuestOnCalendar(
   campaign: Campaign,
   quest: QuestDef,
   result: QuestResult,
+  handler = false,
 ): Campaign {
   if (result === "failure" && quest.stars === "one-star") return campaign;
 
   const entry = {
+    kind: "quest" as const,
     monsterId: quest.monsterId,
     stars: quest.stars,
     result,
-  } as const;
+    ...(handler ? { handler: true } : {}),
+  };
 
   const nextDay = shouldAdvanceDay(quest, result)
     ? Math.min(campaign.day + 1, campaign.maxDay)
@@ -30,5 +33,14 @@ export function recordQuestOnCalendar(
     ...campaign,
     dayLog: { ...campaign.dayLog, [campaign.day]: entry },
     day: nextDay,
+  };
+}
+
+/** Record downtime on current calendar day and advance by one day. */
+export function recordDowntimeOnCalendar(campaign: Campaign): Campaign {
+  return {
+    ...campaign,
+    dayLog: { ...campaign.dayLog, [campaign.day]: { kind: "downtime" } },
+    day: Math.min(campaign.day + 1, campaign.maxDay),
   };
 }

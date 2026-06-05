@@ -138,7 +138,7 @@ export function CreateCampaignScreen() {
         <WeaponPicker value={weaponType} onChange={setWeaponType} />
 
         <Row label="Group Potions">
-          <Stepper value={potions} onChange={setPotions} min={0} max={99} />
+          <Stepper value={potions} onChange={setPotions} min={0} max={3} />
         </Row>
 
         <Row label="Tage">

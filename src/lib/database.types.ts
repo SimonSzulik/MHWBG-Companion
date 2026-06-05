@@ -63,6 +63,7 @@ export interface Database {
           equipped: Record<string, string>;
           materials: Record<string, number>;
           owned_gear: string[];
+          element_resistance: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -78,6 +79,7 @@ export interface Database {
           equipped?: Record<string, string>;
           materials?: Record<string, number>;
           owned_gear?: string[];
+          element_resistance?: string | null;
           notes?: string | null;
         };
         Update: Partial<{
@@ -89,6 +91,7 @@ export interface Database {
           equipped: Record<string, string>;
           materials: Record<string, number>;
           owned_gear: string[];
+          element_resistance: string | null;
           notes: string | null;
         }>;
         Relationships: [];
@@ -103,6 +106,8 @@ export interface Database {
           hunts_completed: Record<string, number | boolean>;
           active_quest: unknown | null;
           day_log: Record<string, unknown>;
+          active_downtime: unknown | null;
+          pending_handler_quest: string | null;
           updated_at: string;
         };
         Insert: {
@@ -114,6 +119,8 @@ export interface Database {
           hunts_completed?: Record<string, number | boolean>;
           active_quest?: unknown | null;
           day_log?: Record<string, unknown>;
+          active_downtime?: unknown | null;
+          pending_handler_quest?: string | null;
         };
         Update: Partial<{
           zenny: number;
@@ -123,6 +130,8 @@ export interface Database {
           hunts_completed: Record<string, number | boolean>;
           active_quest: unknown | null;
           day_log: Record<string, unknown>;
+          active_downtime: unknown | null;
+          pending_handler_quest: string | null;
         }>;
         Relationships: [];
       };

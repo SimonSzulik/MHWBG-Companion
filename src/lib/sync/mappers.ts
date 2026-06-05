@@ -4,6 +4,7 @@
  * sync engine and tests can reason about one direction at a time.
  */
 import type {
+  ActiveDowntime,
   ActiveQuest,
   CalendarDayEntry,
   Campaign,
@@ -11,8 +12,10 @@ import type {
   Hunter,
   HunterLootProgress,
   MaterialStash,
+  QuestStars,
   WeaponType,
 } from "../../domain/types";
+import { normalizeCalendarDayEntry } from "../../domain/types";
 import type { Database } from "../database.types";
 
 type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
@@ -32,20 +35,50 @@ function parseQuestCompletions(
 }
 
 function parseDayLog(
-  raw: Record<string, CalendarDayEntry> | null | undefined,
+  raw: Record<string, unknown> | null | undefined,
 ): Record<number, CalendarDayEntry> {
   const out: Record<number, CalendarDayEntry> = {};
   if (!raw) return out;
   for (const [key, val] of Object.entries(raw)) {
     const day = Number(key);
-    if (!Number.isFinite(day) || day < 1 || !val?.monsterId || !val?.stars) continue;
-    out[day] = {
-      monsterId: val.monsterId,
-      stars: val.stars,
-      result: val.result === "failure" ? "failure" : "success",
-    };
+    if (!Number.isFinite(day) || day < 1 || !val || typeof val !== "object") {
+      continue;
+    }
+    const o = val as Record<string, unknown>;
+    if (o.kind === "downtime") {
+      out[day] = { kind: "downtime" };
+      continue;
+    }
+    if (
+      typeof o.monsterId === "string" &&
+      typeof o.stars === "string" &&
+      (o.result === "success" || o.result === "failure")
+    ) {
+      out[day] = normalizeCalendarDayEntry({
+        kind: "quest",
+        monsterId: o.monsterId,
+        stars: o.stars as QuestStars,
+        result: o.result,
+        ...(o.handler ? { handler: true } : {}),
+      });
+    }
   }
   return out;
+}
+
+function parseActiveDowntime(raw: unknown): ActiveDowntime | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as ActiveDowntime;
+  if (!o.picks || !Array.isArray(o.confirmedHunterIds)) return null;
+  return {
+    picks: o.picks ?? {},
+    provisions: o.provisions ?? {},
+    resourceRoll: o.resourceRoll ?? {},
+    chefElement: o.chefElement ?? {},
+    handlerProposals: o.handlerProposals ?? {},
+    handlerQuestId: o.handlerQuestId ?? null,
+    confirmedHunterIds: o.confirmedHunterIds ?? [],
+  };
 }
 
 function parseActiveQuest(raw: unknown): ActiveQuest | null {
@@ -114,9 +147,9 @@ export function rowsToCampaign(
     items: state?.items ?? {},
     questCompletions: parseQuestCompletions(state?.hunts_completed),
     activeQuest: parseActiveQuest(state?.active_quest),
-    dayLog: parseDayLog(
-      state?.day_log as Record<string, CalendarDayEntry> | null | undefined,
-    ),
+    dayLog: parseDayLog(state?.day_log as Record<string, unknown> | null | undefined),
+    pendingHandlerQuestId: state?.pending_handler_quest ?? null,
+    activeDowntime: parseActiveDowntime(state?.active_downtime),
     hunters: migratedHunters,
     joinCode: campaign.join_code,
     createdAt: Date.parse(campaign.created_at) || Date.now(),
@@ -135,6 +168,8 @@ export function rowToHunter(row: HunterRow): Hunter {
     equipped: (row.equipped ?? {}) as Partial<Record<GearSlot, string>>,
     materials: row.materials ?? {},
     ownedGear: row.owned_gear ?? [],
+    elementResistance:
+      (row.element_resistance as Hunter["elementResistance"]) ?? undefined,
     notes: row.notes ?? undefined,
   };
 }
@@ -148,6 +183,8 @@ export function campaignToStateUpdate(
     hunts_completed: c.questCompletions,
     active_quest: c.activeQuest,
     day_log: c.dayLog,
+    active_downtime: c.activeDowntime ?? null,
+    pending_handler_quest: c.pendingHandlerQuestId ?? null,
   };
 }
 
@@ -179,6 +216,7 @@ export function hunterToInsert(
     equipped: h.equipped as Record<string, string>,
     materials: h.materials,
     owned_gear: h.ownedGear,
+    element_resistance: h.elementResistance ?? null,
     notes: h.notes ?? null,
   };
 }
@@ -194,6 +232,7 @@ export function hunterToUpdate(
     equipped: h.equipped as Record<string, string>,
     materials: h.materials,
     owned_gear: h.ownedGear,
+    element_resistance: h.elementResistance ?? null,
     notes: h.notes ?? null,
   };
 }

@@ -18,6 +18,7 @@ import {
   isQuestTierUnlocked,
   maxCompletionsForQuest,
   questTierLockReason,
+  questById,
 } from "../domain/quests";
 import { iconUrl } from "../domain/icons";
 
@@ -46,8 +47,20 @@ export function QuestScreen() {
     navigate("/campaign/quest");
   };
 
+  const pendingQuest = campaign.pendingHandlerQuestId
+    ? questById(campaign.pendingHandlerQuestId)
+    : undefined;
+
   return (
     <Screen title="Quests" subtitle="Ancient Forest">
+      {pendingQuest && (
+        <div className="mb-4 rounded-xl border-[1.5px] border-accent bg-accent-faint px-4 py-3 text-sm">
+          <p className="font-semibold">Handler-Quest</p>
+          <p className="mt-1 text-ink-soft">
+            Als Nächstes: {pendingQuest.name} — andere Quests sind gesperrt.
+          </p>
+        </div>
+      )}
       <div className="flex flex-col gap-3">
         {QUEST_MONSTERS.map((monster) => {
           const monsterQuests = questsForMonster(monster.id);
@@ -119,6 +132,7 @@ export function QuestScreen() {
                                 monsterQuests={monsterQuests}
                                 completions={campaign.questCompletions}
                                 count={campaign.questCompletions[q.id] ?? 0}
+                                pendingHandlerQuestId={campaign.pendingHandlerQuestId}
                                 locked={
                                   !isQuestTierUnlocked(
                                     q,
@@ -132,6 +146,7 @@ export function QuestScreen() {
                                     campaign.questCompletions,
                                     hasActiveQuest,
                                     monsterQuests,
+                                    campaign.pendingHandlerQuestId,
                                   )
                                 }
                                 onStart={() => handleStart(q)}
@@ -157,6 +172,7 @@ function QuestRow({
   monsterQuests,
   completions,
   count,
+  pendingHandlerQuestId,
   locked,
   disabled,
   onStart,
@@ -165,12 +181,14 @@ function QuestRow({
   monsterQuests: QuestDef[];
   completions: Record<string, number>;
   count: number;
+  pendingHandlerQuestId?: string | null;
   locked: boolean;
   disabled: boolean;
   onStart: () => void;
 }) {
   const done = isQuestFullyCompleted(quest, count);
-  const inactive = locked || disabled || done;
+  const isHandlerPick = pendingHandlerQuestId === quest.id;
+  const inactive = locked || disabled || (done && !isHandlerPick);
   const lockHint = locked
     ? questTierLockReason(quest, completions, monsterQuests)
     : undefined;
@@ -197,10 +215,11 @@ function QuestRow({
       />
       <span
         className={`min-w-0 flex-1 truncate text-sm font-medium ${
-          done ? "line-through" : ""
+          done && !isHandlerPick ? "line-through" : ""
         }`}
       >
         {quest.name}
+        {isHandlerPick ? " (Handler)" : ""}
       </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums">
         {done ? "✓ " : ""}

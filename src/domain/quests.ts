@@ -1,6 +1,7 @@
 import {
   MAX_QUEST_COMPLETIONS,
   quests,
+  type QuestCategory,
   type QuestDef,
   type QuestStars,
 } from "../data/quests";
@@ -14,6 +15,17 @@ const STAR_RANK: Record<QuestStars, number> = {
 
 export function questById(questId: string): QuestDef | undefined {
   return quests.find((q) => q.id === questId);
+}
+
+export function questCategory(quest: QuestDef): QuestCategory {
+  switch (quest.stars) {
+    case "one-star":
+      return "assigned";
+    case "four-star":
+      return "tempered";
+    default:
+      return "investigation";
+  }
 }
 
 function lowerTierQuestsForMonster(
@@ -95,8 +107,13 @@ export function canStartQuest(
   completions: Record<string, number>,
   hasActiveQuest: boolean,
   monsterQuests: QuestDef[],
+  pendingHandlerQuestId?: string | null,
 ): boolean {
   if (hasActiveQuest) return false;
+  if (pendingHandlerQuestId && pendingHandlerQuestId !== quest.id) {
+    return false;
+  }
+  if (pendingHandlerQuestId === quest.id) return true;
   if (!isQuestTierUnlocked(quest, completions, monsterQuests)) return false;
   const count = completions[quest.id] ?? 0;
   return !isQuestFullyCompleted(quest, count);

@@ -64,6 +64,31 @@ function hasMaterials(gear: GearDef, hunter: Hunter): boolean {
   );
 }
 
+/** Fraction of required materials the hunter currently holds (0–1). */
+export function computeMaterialProgress(gear: GearDef, hunter: Hunter): number {
+  if (gear.cost.length === 0) return 1;
+  let have = 0;
+  let need = 0;
+  for (const c of gear.cost) {
+    need += c.qty;
+    have += Math.min(hunter.materials[c.materialId] ?? 0, c.qty);
+  }
+  return need === 0 ? 1 : have / need;
+}
+
+export interface ForgeTreeLayout {
+  root: ForgeNode;
+  columns: { branch: ForgeBranch; nodes: ForgeNode[] }[];
+}
+
+/** Column layout for symmetric top-down forge tree rendering. */
+export function layoutForgeTree(group: ForgeRootGroup): ForgeTreeLayout {
+  return {
+    root: group.root,
+    columns: group.branches.map((branch) => ({ branch, nodes: branch.nodes })),
+  };
+}
+
 /**
  * Whether the prerequisites (held base weapon) for forging this gear are met.
  * Armour pieces have no prerequisite; weapons consume a held base instance.
@@ -111,6 +136,10 @@ export interface ForgeNode {
   enoughMats: boolean;
   equipped: boolean;
   state: ForgeNodeState;
+  /** 0–1 material progress toward forge cost. */
+  materialProgress: number;
+  /** Held base weapon (or recraftable root) satisfied. */
+  prerequisiteMet: boolean;
 }
 
 export interface ForgeBranch {
@@ -146,6 +175,8 @@ function makeNode(
     enoughMats: hasMaterials(gear, hunter),
     equipped: isEquipped(gear.id, campaign),
     state,
+    materialProgress: computeMaterialProgress(gear, hunter),
+    prerequisiteMet: canCraftGear(gear, hunter),
   };
 }
 

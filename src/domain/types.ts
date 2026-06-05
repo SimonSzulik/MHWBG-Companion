@@ -1,14 +1,3 @@
-/**
- * Domain model for the MHW board game companion.
- *
- * Two layers:
- *  - Static game data (catalog): weapons, armour, materials, recipes —
- *    bundled read-only seed data (see src/data). Wildspire Waste for now.
- *  - User data (campaign): the player's mutable save — hunters, inventory,
- *    owned/crafted gear, progress. Persisted locally (local-first); cloud
- *    sync (Supabase) layers on top later without changing these shapes.
- */
-
 /** Weapon archetypes a hunter can main. Locks the relevant forge tree. */
 export type WeaponType =
   | "Switch Axe"
@@ -126,6 +115,34 @@ export interface GameData {
 
 /* ---------- User data (the save) ---------- */
 
+export type ElementType = "fire" | "water" | "thunder" | "ice" | "dragon";
+
+export type DowntimeActivityId =
+  | "provisions"
+  | "resource-center"
+  | "chef"
+  | "poogie"
+  | "handler";
+
+export interface ProvisionsTrade {
+  /** materialId -> qty to remove (sum must be 3). */
+  offered: Record<string, number>;
+  /** Common material id, or "potion". */
+  rewardId: string;
+}
+
+export interface ActiveDowntime {
+  picks: Record<string, DowntimeActivityId[]>;
+  provisions: Record<string, ProvisionsTrade>;
+  resourceRoll: Record<string, number>;
+  chefElement: Record<string, ElementType>;
+  /** Per-hunter proposed handler quest id. */
+  handlerProposals: Record<string, string>;
+  /** Set when all proposals match. */
+  handlerQuestId: string | null;
+  confirmedHunterIds: string[];
+}
+
 export interface Hunter {
   id: string;
   name: string;
@@ -149,6 +166,8 @@ export interface Hunter {
    * cloud load), so it never needs a schema migration.
    */
   weaponStock?: Record<string, number>;
+  /** Meowscular Chef buff — cleared after quest ends. */
+  elementResistance?: ElementType;
   notes?: string;
 }
 
@@ -159,10 +178,29 @@ export type ItemStash = Record<string, number>;
 
 export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";
 
-export interface CalendarDayEntry {
-  monsterId: string;
-  stars: QuestStars;
-  result: "success" | "failure";
+export type CalendarDayEntry =
+  | { kind: "downtime" }
+  | {
+      kind: "quest";
+      monsterId: string;
+      stars: QuestStars;
+      result: "success" | "failure";
+      handler?: boolean;
+    };
+
+/** Legacy quest-only day log entries (pre-downtime saves). */
+export function normalizeCalendarDayEntry(
+  raw:
+    | CalendarDayEntry
+    | { monsterId: string; stars: QuestStars; result: "success" | "failure" },
+): CalendarDayEntry {
+  if ("kind" in raw) return raw;
+  return {
+    kind: "quest",
+    monsterId: raw.monsterId,
+    stars: raw.stars,
+    result: raw.result,
+  };
 }
 
 export interface Campaign {
@@ -181,8 +219,12 @@ export interface Campaign {
   questCompletions: Record<string, number>;
   /** In-progress quest state (synced, shared). */
   activeQuest: ActiveQuest | null;
-  /** Quest marker per calendar day (day number -> entry). */
+  /** Quest / downtime marker per calendar day (day number -> entry). */
   dayLog: Record<number, CalendarDayEntry>;
+  /** Mandatory quest from Handler downtime (must play next). */
+  pendingHandlerQuestId?: string | null;
+  /** In-progress downtime day (synced). */
+  activeDowntime?: ActiveDowntime | null;
   /** Share code for co-op (from cloud). */
   joinCode?: string;
   createdAt: number;
@@ -212,4 +254,6 @@ export interface ActiveQuest {
   readyHunterIds: string[];
   startedByHunterId: string;
   lootProgress: Record<string, HunterLootProgress>;
+  /** Started via Handler downtime replay. */
+  handler?: boolean;
 }

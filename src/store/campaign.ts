@@ -3,13 +3,17 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   ActiveQuest,
   Campaign,
+  DowntimeActivityId,
+  ElementType,
   Hunter,
   HunterLootProgress,
   MonsterPartId,
+  ProvisionsTrade,
   WeaponType,
   GearSlot,
   MaterialStash,
 } from "../domain/types";
+import { normalizeCalendarDayEntry } from "../domain/types";
 import { gameData } from "../data/gameData";
 import { questsForMonster } from "../data/quests";
 import { isRecraftableRoot } from "../domain/catalog";
@@ -24,7 +28,16 @@ import {
   questById,
   shouldIncrementOnFailure,
 } from "../domain/quests";
-import { recordQuestOnCalendar } from "../domain/calendar";
+import { recordQuestOnCalendar, recordDowntimeOnCalendar } from "../domain/calendar";
+import {
+  MAX_DOWNTIME_PICKS,
+  MAX_POTIONS,
+  canTradeProvisions,
+  emptyActiveDowntime,
+  isHunterDowntimeReady,
+  resolveResourceRoll,
+  syncHandlerQuestId,
+} from "../domain/downtime";
 import { seedLootQuantities, rollDice } from "../domain/loot";
 import { lootTableForMonster } from "../data/lootTables";
 import { useAuth } from "./auth";
@@ -101,6 +114,7 @@ function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | un
     materials: migrateMaterials(h.materials ?? fallbackMaterials),
     ownedGear: h.ownedGear ?? [...fallbackOwned],
     weaponStock: deriveWeaponStock(h.weaponStock, equipped),
+    elementResistance: h.elementResistance,
     notes: h.notes,
   };
 }
@@ -142,15 +156,23 @@ function migrateCampaign(raw: LegacyCampaignV4): Campaign {
   );
 
   const { huntsCompleted: _h, materials: _m, ownedGear: _o, ...rest } = raw;
+  const dayLog: Campaign["dayLog"] = {};
+  for (const [day, entry] of Object.entries(rest.dayLog ?? {})) {
+    dayLog[Number(day)] = normalizeCalendarDayEntry(
+      entry as Parameters<typeof normalizeCalendarDayEntry>[0],
+    );
+  }
   return {
     ...rest,
     hunters,
     leaderId: rest.leaderId ?? hunters[0]?.id ?? "",
     questCompletions,
     activeQuest: normalizeActiveQuest(rest.activeQuest),
-    dayLog: rest.dayLog ?? {},
+    dayLog,
     items: rest.items ?? {},
     zenny: rest.zenny ?? 0,
+    pendingHandlerQuestId: rest.pendingHandlerQuestId ?? null,
+    activeDowntime: rest.activeDowntime ?? null,
   };
 }
 
@@ -244,6 +266,30 @@ interface CampaignState {
   togglePartBreak: (hunterId: string, part: MonsterPartId) => void;
   setLootQuantity: (hunterId: string, materialId: string, qty: number) => void;
   confirmLoot: (hunterId: string) => void;
+
+  beginDowntime: () => { ok: boolean; reason?: string };
+  setDowntimePicks: (
+    hunterId: string,
+    picks: DowntimeActivityId[],
+  ) => { ok: boolean; reason?: string };
+  resolveProvisions: (
+    hunterId: string,
+    trade: ProvisionsTrade,
+  ) => { ok: boolean; reason?: string };
+  resolveResourceCenter: (
+    hunterId: string,
+    sum: number,
+  ) => { ok: boolean; reason?: string };
+  resolveChef: (
+    hunterId: string,
+    element: ElementType,
+  ) => { ok: boolean; reason?: string };
+  setHandlerQuest: (
+    hunterId: string,
+    questId: string,
+  ) => { ok: boolean; reason?: string };
+  confirmDowntime: (hunterId: string) => { ok: boolean; reason?: string };
+  cancelDowntime: () => void;
 }
 
 function backfillStarterKits(campaign: Campaign): Campaign {
@@ -287,6 +333,17 @@ function lootTableForActiveQuest(campaign: Campaign) {
   const quest = questById(questId);
   if (!quest) return null;
   return lootTableForMonster(quest.monsterId);
+}
+
+function clearElementResistances(campaign: Campaign): Campaign {
+  return {
+    ...campaign,
+    hunters: campaign.hunters.map((h) => {
+      if (!h.elementResistance) return h;
+      const { elementResistance: _, ...rest } = h;
+      return rest;
+    }),
+  };
 }
 
 function patchLootProgress(
@@ -479,7 +536,10 @@ export const useCampaign = create<CampaignState>()(
         set((s) => {
           if (!s.campaign) return s;
           const cur = s.campaign.items[itemId] ?? 0;
-          const next = Math.max(0, cur + delta);
+          let next = Math.max(0, cur + delta);
+          if (itemId === "potion" && delta > 0) {
+            next = Math.min(next, MAX_POTIONS);
+          }
           return {
             campaign: touch({
               ...s.campaign,
@@ -647,18 +707,28 @@ export const useCampaign = create<CampaignState>()(
         if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
         const quest = questById(questId);
         if (!quest) return { ok: false, reason: "Quest unbekannt." };
+        if (s.campaign.activeQuest) {
+          return { ok: false, reason: "Es läuft bereits eine Quest." };
+        }
+        const pending = s.campaign.pendingHandlerQuestId;
+        if (pending && pending !== questId) {
+          return {
+            ok: false,
+            reason: "Zuerst die Handler-Quest abschließen.",
+          };
+        }
+        const isHandler = pending === questId;
         if (
+          !isHandler &&
           !canStartQuest(
             quest,
             s.campaign.questCompletions,
-            s.campaign.activeQuest != null,
+            false,
             questsForMonster(quest.monsterId),
+            pending,
           )
         ) {
           return { ok: false, reason: "Quest nicht verfügbar." };
-        }
-        if (s.campaign.activeQuest) {
-          return { ok: false, reason: "Es läuft bereits eine Quest." };
         }
         const activeQuest: ActiveQuest = {
           questId,
@@ -666,10 +736,17 @@ export const useCampaign = create<CampaignState>()(
           readyHunterIds: [hunterId],
           startedByHunterId: hunterId,
           lootProgress: {},
+          ...(isHandler ? { handler: true } : {}),
         };
         set({
           campaign: tryAdvanceToActive(
-            touch({ ...s.campaign, activeQuest }),
+            touch({
+              ...s.campaign,
+              activeQuest,
+              pendingHandlerQuestId: isHandler
+                ? null
+                : s.campaign.pendingHandlerQuestId,
+            }),
           ),
         });
         return { ok: true };
@@ -719,7 +796,8 @@ export const useCampaign = create<CampaignState>()(
       completeQuestFailure: () =>
         set((s) => {
           if (!s.campaign?.activeQuest) return s;
-          const quest = questById(s.campaign.activeQuest.questId);
+          const aq = s.campaign.activeQuest;
+          const quest = questById(aq.questId);
           let questCompletions = s.campaign.questCompletions;
           if (quest && shouldIncrementOnFailure(quest)) {
             const cur = questCompletions[quest.id] ?? 0;
@@ -730,13 +808,17 @@ export const useCampaign = create<CampaignState>()(
               };
             }
           }
-          let campaign = touch({
-            ...s.campaign,
-            questCompletions,
-            activeQuest: null,
-          });
+          let campaign = clearElementResistances(
+            touch({
+              ...s.campaign,
+              questCompletions,
+              activeQuest: null,
+            }),
+          );
           if (quest) {
-            campaign = touch(recordQuestOnCalendar(campaign, quest, "failure"));
+            campaign = touch(
+              recordQuestOnCalendar(campaign, quest, "failure", aq.handler),
+            );
           }
           return { campaign };
         }),
@@ -845,21 +927,238 @@ export const useCampaign = create<CampaignState>()(
 
         if (allConfirmed && quest) {
           const cur = campaign.questCompletions[aq.questId] ?? 0;
-          campaign = touch({
-            ...campaign,
-            questCompletions: canIncrementQuestCompletion(quest, cur)
-              ? {
-                  ...campaign.questCompletions,
-                  [aq.questId]: cur + 1,
-                }
-              : campaign.questCompletions,
-            activeQuest: null,
-          });
-          campaign = touch(recordQuestOnCalendar(campaign, quest, "success"));
+          campaign = clearElementResistances(
+            touch({
+              ...campaign,
+              questCompletions: canIncrementQuestCompletion(quest, cur)
+                ? {
+                    ...campaign.questCompletions,
+                    [aq.questId]: cur + 1,
+                  }
+                : campaign.questCompletions,
+              activeQuest: null,
+            }),
+          );
+          campaign = touch(
+            recordQuestOnCalendar(campaign, quest, "success", aq.handler),
+          );
         }
 
         set({ campaign });
       },
+
+      beginDowntime: () => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
+        if (s.campaign.activeQuest) {
+          return { ok: false, reason: "Quest läuft – kein Downtime möglich." };
+        }
+        if (s.campaign.activeDowntime) {
+          return { ok: true };
+        }
+        set({
+          campaign: touch({
+            ...s.campaign,
+            activeDowntime: emptyActiveDowntime(),
+          }),
+        });
+        return { ok: true };
+      },
+
+      setDowntimePicks: (hunterId, picks) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime nicht gestartet." };
+        }
+        if (picks.length > MAX_DOWNTIME_PICKS) {
+          return { ok: false, reason: `Maximal ${MAX_DOWNTIME_PICKS} Aktivitäten.` };
+        }
+        const unique = new Set(picks);
+        if (unique.size !== picks.length) {
+          return { ok: false, reason: "Jede Aktivität nur einmal wählen." };
+        }
+        const dt = {
+          ...s.campaign.activeDowntime,
+          picks: { ...s.campaign.activeDowntime.picks, [hunterId]: picks },
+        };
+        set({
+          campaign: touch({ ...s.campaign, activeDowntime: dt }),
+        });
+        return { ok: true };
+      },
+
+      resolveProvisions: (hunterId, trade) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime nicht gestartet." };
+        }
+        const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
+        if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
+        const potions = s.campaign.items.potion ?? 0;
+        const err = canTradeProvisions(hunter, trade, potions);
+        if (err) return { ok: false, reason: err };
+
+        const materials = { ...hunter.materials };
+        for (const [id, qty] of Object.entries(trade.offered)) {
+          materials[id] = (materials[id] ?? 0) - qty;
+          if (materials[id] <= 0) delete materials[id];
+        }
+
+        let items = { ...s.campaign.items };
+        if (trade.rewardId === "potion") {
+          items.potion = Math.min(MAX_POTIONS, (items.potion ?? 0) + 1);
+        } else {
+          materials[trade.rewardId] = (materials[trade.rewardId] ?? 0) + 1;
+        }
+
+        const dt = {
+          ...s.campaign.activeDowntime,
+          provisions: {
+            ...s.campaign.activeDowntime.provisions,
+            [hunterId]: trade,
+          },
+        };
+
+        set({
+          campaign: touch({
+            ...s.campaign,
+            items,
+            hunters: s.campaign.hunters.map((h) =>
+              h.id === hunterId ? { ...h, materials } : h,
+            ),
+            activeDowntime: dt,
+          }),
+        });
+        return { ok: true };
+      },
+
+      resolveResourceCenter: (hunterId, sum) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime nicht gestartet." };
+        }
+        const materialId = resolveResourceRoll(sum);
+        if (!materialId) {
+          return { ok: false, reason: "Würfelwert muss 2–12 sein." };
+        }
+        const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
+        if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
+
+        const materials = {
+          ...hunter.materials,
+          [materialId]: (hunter.materials[materialId] ?? 0) + 1,
+        };
+
+        const dt = {
+          ...s.campaign.activeDowntime,
+          resourceRoll: {
+            ...s.campaign.activeDowntime.resourceRoll,
+            [hunterId]: sum,
+          },
+        };
+
+        set({
+          campaign: touch({
+            ...s.campaign,
+            hunters: s.campaign.hunters.map((h) =>
+              h.id === hunterId ? { ...h, materials } : h,
+            ),
+            activeDowntime: dt,
+          }),
+        });
+        return { ok: true };
+      },
+
+      resolveChef: (hunterId, element) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime nicht gestartet." };
+        }
+        const dt = {
+          ...s.campaign.activeDowntime,
+          chefElement: {
+            ...s.campaign.activeDowntime.chefElement,
+            [hunterId]: element,
+          },
+        };
+        set({
+          campaign: touch({
+            ...s.campaign,
+            hunters: s.campaign.hunters.map((h) =>
+              h.id === hunterId ? { ...h, elementResistance: element } : h,
+            ),
+            activeDowntime: dt,
+          }),
+        });
+        return { ok: true };
+      },
+
+      setHandlerQuest: (hunterId, questId) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime nicht gestartet." };
+        }
+        const hunterIds = s.campaign.hunters.map((h) => h.id);
+        const dt = syncHandlerQuestId(
+          {
+            ...s.campaign.activeDowntime,
+            handlerProposals: {
+              ...s.campaign.activeDowntime.handlerProposals,
+              [hunterId]: questId,
+            },
+          },
+          hunterIds,
+        );
+        set({
+          campaign: touch({ ...s.campaign, activeDowntime: dt }),
+        });
+        return { ok: true };
+      },
+
+      confirmDowntime: (hunterId) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime nicht gestartet." };
+        }
+        const dt = s.campaign.activeDowntime;
+        const hunterIds = s.campaign.hunters.map((h) => h.id);
+        if (!isHunterDowntimeReady(hunterId, dt, hunterIds)) {
+          return { ok: false, reason: "Alle gewählten Aktivitäten abschließen." };
+        }
+        if (dt.confirmedHunterIds.includes(hunterId)) {
+          return { ok: true };
+        }
+
+        const confirmedHunterIds = [...dt.confirmedHunterIds, hunterId];
+        let campaign = touch({
+          ...s.campaign,
+          activeDowntime: { ...dt, confirmedHunterIds },
+        });
+
+        const allConfirmed = hunterIds.every((id) =>
+          confirmedHunterIds.includes(id),
+        );
+
+        if (allConfirmed) {
+          campaign = touch(recordDowntimeOnCalendar(campaign));
+          campaign = touch({
+            ...campaign,
+            pendingHandlerQuestId: dt.handlerQuestId,
+            activeDowntime: null,
+          });
+        }
+
+        set({ campaign });
+        return { ok: true };
+      },
+
+      cancelDowntime: () =>
+        set((s) => {
+          if (!s.campaign?.activeDowntime) return s;
+          return {
+            campaign: touch({ ...s.campaign, activeDowntime: null }),
+          };
+        }),
     }),
     {
       name: PERSIST_KEY,

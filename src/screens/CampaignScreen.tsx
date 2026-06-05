@@ -121,15 +121,19 @@ function CampaignCalendar({
           const isCurrent = d === day;
           const isPast = d < day;
           const entry = dayLog[d];
-          const failed = entry?.result === "failure";
+          const isDowntime = entry?.kind === "downtime";
+          const questEntry = entry?.kind === "quest" ? entry : null;
+          const failed = questEntry?.result === "failure";
 
           return (
             <span
               key={d}
               title={
-                entry
-                  ? `Tag ${d} · ${entry.result === "success" ? "Erfolg" : "Fehlschlag"}`
-                  : `Tag ${d}`
+                isDowntime
+                  ? `Tag ${d} · Downtime`
+                  : questEntry
+                    ? `Tag ${d} · ${questEntry.result === "success" ? "Erfolg" : "Fehlschlag"}`
+                    : `Tag ${d}`
               }
               className={`relative flex min-h-[28px] flex-col items-center justify-center rounded-sm border p-0.5 ${
                 isCurrent
@@ -139,19 +143,21 @@ function CampaignCalendar({
                     : "border-line bg-paper"
               }`}
             >
-              {entry ? (
+              {isDowntime ? (
+                <span className="text-sm">🏠</span>
+              ) : questEntry ? (
                 <span
                   className={`flex flex-col items-center gap-0 ${
                     failed ? "opacity-50 grayscale" : ""
                   }`}
                 >
                   <img
-                    src={iconUrl(entry.monsterId)}
+                    src={iconUrl(questEntry.monsterId)}
                     alt=""
                     className="h-3.5 w-3.5 object-contain"
                   />
                   <img
-                    src={iconUrl(entry.stars)}
+                    src={iconUrl(questEntry.stars)}
                     alt=""
                     className="h-2.5 w-2.5 object-contain"
                   />
