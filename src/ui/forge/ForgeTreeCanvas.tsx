@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import type { ForgeBranch, ForgeNode, ForgeRootGroup } from "../../domain/catalog";
 import { ForgeTreeNode } from "./ForgeTreeNode";
+import { forgeEdgeStyle, type ForgeEdgeStyle } from "./forgeTheme";
 import {
   colX,
   FORGE_COL_COUNT,
@@ -14,14 +15,6 @@ import {
   type Pt,
 } from "./forgeLayout";
 
-type EdgeStyle = {
-  stroke: string;
-  width: number;
-  flow: boolean;
-  dash?: string;
-  glow?: string;
-};
-
 type LayoutNode = {
   node: ForgeNode;
   branch?: ForgeBranch;
@@ -29,24 +22,6 @@ type LayoutNode = {
   center: Pt;
   key: string;
 };
-
-function edgeStyle(node: ForgeNode): EdgeStyle {
-  if (node.forged) {
-    return { stroke: "#6fae62", width: 2.5, flow: false, glow: "0 0 3px rgba(111,174,98,0.6)" };
-  }
-  if (node.state === "craftable") {
-    return {
-      stroke: "#d9a72c",
-      width: 2.5,
-      flow: true,
-      glow: "0 0 4px rgba(217,167,44,0.85)",
-    };
-  }
-  if (node.state === "locked") {
-    return { stroke: "rgba(255,255,255,0.1)", width: 2, flow: false, dash: "3 6" };
-  }
-  return { stroke: "rgba(255,255,255,0.22)", width: 2, flow: false };
-}
 
 /** Horizontal edge from right of `from` to left of `to`, stopping at node borders. */
 function edgePath(from: Pt, to: Pt): string {
@@ -112,7 +87,7 @@ function buildLayout(groups: ForgeRootGroup[], width: number) {
     });
   }
 
-  const edges: { id: string; d: string; style: EdgeStyle }[] = [];
+  const edges: { id: string; d: string; style: ForgeEdgeStyle }[] = [];
   for (const { group, branch, row } of rows) {
     const rootCenter = rootCenters.get(group.rootId);
     if (!rootCenter) continue;
@@ -126,7 +101,7 @@ function buildLayout(groups: ForgeRootGroup[], width: number) {
       edges.push({
         id: `${branch.id}-${tierIdx}`,
         d: edgePath(parent, childCenter),
-        style: edgeStyle(node),
+        style: forgeEdgeStyle(node),
       });
       parent = childCenter;
     });

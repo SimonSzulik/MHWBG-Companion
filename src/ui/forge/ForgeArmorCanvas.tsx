@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ForgeArmorSetRow, ForgeNode } from "../../domain/catalog";
 import { ForgeTreeNode } from "./ForgeTreeNode";
+import { forgeEdgeStyle, type ForgeEdgeStyle } from "./forgeTheme";
 import {
   colX,
   FORGE_COL_COUNT,
@@ -14,35 +15,12 @@ import {
   type Pt,
 } from "./forgeLayout";
 
-type EdgeStyle = {
-  stroke: string;
-  width: number;
-  flow: boolean;
-  dash?: string;
-  glow?: string;
-};
-
 type LayoutNode = {
   node: ForgeNode;
   row: ForgeArmorSetRow;
   center: Pt;
   key: string;
 };
-
-function edgeStyle(node: ForgeNode): EdgeStyle {
-  if (node.forged) {
-    return { stroke: "#6fae62", width: 2.5, flow: false, glow: "0 0 3px rgba(111,174,98,0.6)" };
-  }
-  if (node.state === "craftable") {
-    return {
-      stroke: "#d9a72c",
-      width: 2.5,
-      flow: true,
-      glow: "0 0 4px rgba(217,167,44,0.85)",
-    };
-  }
-  return { stroke: "rgba(255,255,255,0.22)", width: 2, flow: false };
-}
 
 function edgePath(from: Pt, to: Pt): string {
   const start: Pt = { x: from.x + NODE_R, y: from.y };
@@ -53,7 +31,7 @@ function edgePath(from: Pt, to: Pt): string {
 function buildLayout(rows: ForgeArmorSetRow[], width: number) {
   const height = PAD_Y * 2 + Math.max(1, rows.length) * ROW_H;
   const nodes: LayoutNode[] = [];
-  const edges: { id: string; d: string; style: EdgeStyle }[] = [];
+  const edges: { id: string; d: string; style: ForgeEdgeStyle }[] = [];
 
   rows.forEach((row, ri) => {
     const y = rowCenterY(ri);
@@ -74,7 +52,7 @@ function buildLayout(rows: ForgeArmorSetRow[], width: number) {
       edges.push({
         id: `${row.set.id}-edge-${i}`,
         d: edgePath(centers[i - 1], centers[i]),
-        style: edgeStyle(row.nodes[i]),
+        style: forgeEdgeStyle(row.nodes[i]),
       });
     }
   });

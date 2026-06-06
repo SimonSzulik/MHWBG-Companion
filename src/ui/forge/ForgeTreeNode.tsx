@@ -1,14 +1,11 @@
 import type { ForgeNode } from "../../domain/catalog";
 import { iconUrl } from "../../domain/icons";
-
-const RING_COLORS = {
-  equipped: "#5fb6cc",
-  forged: "#6fae62",
-  craftable: "#d9a72c",
-  idle: "rgba(255,255,255,0.16)",
-} as const;
-
-const IDLE_TRACK = "rgba(255,255,255,0.09)";
+import {
+  FORGE_IDLE_BORDER,
+  FORGE_IDLE_TRACK,
+  FORGE_NODE_FILL,
+  FORGE_RING,
+} from "./forgeTheme";
 
 /**
  * A single circular forge node: progress ring + weapon icon, with the source
@@ -43,29 +40,29 @@ export function ForgeTreeNode({
   const showLock = !node.prerequisiteMet && !forged && !craftable;
 
   const ringColor = equipped
-    ? RING_COLORS.equipped
+    ? FORGE_RING.equipped
     : held || (forged && gear.slot !== "weapon")
-      ? RING_COLORS.forged
+      ? FORGE_RING.forged
       : craftable
-        ? RING_COLORS.craftable
+        ? FORGE_RING.craftable
         : consumed
-          ? RING_COLORS.forged
+          ? FORGE_RING.forged
           : node.prerequisiteMet && node.materialProgress > 0
-            ? RING_COLORS.craftable
-            : RING_COLORS.idle;
+            ? FORGE_RING.craftable
+            : FORGE_RING.idle;
 
   const fillDeg =
     owned || craftable || consumed ? 360 : node.materialProgress * 360;
 
   const borderColor = equipped
-    ? RING_COLORS.equipped
+    ? FORGE_RING.equipped
     : held || (forged && gear.slot !== "weapon")
-      ? RING_COLORS.forged
+      ? FORGE_RING.forged
       : craftable
-        ? RING_COLORS.craftable
+        ? FORGE_RING.craftable
         : consumed
-          ? RING_COLORS.forged
-          : "rgba(255,255,255,0.16)";
+          ? FORGE_RING.forged
+          : FORGE_IDLE_BORDER;
 
   const sourceIcon = gear.pathIcon;
   const badgeSize = Math.round(size * 0.34);
@@ -86,13 +83,13 @@ export function ForgeTreeNode({
           width: size,
           height: size,
           opacity: consumed ? 0.5 : 1,
-          background: `conic-gradient(${ringColor} ${fillDeg}deg, ${IDLE_TRACK} ${fillDeg}deg)`,
+          background: `conic-gradient(${ringColor} ${fillDeg}deg, ${FORGE_IDLE_TRACK} ${fillDeg}deg)`,
         }}
       >
         <div
           className="flex h-full w-full items-center justify-center rounded-full border-2"
           style={{
-            background: "#241f18",
+            background: FORGE_NODE_FILL,
             borderColor,
           }}
         >
@@ -104,14 +101,14 @@ export function ForgeTreeNode({
               style={{ width: size * 0.5, height: size * 0.5 }}
             />
           ) : (
-            <span className="text-xs font-bold text-[#b9af9c]">?</span>
+            <span className="text-xs font-bold text-ink-soft">?</span>
           )}
         </div>
 
         {/* Source material/monster the weapon is forged from — top-left. */}
         {sourceIcon && (
           <span
-            className="absolute -left-1 -top-1 flex items-center justify-center rounded-full border border-[rgba(0,0,0,0.45)] bg-[#2c2620] shadow"
+            className="absolute -left-1 -top-1 flex items-center justify-center rounded-full border border-line bg-paper-2 shadow-sm"
             style={{ width: badgeSize, height: badgeSize }}
           >
             <img
@@ -132,7 +129,7 @@ export function ForgeTreeNode({
         )}
       </div>
 
-      <p className="mt-0.5 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-[#ece4d4]">
+      <p className="mt-0.5 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-ink">
         {gear.name}
       </p>
     </button>

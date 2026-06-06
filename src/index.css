@@ -21,6 +21,7 @@
   --color-ok: #5b8a51;
   --color-ok-soft: #d9e6cf;
   --color-warn: #b07a2e;
+  --color-info: #4a8fa3;
 
   --radius-card: 1rem;
   --font-display:
@@ -79,15 +80,13 @@ body {
   box-shadow: 2px 3px 0 rgba(43, 38, 32, 0.12);
 }
 
-/* ---------- Forge graph (dark viewport) ---------- */
+/* ---------- Forge graph (paper viewport) ---------- */
 .forge-graph {
   background:
-    radial-gradient(120% 90% at 50% 0%, #2a241d 0%, #1b1712 55%, #121009 100%);
+    radial-gradient(120% 90% at 50% 0%, var(--color-card) 0%, var(--color-paper-2) 100%);
   border: 1.5px solid var(--color-line-strong);
   border-radius: var(--radius-card);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    2px 3px 0 rgba(43, 38, 32, 0.18);
+  box-shadow: 2px 3px 0 rgba(43, 38, 32, 0.12);
 }
 
 /* Flowing dashed edge toward a craftable node. */
@@ -105,10 +104,10 @@ body {
 @keyframes forgeNodePulse {
   0%,
   100% {
-    box-shadow: 0 0 10px 0 rgba(217, 167, 44, 0.35);
+    box-shadow: 0 0 8px 0 rgba(196, 122, 44, 0.35);
   }
   50% {
-    box-shadow: 0 0 18px 3px rgba(217, 167, 44, 0.6);
+    box-shadow: 0 0 14px 2px rgba(196, 122, 44, 0.55);
   }
 }
 .forge-node-craftable {
