@@ -1,10 +1,18 @@
 import { NavLink } from "react-router-dom";
 
-const TABS = [
+type Tab = {
+  to: string;
+  label: string;
+  end?: boolean;
+  emoji?: string;
+  icon?: string;
+};
+
+const TABS: Tab[] = [
   { to: "/hunters", emoji: "🧍", label: "Jäger" },
   { to: "/inventory", emoji: "🎒", label: "Lager" },
   { to: "/", emoji: "🏕️", label: "Camp", end: true },
-  { to: "/forge", emoji: "🔨", label: "Forge" },
+  { to: "/forge", icon: "/icons/forge-tab.png", label: "Forge" },
   { to: "/reference", emoji: "📖", label: "Info" },
 ];
 
@@ -24,8 +32,22 @@ export function BottomNav() {
                 }`
               }
             >
-              <span className="text-xl leading-none">{t.emoji}</span>
-              {t.label}
+              {({ isActive }) => (
+                <>
+                  {t.icon ? (
+                    <img
+                      src={t.icon}
+                      alt=""
+                      className={`h-6 w-6 object-contain ${
+                        isActive ? "opacity-100" : "opacity-65"
+                      }`}
+                    />
+                  ) : (
+                    <span className="text-xl leading-none">{t.emoji}</span>
+                  )}
+                  {t.label}
+                </>
+              )}
             </NavLink>
           </li>
         ))}

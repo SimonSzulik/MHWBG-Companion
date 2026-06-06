@@ -49,10 +49,7 @@ export function Forge() {
   };
 
   return (
-    <Screen
-      title="Forge"
-      subtitle={tab === "weapons" ? `${hunter.weaponType}` : "Rüstung"}
-    >
+    <Screen title="Forge">
       <div className="mb-4 flex rounded-xl border-[1.5px] border-line-strong bg-paper-2 p-1 text-sm font-semibold">
         <button
           type="button"
