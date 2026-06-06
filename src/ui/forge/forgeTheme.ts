@@ -20,6 +20,13 @@ export type ForgeEdgeStyle = {
   glow?: string;
 };
 
+/** Decorative armor row connectors — no status highlighting. */
+export const FORGE_ARMOR_EDGE: ForgeEdgeStyle = {
+  stroke: "rgba(107,98,83,0.22)",
+  width: 2,
+  flow: false,
+};
+
 export function forgeEdgeStyle(node: ForgeNode): ForgeEdgeStyle {
   if (node.forged) {
     return {

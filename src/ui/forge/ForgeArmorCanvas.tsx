@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ForgeArmorSetRow, ForgeNode } from "../../domain/catalog";
 import { ForgeTreeNode } from "./ForgeTreeNode";
-import { forgeEdgeStyle, type ForgeEdgeStyle } from "./forgeTheme";
+import { FORGE_ARMOR_EDGE, type ForgeEdgeStyle } from "./forgeTheme";
 import {
   colX,
   FORGE_COL_COUNT,
@@ -52,7 +52,7 @@ function buildLayout(rows: ForgeArmorSetRow[], width: number) {
       edges.push({
         id: `${row.set.id}-edge-${i}`,
         d: edgePath(centers[i - 1], centers[i]),
-        style: forgeEdgeStyle(row.nodes[i]),
+        style: FORGE_ARMOR_EDGE,
       });
     }
   });
