@@ -70,7 +70,7 @@ export function Inventory() {
   };
 
   return (
-    <Screen title="Inventar" subtitle={`${hunter.name} · Mein Lager`}>
+    <Screen title="Box" subtitle={hunter.name}>
       <div className="mb-4 flex rounded-xl border-[1.5px] border-line-strong bg-paper-2 p-1 text-sm font-semibold">
         <TabBtn
           active={tab === "material"}
@@ -195,7 +195,7 @@ function MaterialGrid({
 
       {!showEmpty && owned.length === 0 && (
         <p className="mt-6 text-center text-sm text-ink-soft">
-          Noch keine Items im Lager.
+          Noch keine Items in der Box.
         </p>
       )}
     </div>
