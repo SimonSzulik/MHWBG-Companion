@@ -195,7 +195,11 @@ function MaterialGrid({
         <button
           type="button"
           onClick={onToggleEmpty}
-          className="mt-4 w-full py-2 text-center text-xs text-ink-soft active:opacity-70"
+          className={`mt-4 w-full rounded-xl border-[1.5px] px-4 py-2.5 text-sm font-semibold active:translate-y-px ${
+            showEmpty
+              ? "border-line-strong bg-paper-2 text-ink-soft"
+              : "border-accent bg-accent-faint text-accent"
+          }`}
         >
           {showEmpty
             ? "Leere ausblenden"
