@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Schmiede">
+  <defs>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f2b35a"/>
+      <stop offset="0.55" stop-color="#c47a2c"/>
+      <stop offset="1" stop-color="#c47a2c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- ground -->
+  <path d="M0 1250 L1080 1250 L1080 1920 L0 1920 Z" fill="#5b4a34" opacity="0.9"/>
+  <!-- furnace body -->
+  <rect x="120" y="520" width="430" height="730" rx="28" fill="#4a3b29"/>
+  <path d="M180 1250 L180 900 a155 155 0 0 1 310 0 L490 1250 Z" fill="#352a1d"/>
+  <circle cx="335" cy="930" r="125" fill="url(#glow)"/>
+  <path d="M255 1250 L255 940 a80 80 0 0 1 160 0 L415 1250 Z" fill="#c47a2c"/>
+  <path d="M285 1250 L285 962 a50 50 0 0 1 100 0 L385 1250 Z" fill="#f2b35a"/>
+  <!-- chimney + smoke -->
+  <rect x="300" y="430" width="70" height="110" rx="10" fill="#4a3b29"/>
+  <path d="M335 430 q-40 -60 0 -120 q40 -60 0 -120" stroke="#cabfa9" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.45"/>
+  <!-- anvil on stump -->
+  <rect x="690" y="1080" width="150" height="170" rx="10" fill="#5b4226"/>
+  <path d="M650 980 L880 980 L880 1010 L800 1010 L820 1062 L710 1062 L730 1010 L650 1010 Z" fill="#2b2620"/>
+  <path d="M880 980 L935 964 L935 1001 L880 1010 Z" fill="#2b2620"/>
+  <!-- hammer -->
+  <line x1="905" y1="980" x2="982" y2="818" stroke="#3a332a" stroke-width="22" stroke-linecap="round"/>
+  <rect x="930" y="788" width="120" height="56" rx="10" fill="#3a332a" transform="rotate(25 990 816)"/>
+  <!-- sparks -->
+  <g fill="#f2b35a">
+    <circle cx="770" cy="930" r="9"/>
+    <circle cx="700" cy="900" r="6"/>
+    <circle cx="820" cy="892" r="7"/>
+    <circle cx="742" cy="860" r="5"/>
+    <circle cx="690" cy="952" r="5"/>
+  </g>
+</svg>

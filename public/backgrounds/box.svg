@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Wildspire Waste">
+  <!-- sun -->
+  <circle cx="800" cy="420" r="150" fill="#e9c79a"/>
+  <circle cx="800" cy="420" r="150" fill="#c47a2c" opacity="0.22"/>
+  <!-- far dunes -->
+  <path d="M0 760 Q300 660 600 740 T1080 720 L1080 1920 L0 1920 Z" fill="#cdb079"/>
+  <!-- wildspire towers -->
+  <g fill="#9c7b48">
+    <path d="M250 762 q-30 -360 18 -560 q14 -56 30 0 q60 230 36 560 Z"/>
+    <path d="M362 762 q-18 -220 12 -360 q10 -44 22 0 q40 150 22 360 Z"/>
+  </g>
+  <!-- mid dunes -->
+  <path d="M0 980 Q280 880 560 960 T1080 940 L1080 1920 L0 1920 Z" fill="#b9965f"/>
+  <!-- near dune -->
+  <path d="M0 1240 Q360 1120 720 1230 T1080 1210 L1080 1920 L0 1920 Z" fill="#9c7b48"/>
+  <!-- cactus -->
+  <g fill="#5b7d4a">
+    <path d="M150 1180 q-16 0 -16 22 l0 86 q0 16 16 16 q16 0 16 -16 l0 -86 q0 -22 -16 -22 Z"/>
+    <path d="M150 1212 q22 -4 24 -34 q1 -16 -12 -12 q-12 4 -12 22 Z"/>
+    <path d="M150 1234 q-22 -4 -24 -30 q-1 -14 12 -10 q12 4 12 20 Z"/>
+  </g>
+</svg>

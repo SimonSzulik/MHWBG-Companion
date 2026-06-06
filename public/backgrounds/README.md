@@ -1,53 +1,59 @@
 # Screen-Hintergrundbilder
 
-Hier liegen die optionalen, dezent ausgeblassten Hintergrundbilder für die
-Screens **Camp**, **Forge** und **Box**.
+Dezent ausgeblasste Hintergründe für die Screens **Camp**, **Forge** und
+**Box**. Die Optik (Ausblassen auf ~16 %, Warm-Tönung, Verlauf nach unten)
+macht das CSS (`.screen-bg` in `src/index.css`) — die Bilder selbst müssen
+also nicht vorbearbeitet werden.
 
-## So fügst du Bilder hinzu
+## Mitgelieferte Standard-Bilder
 
-Lege genau diese drei Dateien in diesen Ordner (`public/backgrounds/`):
+Als Standard liegen hier handgezeichnete **SVG-Szenen** im Farbschema der App:
 
-| Datei         | Screen | Empfohlenes Motiv                                        |
-| ------------- | ------ | -------------------------------------------------------- |
-| `camp.webp`   | Camp   | Lagerplatz / Astera / Ancient-Forest-Panorama, Zelt      |
-| `forge.webp`  | Forge  | Schmiede, Amboss, der Wyverianer-Schmied, glühendes Erz  |
-| `box.webp`    | Box    | Item-Box / Vorratslager / Wildspire-Waste-Wüstenpanorama |
+| Datei        | Screen | Motiv                                   |
+| ------------ | ------ | --------------------------------------- |
+| `camp.svg`   | Camp   | Ancient-Forest-Lager (Baum, Zelt, Feuer)|
+| `forge.svg`  | Forge  | Schmiede (Esse, Amboss, Funken)         |
+| `box.svg`    | Box    | Wildspire Waste (Dünen, Spires, Kaktus) |
 
-Die App lädt sie automatisch über `/backgrounds/<name>.webp`. **Fehlt eine
-Datei, passiert nichts** – der Screen bleibt normal nutzbar (kein kaputtes
-Bild), weil es sich um ein CSS-Hintergrundbild handelt.
+Diese sind Eigen-Vektorgrafiken (kein Urheberrechtsproblem, winzig, im
+PWA-Precache).
 
-> Anderer Dateiname oder Format gewünscht? Dann den Pfad im jeweiligen Screen
-> anpassen: `src="/backgrounds/camp.webp"` in `src/screens/Camp.tsx` bzw. das
-> `background="…"`-Prop von `<Screen>` in `Forge.tsx` / `Inventory.tsx`.
+## Durch echte Monster-Hunter-Bilder ersetzen
 
-## ⚠️ Urheberrecht
+Das Repo ist **privat**, für die private Nutzung ist offizielles MHW-Artwork
+also unproblematisch. So tauschst du aus:
 
-Offizielle Monster-Hunter-World-Artworks gehören **CAPCOM / Steamforged**.
-Für eine **rein private** Nutzung (lokal, nur für deine Gruppe) ist das
-unproblematisch. Sobald die PWA **öffentlich gehostet** wird (z. B. Vercel),
-ist geschütztes Material rechtlich heikel – nutze dann lieber lizenzfreie
-CC0-Naturfotos (Dschungel / Wüste passen farblich zu Ancient Forest &
-Wildspire Waste). Diese Bilddateien sind bewusst **nicht** im Repo eingecheckt.
+1. Bild besorgen (Motive wie oben) und als WebP optimieren (s. u.).
+2. Entweder die `.svg` gleichnamig durch eine Datei ersetzen **oder** eine
+   `*.webp` ablegen und den Pfad anpassen:
+   - Camp: `src="/backgrounds/camp.webp"` in `src/screens/Camp.tsx`
+   - Forge / Box: das `background="…"`-Prop von `<Screen>` in
+     `Forge.tsx` / `Inventory.tsx`
+
+Fehlt eine Datei, rendert der Layer einfach nichts — der Screen bleibt nutzbar.
+
+> Hinweis: In dieser Build-Umgebung war der direkte Download von externen
+> Bild-Hostern (Unsplash/Pexels/Wallpaper-Seiten) durch die Netzwerk-Policy
+> blockiert (nur GitHub erreichbar). Deshalb die SVG-Defaults — echte Fotos
+> legst du lokal ab und committest sie dann.
 
 ## Wo finde ich passende Bilder
 
-Offizielle / Spiel-Quellen:
+Offiziell / Spiel:
 
-- Steamforged „Free Resource Vault“ (Brettspiel-Material):
+- Steamforged „Free Resource Vault“:
   https://steamforged.com/collections/monster-hunter-world-free-resource-vault
-- Steamforged Produktseiten Ancient Forest / Wildspire Waste (Promo-Art):
+- Brettspiel-Produktseiten (Promo-Art):
   https://steamforged.com/pages/monster-hunter-world-board-game
-- Environment-/Concept-Art auf ArtStation (z. B. Wildspire Waste, Marthe
-  Jonkers): https://www.artstation.com/artwork/XJxZbL
+- Concept-Art auf ArtStation (z. B. Wildspire Waste):
+  https://www.artstation.com/artwork/XJxZbL
 
 Wallpaper-Sammlungen (Game-Screenshots, urheberrechtlich geschützt):
 
 - https://alphacoders.com/monster-hunter-world-wallpapers
 - https://wallpapercave.com/monster-hunter-world-hd-wallpapers
-- https://wallpaperflare.com/search?wallpaper=Monster+Hunter:+World
 
-Lizenzfreie CC0-Alternativen (sicher auch öffentlich):
+Lizenzfreie CC0-Alternativen (sicher auch bei öffentlichem Hosting):
 
 - Dschungel/Regenwald (Camp/Forge): https://unsplash.com/s/photos/jungle-landscape
 - Wüste (Box): https://www.pexels.com/search/desert/
@@ -55,15 +61,9 @@ Lizenzfreie CC0-Alternativen (sicher auch öffentlich):
 
 ## Bilder aufbereiten (empfohlen)
 
-Die Optik (Ausblassen, Warm-Tönung, Verlauf nach unten) macht bereits das CSS
-(`.screen-bg` in `src/index.css`). Du musst die Bilder also **nicht** vorab
-einfärben – nur größentechnisch optimieren:
-
 1. Hochkant zuschneiden, ca. **1080 × 1920 px** (Mobile-First, Portrait).
 2. Als **WebP** exportieren, Qualität ~70 %. Ziel: **< 200 KB** pro Bild.
 3. Motiv mittig/oben halten – der untere Rand wird ohnehin ausgeblendet.
-
-Beispiel mit ImageMagick / cwebp:
 
 ```bash
 # auf 1080px Breite skalieren und als WebP mit Q70 speichern
@@ -72,11 +72,7 @@ cwebp -q 70 -resize 1080 0 camp-original.jpg -o camp.webp
 
 ## Feintuning
 
-- Gesamtstärke: CSS-Variable `--screen-bg-opacity` (Standard `0.14`) in
+- Gesamtstärke: CSS-Variable `--screen-bg-opacity` (Standard `0.16`) in
   `src/index.css` – höher = kräftiger.
 - Tönung/Verlauf: ebenfalls in der `.screen-bg`-Regel
   (`filter: sepia(...)`, `mask-image: linear-gradient(...)`).
-
-> Hinweis: Die App ist online-gated (Sync nötig), daher werden die Bilder
-> immer online geladen; sie sind bewusst nicht im PWA-Precache, um die
-> Installationsgröße klein zu halten.

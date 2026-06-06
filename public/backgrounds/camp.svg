@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Ancient Forest Lager">
+  <!-- distant canopy -->
+  <g fill="#7ba368">
+    <circle cx="70" cy="470" r="150"/>
+    <circle cx="250" cy="410" r="175"/>
+    <circle cx="450" cy="450" r="160"/>
+    <circle cx="650" cy="405" r="180"/>
+    <circle cx="850" cy="455" r="165"/>
+    <circle cx="1030" cy="430" r="160"/>
+  </g>
+  <!-- mid canopy -->
+  <g fill="#5b8a51">
+    <circle cx="150" cy="560" r="150"/>
+    <circle cx="360" cy="540" r="170"/>
+    <circle cx="560" cy="560" r="150"/>
+    <circle cx="770" cy="535" r="175"/>
+    <circle cx="980" cy="565" r="160"/>
+  </g>
+  <!-- great ancient tree -->
+  <path d="M505 1180 L520 720 Q540 690 560 720 L575 1180 Z" fill="#6b4e2e"/>
+  <path d="M540 770 q-120 -40 -150 -150 M540 810 q130 -30 165 -140" stroke="#6b4e2e" stroke-width="26" fill="none" stroke-linecap="round"/>
+  <g fill="#4f7d46">
+    <circle cx="540" cy="470" r="220"/>
+    <circle cx="370" cy="540" r="150"/>
+    <circle cx="710" cy="540" r="150"/>
+    <circle cx="540" cy="360" r="160"/>
+  </g>
+  <g fill="#5b8a51" opacity="0.65">
+    <circle cx="470" cy="430" r="90"/>
+    <circle cx="620" cy="450" r="90"/>
+  </g>
+  <!-- forest floor -->
+  <path d="M0 1150 Q270 1090 540 1140 T1080 1130 L1080 1920 L0 1920 Z" fill="#6b5a3e"/>
+  <path d="M0 1150 Q270 1090 540 1140 T1080 1130 L1080 1196 Q540 1150 0 1212 Z" fill="#5b8a51" opacity="0.5"/>
+  <!-- tent -->
+  <path d="M660 1090 L780 1090 L720 980 Z" fill="#caa86a"/>
+  <path d="M720 1090 L745 1090 L720 1004 Z" fill="#5b4226"/>
+  <path d="M646 1092 L794 1092" stroke="#5b4226" stroke-width="8" stroke-linecap="round"/>
+  <!-- campfire -->
+  <path d="M386 1120 L452 1140 M452 1120 L386 1140" stroke="#5b4226" stroke-width="12" stroke-linecap="round"/>
+  <path d="M420 1066 q26 28 9 54 q-9 13 -25 8 q-23 -8 -11 -37 q7 -17 27 -25 Z" fill="#c47a2c"/>
+  <path d="M420 1084 q15 16 4 33 q-12 12 -23 0 q-8 -13 4 -23 Z" fill="#e9a85a"/>
+  <!-- birds -->
+  <g stroke="#3a332a" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.55">
+    <path d="M250 250 q20 -16 40 0 q20 -16 40 0"/>
+    <path d="M760 300 q16 -13 32 0 q16 -13 32 0"/>
+  </g>
+</svg>
