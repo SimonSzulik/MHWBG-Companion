@@ -14,7 +14,6 @@ export function ForgeNodeSheet({
   branch,
   hunter,
   recraftable,
-  multiPath,
   onCraft,
   onClose,
 }: {
@@ -22,7 +21,6 @@ export function ForgeNodeSheet({
   branch?: ForgeBranch;
   hunter: Hunter;
   recraftable?: boolean;
-  multiPath?: boolean;
   onCraft: (gearId: string) => void;
   onClose: () => void;
 }) {
@@ -60,9 +58,6 @@ export function ForgeNodeSheet({
                 {branch.chosen && " · gewählt"}
               </p>
             )}
-            {recraftable && node.held > 0 && (
-              <p className="text-xs text-ink-soft">{node.held}× vorrätig</p>
-            )}
           </div>
         </div>
 
@@ -79,12 +74,6 @@ export function ForgeNodeSheet({
         )}
 
         {gear.deckChanges && <DeckChangesBlock changes={gear.deckChanges} />}
-
-        {recraftable && multiPath && (
-          <p className="mt-2 text-[11px] text-ink-soft">
-            Für jeden Pfad erneut schmieden.
-          </p>
-        )}
 
         {node.state === "craftable" && (
           <CraftButton

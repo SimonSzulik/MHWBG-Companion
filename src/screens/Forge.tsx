@@ -34,7 +34,7 @@ type SheetTarget = {
 };
 
 /**
- * Forge. Weapon tab: symmetric top-down tree with tap-for-details sheet;
+ * Forge. Weapon tab: left-to-right forge tree with tap-for-details sheet;
  * armour tab lists forgeable pieces grouped by body part.
  */
 export function Forge() {
@@ -111,15 +111,13 @@ function WeaponForgeGraph({
         baubaren Waffen, <span className="text-ok">grün</span> = geschmiedet.
       </p>
       <div className="flex flex-col gap-4">
-        {groups.map((group) => (
-          <ForgeTreeCanvas
-            key={group.rootId}
-            group={group}
-            onNodeClick={(node, branch) =>
-              setSheet({ node, branch, group })
-            }
-          />
-        ))}
+        <ForgeTreeCanvas
+          groups={groups}
+          onNodeClick={(node, branch, group) => {
+            if (!group) return;
+            setSheet({ node, branch, group });
+          }}
+        />
       </div>
       {sheet && (
         <ForgeNodeSheet
@@ -127,7 +125,6 @@ function WeaponForgeGraph({
           branch={sheet.branch}
           hunter={hunter}
           recraftable={sheet.group.recraftable}
-          multiPath={sheet.group.branches.length > 1}
           onCraft={onCraft}
           onClose={() => setSheet(null)}
         />

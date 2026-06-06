@@ -16,7 +16,7 @@ import type {
 import { normalizeCalendarDayEntry } from "../domain/types";
 import { gameData } from "../data/gameData";
 import { questsForMonster } from "../data/quests";
-import { isRecraftableRoot } from "../domain/catalog";
+import { isRecraftableRoot, rootForgeUsage } from "../domain/catalog";
 import {
   applyStarterKitToHunter,
   hunterNeedsStarterKit,
@@ -571,6 +571,16 @@ export const useCampaign = create<CampaignState>()(
           if (order === 0) {
             if (!recraftableRoot)
               return { ok: false, reason: "Startwaffe – wird gestellt." };
+            const { used, cap } = rootForgeUsage(
+              hunter,
+              gearId,
+              hunter.weaponType,
+            );
+            if (used >= cap)
+              return {
+                ok: false,
+                reason: "Alle Pfade dieser Waffe sind bereits erschlossen.",
+              };
           } else {
             const path = gameData.weaponPaths?.find((p) => p.id === def.pathId);
             prevId = path?.gearIds[order - 1];

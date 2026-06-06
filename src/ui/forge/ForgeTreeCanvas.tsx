@@ -1,15 +1,15 @@
 import { useEffect, type ReactNode } from "react";
 import type { ForgeBranch, ForgeNode, ForgeRootGroup } from "../../domain/catalog";
-import { layoutForgeTree } from "../../domain/catalog";
-import { iconUrl } from "../../domain/icons";
 import { ForgeTreeNode } from "./ForgeTreeNode";
 
-const NODE = 54;
-const COL_W = 98;
-const ROOT_W = 140;
-const ROW_H = 124;
-const ROOT_TOP = 28;
-const BOTTOM_PAD = 84;
+const NODE = 48;
+const RING = 3;
+/** Outer radius for edge attachment (node half + conic ring). */
+const NODE_R = NODE / 2 + RING;
+const ROW_H = 88;
+const PAD_X = 12;
+const PAD_Y = 16;
+const COL_FRACTIONS = [0.1, 0.42, 0.74] as const;
 
 type Pt = { x: number; y: number };
 
@@ -19,6 +19,14 @@ type EdgeStyle = {
   flow: boolean;
   dash?: string;
   glow?: string;
+};
+
+type LayoutNode = {
+  node: ForgeNode;
+  branch?: ForgeBranch;
+  group: ForgeRootGroup;
+  center: Pt;
+  key: string;
 };
 
 function edgeStyle(node: ForgeNode): EdgeStyle {
@@ -39,53 +47,116 @@ function edgeStyle(node: ForgeNode): EdgeStyle {
   return { stroke: "rgba(255,255,255,0.22)", width: 2, flow: false };
 }
 
-export function ForgeTreeCanvas({
-  group,
-  onNodeClick,
-}: {
-  group: ForgeRootGroup;
-  onNodeClick: (node: ForgeNode, branch?: ForgeBranch) => void;
-}) {
-  const layout = layoutForgeTree(group);
-  const cols = layout.columns;
-  const multi = cols.length > 1;
-  const colCount = Math.max(1, cols.length);
-  const W = colCount * COL_W;
+function colX(col: number, width: number): number {
+  const inner = width - PAD_X * 2;
+  const frac = COL_FRACTIONS[col] ?? COL_FRACTIONS[COL_FRACTIONS.length - 1];
+  return PAD_X + inner * frac;
+}
 
-  const rootCenter: Pt = { x: W / 2, y: ROOT_TOP + NODE / 2 };
-  const colX = (bi: number) => (bi + 0.5) * COL_W;
-  const nodeCenter = (bi: number, t: number): Pt => ({
-    x: colX(bi),
-    y: rootCenter.y + (t + 1) * ROW_H,
-  });
+function rowCenterY(row: number): number {
+  return PAD_Y + row * ROW_H + ROW_H / 2;
+}
 
-  const maxNodes = cols.reduce((m, c) => Math.max(m, c.nodes.length), 0);
-  const H = rootCenter.y + maxNodes * ROW_H + BOTTOM_PAD;
+/** Horizontal edge from right of `from` to left of `to`, stopping at node borders. */
+function edgePath(from: Pt, to: Pt): string {
+  const start: Pt = { x: from.x + NODE_R, y: from.y };
+  const end: Pt = { x: to.x - NODE_R, y: to.y };
+  if (Math.abs(start.y - end.y) < 1) {
+    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+  }
+  const mx = (start.x + end.x) / 2;
+  return `M ${start.x} ${start.y} C ${mx} ${start.y} ${mx} ${end.y} ${end.x} ${end.y}`;
+}
+
+function buildLayout(groups: ForgeRootGroup[], width: number) {
+  const rows: { group: ForgeRootGroup; branch: ForgeBranch; row: number }[] = [];
+  for (const group of groups) {
+    for (const branch of group.branches) {
+      rows.push({ group, branch, row: rows.length });
+    }
+  }
+
+  const groupRowRange = new Map<string, { start: number; end: number }>();
+  let rowIdx = 0;
+  for (const group of groups) {
+    const start = rowIdx;
+    const end = rowIdx + group.branches.length - 1;
+    groupRowRange.set(group.rootId, { start, end });
+    rowIdx += group.branches.length;
+  }
+
+  const height = PAD_Y * 2 + Math.max(1, rows.length) * ROW_H;
+  const nodes: LayoutNode[] = [];
+  const rootCenters = new Map<string, Pt>();
+
+  for (const group of groups) {
+    const range = groupRowRange.get(group.rootId);
+    if (!range) continue;
+    const y =
+      range.start === range.end
+        ? rowCenterY(range.start)
+        : (rowCenterY(range.start) + rowCenterY(range.end)) / 2;
+    const center: Pt = { x: colX(0, width), y };
+    rootCenters.set(group.rootId, center);
+    nodes.push({
+      node: group.root,
+      group,
+      center,
+      key: `root-${group.rootId}`,
+    });
+  }
+
+  for (const { group, branch, row } of rows) {
+    branch.nodes.forEach((node, tierIdx) => {
+      nodes.push({
+        node,
+        branch,
+        group,
+        center: { x: colX(tierIdx + 1, width), y: rowCenterY(row) },
+        key: node.gear.id,
+      });
+    });
+  }
 
   const edges: { id: string; d: string; style: EdgeStyle }[] = [];
-  cols.forEach((col, bi) => {
+  for (const { group, branch, row } of rows) {
+    const rootCenter = rootCenters.get(group.rootId);
+    if (!rootCenter) continue;
+
     let parent = rootCenter;
-    col.nodes.forEach((n, t) => {
-      const c = nodeCenter(bi, t);
-      const from: Pt = { x: parent.x, y: parent.y + NODE / 2 };
-      const to: Pt = { x: c.x, y: c.y - NODE / 2 };
-      const my = (from.y + to.y) / 2;
-      const d =
-        from.x === to.x
-          ? `M ${from.x} ${from.y} L ${to.x} ${to.y}`
-          : `M ${from.x} ${from.y} C ${from.x} ${my} ${to.x} ${my} ${to.x} ${to.y}`;
-      edges.push({ id: `${bi}-${t}`, d, style: edgeStyle(n) });
-      parent = c;
+    branch.nodes.forEach((node, tierIdx) => {
+      const childCenter: Pt = { x: colX(tierIdx + 1, width), y: rowCenterY(row) };
+      edges.push({
+        id: `${branch.id}-${tierIdx}`,
+        d: edgePath(parent, childCenter),
+        style: edgeStyle(node),
+      });
+      parent = childCenter;
     });
-  });
+  }
+
+  return { nodes, edges, height };
+}
+
+export function ForgeTreeCanvas({
+  groups,
+  onNodeClick,
+}: {
+  groups: ForgeRootGroup[];
+  onNodeClick: (node: ForgeNode, branch?: ForgeBranch, group?: ForgeRootGroup) => void;
+}) {
+  const width = 360;
+  const { nodes, edges, height } = buildLayout(groups, width);
 
   return (
-    <div className="forge-graph overflow-x-auto p-2">
-      <div className="relative mx-auto" style={{ width: W, height: H }}>
+    <div className="forge-graph overflow-x-hidden p-2">
+      <div className="relative mx-auto w-full max-w-[360px]" style={{ height }}>
         <svg
-          width={W}
-          height={H}
-          className="absolute inset-0"
+          width={width}
+          height={height}
+          className="absolute inset-0 w-full"
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="xMidYMid meet"
           style={{ pointerEvents: "none" }}
           aria-hidden
         >
@@ -96,7 +167,7 @@ export function ForgeTreeCanvas({
               fill="none"
               stroke={e.style.stroke}
               strokeWidth={e.style.width}
-              strokeLinecap="round"
+              strokeLinecap="butt"
               strokeDasharray={e.style.dash}
               className={e.style.flow ? "forge-edge-flow" : undefined}
               style={e.style.glow ? { filter: `drop-shadow(${e.style.glow})` } : undefined}
@@ -104,51 +175,15 @@ export function ForgeTreeCanvas({
           ))}
         </svg>
 
-        <NodeWrapper center={rootCenter} width={ROOT_W}>
-          <ForgeTreeNode
-            node={layout.root}
-            size={NODE + 6}
-            onClick={() => onNodeClick(layout.root)}
-          />
-        </NodeWrapper>
-
-        {multi &&
-          cols.map((col, bi) =>
-            col.nodes.length > 0 ? (
-              <BranchLabel
-                key={`label-${col.branch.id}`}
-                branch={col.branch}
-                x={colX(bi)}
-                y={nodeCenter(bi, 0).y - NODE / 2 - 16}
-              />
-            ) : null,
-          )}
-
-        {cols.map((col, bi) =>
-          col.nodes.length === 0 ? (
-            <NodeWrapper
-              key={`empty-${col.branch.id}`}
-              center={nodeCenter(bi, 0)}
-              width={COL_W}
-            >
-              <BranchChip branch={col.branch} />
-            </NodeWrapper>
-          ) : (
-            col.nodes.map((node, t) => (
-              <NodeWrapper
-                key={node.gear.id}
-                center={nodeCenter(bi, t)}
-                width={COL_W}
-              >
-                <ForgeTreeNode
-                  node={node}
-                  size={NODE}
-                  onClick={() => onNodeClick(node, col.branch)}
-                />
-              </NodeWrapper>
-            ))
-          ),
-        )}
+        {nodes.map((ln) => (
+          <NodeWrapper key={ln.key} center={ln.center} width={100}>
+            <ForgeTreeNode
+              node={ln.node}
+              size={NODE}
+              onClick={() => onNodeClick(ln.node, ln.branch, ln.group)}
+            />
+          </NodeWrapper>
+        ))}
       </div>
     </div>
   );
@@ -174,42 +209,6 @@ function NodeWrapper({
     >
       {children}
     </div>
-  );
-}
-
-function BranchLabel({ branch, x, y }: { branch: ForgeBranch; x: number; y: number }) {
-  return (
-    <div
-      className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-[rgba(255,255,255,0.12)] bg-[#2c2620] px-2 py-0.5"
-      style={{ left: x, top: y }}
-    >
-      <img src={iconUrl(branch.icon)} alt="" className="h-3 w-3 object-contain" />
-      <span className="text-[9px] font-semibold uppercase tracking-wide text-[#cabfa9]">
-        {branch.label}
-      </span>
-    </div>
-  );
-}
-
-function BranchChip({ branch }: { branch: ForgeBranch }) {
-  if (branch.chosen) {
-    return (
-      <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[9px] font-bold text-ok">
-        PFAD
-      </span>
-    );
-  }
-  if (branch.locked) {
-    return (
-      <span className="rounded-full bg-paper-2 px-2 py-0.5 text-[9px] font-bold text-ink-soft">
-        🔒
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full border border-[rgba(255,255,255,0.12)] px-2 py-0.5 text-[9px] font-semibold text-[#cabfa9]">
-      {branch.label}
-    </span>
   );
 }
 

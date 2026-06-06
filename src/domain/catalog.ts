@@ -51,6 +51,24 @@ export function isFreeStarterRoot(gear: GearDef): boolean {
   );
 }
 
+/** How many times a recraftable root has been used vs. how many paths it has. */
+export function rootForgeUsage(
+  hunter: Hunter,
+  rootId: string,
+  weaponType: WeaponType,
+): { used: number; cap: number } {
+  const groupPaths = pathsForWeapon(weaponType).filter(
+    (p) => p.gearIds[0] === rootId,
+  );
+  const cap = groupPaths.length;
+  const owned = new Set(hunter.ownedGear);
+  const chosenBranchCount = groupPaths.filter((p) =>
+    p.gearIds.slice(1).some((id) => owned.has(id)),
+  ).length;
+  const used = heldCount(hunter, rootId) + chosenBranchCount;
+  return { used, cap };
+}
+
 function prevGearIdInPath(gear: GearDef): string | undefined {
   const order = gear.pathOrder ?? 0;
   if (order <= 0 || !gear.pathId) return undefined;
@@ -74,19 +92,6 @@ export function computeMaterialProgress(gear: GearDef, hunter: Hunter): number {
     have += Math.min(hunter.materials[c.materialId] ?? 0, c.qty);
   }
   return need === 0 ? 1 : have / need;
-}
-
-export interface ForgeTreeLayout {
-  root: ForgeNode;
-  columns: { branch: ForgeBranch; nodes: ForgeNode[] }[];
-}
-
-/** Column layout for symmetric top-down forge tree rendering. */
-export function layoutForgeTree(group: ForgeRootGroup): ForgeTreeLayout {
-  return {
-    root: group.root,
-    columns: group.branches.map((branch) => ({ branch, nodes: branch.nodes })),
-  };
 }
 
 /**
@@ -208,11 +213,18 @@ export function weaponForgeGraph(
     const recraftable = isRecraftableRoot(rootGear);
     const freeStarter = isFreeStarterRoot(rootGear);
 
+    const { used: rootUsed, cap: rootCap } = rootForgeUsage(
+      hunter,
+      rootId,
+      weaponType,
+    );
+
     let rootState: ForgeNodeState;
     if (freeStarter) rootState = "forged";
-    else if (recraftable)
-      rootState = hasMaterials(rootGear, hunter) ? "craftable" : "pending";
-    else rootState = owned.has(rootId) ? "forged" : "pending";
+    else if (recraftable) {
+      if (rootUsed >= rootCap) rootState = "pending";
+      else rootState = hasMaterials(rootGear, hunter) ? "craftable" : "pending";
+    } else rootState = owned.has(rootId) ? "forged" : "pending";
 
     const root = makeNode(rootGear, hunter, campaign, rootState);
     if (freeStarter) root.forged = true;
