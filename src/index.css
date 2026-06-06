@@ -120,3 +120,35 @@ body {
     animation: none;
   }
 }
+
+/* ---------- Decorative screen backgrounds ----------
+ * A heavily-faded, warm-tinted image that sits behind a whole screen:
+ * above the notebook grid, below the paper UI. Drop matching images into
+ * public/backgrounds/ (see the README there). A missing file just renders
+ * nothing, so screens stay usable without artwork.
+ * Tune the overall strength with --screen-bg-opacity. */
+.screen-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: var(--screen-bg-opacity, 0.14);
+  /* pull the colours toward the kraft-paper palette and soften detail */
+  filter: sepia(0.4) saturate(0.85) contrast(0.95);
+  /* fade out toward the bottom so the tab bar area stays clean */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    rgba(0, 0, 0, 0.4) 55%,
+    transparent 92%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    rgba(0, 0, 0, 0.4) 55%,
+    transparent 92%
+  );
+}

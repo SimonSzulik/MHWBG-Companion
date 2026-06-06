@@ -1,26 +1,31 @@
 import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
+import { ScreenBackground } from "./ScreenBackground";
 
 /**
  * Standard drill-in screen frame: a back chevron + title header, then
  * scrollable content. Matches the mockups' "Inventory / Forge (drill-in)".
+ * Pass `background` to show a faded artwork layer behind the whole screen.
  */
 export function Screen({
   title,
   subtitle,
   back = true,
   right,
+  background,
   children,
 }: {
   title: string;
   subtitle?: string;
   back?: boolean;
   right?: ReactNode;
+  background?: string;
   children: ReactNode;
 }) {
   const nav = useNavigate();
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
+      {background && <ScreenBackground src={background} />}
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
         {back && (
           <button

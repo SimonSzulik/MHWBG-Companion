@@ -45,7 +45,7 @@ export function Forge() {
   };
 
   return (
-    <Screen title="Forge">
+    <Screen title="Forge" background="/backgrounds/forge.webp">
       <SegmentedTabs<Tab>
         className="mb-4"
         value={tab}

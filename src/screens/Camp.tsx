@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useOwnHunter } from "../store/hooks";
+import { ScreenBackground } from "../ui/ScreenBackground";
 import { CampHunterCard } from "../ui/CampHunterCard";
 import { CampaignPanel } from "../ui/CampaignPanel";
 
@@ -10,6 +11,7 @@ export function Camp() {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-4 pb-24 pt-5">
+      <ScreenBackground src="/backgrounds/camp.webp" />
       <div className="mb-3 flex items-center justify-between">
         <p className="font-display text-lg text-ink-soft">{campaign.name}</p>
         <Link

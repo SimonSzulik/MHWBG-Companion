@@ -66,7 +66,7 @@ export function Inventory() {
   };
 
   return (
-    <Screen title="Box" subtitle={hunter.name}>
+    <Screen title="Box" subtitle={hunter.name} background="/backgrounds/box.webp">
       <SegmentedTabs<Tab>
         className="mb-4"
         value={tab}
