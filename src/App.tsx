@@ -15,7 +15,6 @@ import { Camp } from "./screens/Camp";
 import { Hunters } from "./screens/Hunters";
 import { Inventory } from "./screens/Inventory";
 import { Forge } from "./screens/Forge";
-import { CampaignScreen } from "./screens/CampaignScreen";
 import { QuestScreen } from "./screens/QuestScreen";
 import { QuestFlowScreen } from "./screens/QuestFlowScreen";
 import { DowntimeScreen } from "./screens/DowntimeScreen";
@@ -83,7 +82,7 @@ export default function App() {
           <Route path="/hunters" element={<Hunters />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/forge" element={<Forge />} />
-          <Route path="/campaign" element={<CampaignScreen />} />
+          <Route path="/campaign" element={<Navigate to="/" replace />} />
           <Route path="/campaign/quests" element={<QuestScreen />} />
           <Route path="/campaign/quest" element={<QuestFlowScreen />} />
           <Route path="/campaign/downtime" element={<DowntimeScreen />} />

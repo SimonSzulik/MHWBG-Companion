@@ -3,7 +3,7 @@ import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { gameData } from "../data/gameData";
-import { catalog } from "../domain/catalog";
+import { catalog, hunterTotalDefense } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
 import { ownHunter } from "../lib/hunter";
 import type { GearDef, GearSlot, Hunter } from "../domain/types";
@@ -51,7 +51,7 @@ function HunterSheet({ hunter }: { hunter: Hunter }) {
   const equippedDefs = Object.values(hunter.equipped)
     .map((id) => (id ? catalog.gear(id) : undefined))
     .filter(Boolean);
-  const totalDef = equippedDefs.reduce((sum, g) => sum + (g?.defense ?? 0), 0);
+  const totalDef = hunterTotalDefense(hunter);
   const skills = equippedDefs.map((g) => g?.effect).filter(Boolean) as string[];
 
   const ownedFor = (slot: GearSlot) =>

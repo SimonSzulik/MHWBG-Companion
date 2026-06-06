@@ -1,4 +1,4 @@
-import type { ForgeBranch, ForgeNode } from "../../domain/catalog";
+import { armorSetForPiece, type ForgeBranch, type ForgeNode } from "../../domain/catalog";
 import type { Hunter } from "../../domain/types";
 import { iconUrl } from "../../domain/icons";
 import {
@@ -26,6 +26,7 @@ export function ForgeNodeSheet({
 }) {
   useBodyScrollLock(true);
   const gear = node.gear;
+  const armorSet = !branch && gear.slot !== "weapon" ? armorSetForPiece(gear.id) : undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-ink/40">
@@ -58,6 +59,12 @@ export function ForgeNodeSheet({
                 {branch.chosen && " · gewählt"}
               </p>
             )}
+            {armorSet && (
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
+                <img src={iconUrl(armorSet.icon)} alt="" className="h-4 w-4" />
+                {armorSet.label}
+              </p>
+            )}
           </div>
         </div>
 
@@ -69,7 +76,11 @@ export function ForgeNodeSheet({
           <MaterialCostList gear={gear} hunter={hunter} />
         )}
 
-        {!node.forged && node.state === "pending" && node.enoughMats && !node.prerequisiteMet && (
+        {!node.forged &&
+          gear.slot === "weapon" &&
+          node.state === "pending" &&
+          node.enoughMats &&
+          !node.prerequisiteMet && (
           <p className="mt-2 text-xs text-ink-soft">Erst die Vorstufe schmieden.</p>
         )}
 
@@ -91,7 +102,7 @@ export function ForgeNodeSheet({
           />
         )}
 
-        {node.state === "locked" && (
+        {node.state === "locked" && gear.slot === "weapon" && (
           <p className="mt-3 text-xs text-ink-soft">
             Dieser Pfad ist gesperrt — eine andere Route wurde bereits gewählt.
           </p>

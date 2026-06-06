@@ -3,39 +3,35 @@ import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import {
-  armorPartGroups,
-  armorSetForPiece,
-  craftState,
-  isEquipped,
+  armorForgeGraph,
   weaponForgeGraph,
-  type ArmorPartGroup,
-  type CraftState,
+  type ForgeArmorSetRow,
   type ForgeBranch,
   type ForgeNode,
   type ForgeRootGroup,
 } from "../domain/catalog";
-import { iconUrl } from "../domain/icons";
 import { ownHunter } from "../lib/hunter";
 import { ForgeTreeCanvas } from "../ui/forge/ForgeTreeCanvas";
+import { ForgeArmorCanvas } from "../ui/forge/ForgeArmorCanvas";
 import { ForgeNodeSheet } from "../ui/forge/ForgeNodeSheet";
-import {
-  CraftButton,
-  DeckChangesBlock,
-  MaterialCostList,
-} from "../ui/forge/ForgeDetails";
-import type { Campaign, GearDef, GearSlot, Hunter } from "../domain/types";
+import type { Campaign, Hunter } from "../domain/types";
 
 type Tab = "weapons" | "armour";
 
-type SheetTarget = {
+type WeaponSheetTarget = {
   node: ForgeNode;
   branch?: ForgeBranch;
   group: ForgeRootGroup;
 };
 
+type ArmorSheetTarget = {
+  node: ForgeNode;
+  row: ForgeArmorSetRow;
+};
+
 /**
  * Forge. Weapon tab: left-to-right forge tree with tap-for-details sheet;
- * armour tab lists forgeable pieces grouped by body part.
+ * armour tab: set rows with helm/mail/greaves circles.
  */
 export function Forge() {
   const [tab, setTab] = useState<Tab>("weapons");
@@ -81,7 +77,7 @@ export function Forge() {
       {tab === "weapons" ? (
         <WeaponForgeGraph hunter={hunter} campaign={campaign} onCraft={onCraft} />
       ) : (
-        <ArmorByPart hunter={hunter} campaign={campaign} onCraft={onCraft} />
+        <ArmorForgeGraph hunter={hunter} campaign={campaign} onCraft={onCraft} />
       )}
     </Screen>
   );
@@ -97,7 +93,7 @@ function WeaponForgeGraph({
   onCraft: (id: string) => void;
 }) {
   const groups = weaponForgeGraph(hunter.weaponType, hunter, campaign);
-  const [sheet, setSheet] = useState<SheetTarget | null>(null);
+  const [sheet, setSheet] = useState<WeaponSheetTarget | null>(null);
 
   if (groups.length === 0) {
     return <p className="text-sm text-ink-soft">Keine Schmiedepfade.</p>;
@@ -128,9 +124,7 @@ function WeaponForgeGraph({
   );
 }
 
-/* ---------- Armour by part ---------- */
-
-function ArmorByPart({
+function ArmorForgeGraph({
   hunter,
   campaign,
   onCraft,
@@ -139,148 +133,28 @@ function ArmorByPart({
   campaign: Campaign;
   onCraft: (id: string) => void;
 }) {
-  const groups = armorPartGroups();
-  const [slot, setSlot] = useState<GearSlot>(groups[0]?.slot ?? "head");
-  const active = groups.find((g) => g.slot === slot) ?? groups[0];
+  const rows = armorForgeGraph(hunter, campaign);
+  const [sheet, setSheet] = useState<ArmorSheetTarget | null>(null);
+
+  if (rows.length === 0) {
+    return <p className="text-sm text-ink-soft">Keine Rüstungssets.</p>;
+  }
 
   return (
-    <div>
-      <div className="mb-4 flex gap-2">
-        {groups.map((g) => (
-          <PartTab
-            key={g.slot}
-            group={g}
-            active={g.slot === slot}
-            onClick={() => setSlot(g.slot)}
-          />
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {active?.pieces.map((gear) => (
-          <ArmorPieceCard
-            key={gear.id}
-            gear={gear}
-            hunter={hunter}
-            campaign={campaign}
-            onCraft={onCraft}
-          />
-        ))}
-        {(!active || active.pieces.length === 0) && (
-          <p className="text-sm text-ink-soft">Keine Einträge.</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PartTab({
-  group,
-  active,
-  onClick,
-}: {
-  group: ArmorPartGroup;
-  active: boolean;
-  onClick: () => void;
-}) {
-  const icon = group.pieces[0]?.tierIcon;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] px-2 py-2 text-sm font-semibold active:translate-y-px ${
-        active
-          ? "border-accent bg-accent text-white"
-          : "border-line-strong bg-paper-2 text-ink-soft"
-      }`}
-    >
-      {icon && (
-        <img
-          src={iconUrl(icon)}
-          alt=""
-          className={`h-5 w-5 object-contain ${active ? "" : "opacity-80"}`}
+    <>
+      <ForgeArmorCanvas
+        rows={rows}
+        onNodeClick={(node, row) => setSheet({ node, row })}
+      />
+      {sheet && (
+        <ForgeNodeSheet
+          node={sheet.node}
+          hunter={hunter}
+          recraftable={false}
+          onCraft={onCraft}
+          onClose={() => setSheet(null)}
         />
       )}
-      {group.label}
-    </button>
+    </>
   );
-}
-
-function ArmorPieceCard({
-  gear,
-  hunter,
-  campaign,
-  onCraft,
-}: {
-  gear: GearDef;
-  hunter: Hunter;
-  campaign: Campaign;
-  onCraft: (id: string) => void;
-}) {
-  const state = craftState(gear, hunter);
-  const set = armorSetForPiece(gear.id);
-  const badge = armorBadge(state, isEquipped(gear.id, campaign));
-
-  return (
-    <div
-      className={`paper-card p-4 ${state === "craftable" ? "ring-1 ring-ok" : ""}`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {gear.tierIcon && (
-            <img
-              src={iconUrl(gear.tierIcon)}
-              alt=""
-              className="h-6 w-6 shrink-0 object-contain"
-            />
-          )}
-          <div>
-            <p className="font-semibold leading-tight">{gear.name}</p>
-            {set && (
-              <p className="flex items-center gap-1 text-[11px] text-ink-soft">
-                <img
-                  src={iconUrl(set.icon)}
-                  alt=""
-                  className="h-3.5 w-3.5 object-contain"
-                />
-                {set.label}
-              </p>
-            )}
-          </div>
-        </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${badge.cls}`}
-        >
-          {badge.label}
-        </span>
-      </div>
-
-      {gear.defense != null && (
-        <p className="mt-2 text-xs text-ink-soft">Verteidigung {gear.defense}</p>
-      )}
-      {gear.effect && (
-        <p className="mt-0.5 text-xs text-ink-soft">{gear.effect}</p>
-      )}
-
-      {state !== "owned" && gear.cost.length > 0 && (
-        <MaterialCostList gear={gear} hunter={hunter} />
-      )}
-
-      {gear.deckChanges && <DeckChangesBlock changes={gear.deckChanges} />}
-
-      {state === "craftable" && (
-        <CraftButton onClick={() => onCraft(gear.id)} label="Schmieden" />
-      )}
-    </div>
-  );
-}
-
-function armorBadge(state: CraftState, equipped: boolean) {
-  if (state === "owned") {
-    return equipped
-      ? { label: "AUSGERÜSTET", cls: "bg-accent-faint text-accent" }
-      : { label: "BESITZ", cls: "bg-paper-2 text-ink-soft" };
-  }
-  if (state === "craftable") return { label: "BAUBAR", cls: "bg-ok-soft text-ok" };
-  return { label: "TEILE FEHLEN", cls: "bg-paper-2 text-ink-soft" };
 }

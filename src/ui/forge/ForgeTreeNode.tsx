@@ -36,12 +36,15 @@ export function ForgeTreeNode({
   const equipped = node.equipped;
   const held = node.held > 0;
   // Forged, no longer held, and not re-craftable right now → upgraded away.
-  const consumed = forged && !held && !craftable;
+  const consumed =
+    gear.slot === "weapon" && forged && !held && !craftable;
+  const owned =
+    equipped || held || (forged && gear.slot !== "weapon");
   const showLock = !node.prerequisiteMet && !forged && !craftable;
 
   const ringColor = equipped
     ? RING_COLORS.equipped
-    : held
+    : held || (forged && gear.slot !== "weapon")
       ? RING_COLORS.forged
       : craftable
         ? RING_COLORS.craftable
@@ -52,11 +55,11 @@ export function ForgeTreeNode({
             : RING_COLORS.idle;
 
   const fillDeg =
-    equipped || held || craftable || consumed ? 360 : node.materialProgress * 360;
+    owned || craftable || consumed ? 360 : node.materialProgress * 360;
 
   const borderColor = equipped
     ? RING_COLORS.equipped
-    : held
+    : held || (forged && gear.slot !== "weapon")
       ? RING_COLORS.forged
       : craftable
         ? RING_COLORS.craftable

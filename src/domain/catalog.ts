@@ -128,6 +128,14 @@ export function isEquipped(gearId: string, campaign: Campaign): boolean {
   });
 }
 
+/** Sum defense from all equipped gear pieces. */
+export function hunterTotalDefense(hunter: Hunter): number {
+  return Object.values(hunter.equipped)
+    .map((id) => (id ? catalog.gear(id) : undefined))
+    .filter(Boolean)
+    .reduce((sum, g) => sum + (g?.defense ?? 0), 0);
+}
+
 /* ---------- Weapon forge graph ---------- */
 
 export type ForgeNodeState = "forged" | "craftable" | "pending" | "locked";
@@ -302,4 +310,34 @@ export function armorPartGroups(): ArmorPartGroup[] {
 /** The set a forgeable armour piece belongs to (for its source label/icon). */
 export function armorSetForPiece(gearId: string): ArmorForgeSet | undefined {
   return armorSets().find((s) => s.gearIds.includes(gearId));
+}
+
+export interface ForgeArmorSetRow {
+  set: ArmorForgeSet;
+  nodes: ForgeNode[];
+}
+
+/** Forge graph rows for armour sets (helm → mail → greaves, no prerequisites). */
+export function armorForgeGraph(
+  hunter: Hunter,
+  campaign: Campaign,
+): ForgeArmorSetRow[] {
+  return armorSets().map((set) => {
+    const nodes = set.gearIds
+      .map((id) => {
+        const gear = catalog.gear(id);
+        if (!gear) return null;
+        const forged = hunter.ownedGear.includes(id);
+        const mats = hasMaterials(gear, hunter);
+        let state: ForgeNodeState;
+        if (forged) state = "forged";
+        else if (mats) state = "craftable";
+        else state = "pending";
+        const node = makeNode(gear, hunter, campaign, state);
+        node.prerequisiteMet = true;
+        return node;
+      })
+      .filter((n): n is ForgeNode => n != null);
+    return { set, nodes };
+  });
 }

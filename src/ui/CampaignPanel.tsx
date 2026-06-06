@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { otherHunters } from "../lib/hunter";
-import { HunterSummaryCard } from "../ui/HunterSummaryCard";
+import { HunterSummaryCard } from "./HunterSummaryCard";
 import type { CalendarDayEntry } from "../domain/types";
 import { iconUrl } from "../domain/icons";
 
-/** Campaign hub: day tracker, potion use, calendar, quest/downtime entry. */
-export function CampaignScreen() {
+/** Campaign status: day, potions, calendar, quest/downtime, teammates. */
+export function CampaignPanel() {
   const campaign = useCampaign((s) => s.campaign);
   const adjustItem = useCampaign((s) => s.adjustItem);
   const userId = useAuth((s) => s.userId);
@@ -25,11 +24,13 @@ export function CampaignScreen() {
   };
 
   return (
-    <Screen title="Kampagne" subtitle={campaign.name}>
-      <div className="paper-card px-4 py-5">
+    <>
+      <div className="paper-card mt-3 px-4 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-soft">Aktueller Tag</p>
+            <p className="text-xs uppercase tracking-wide text-ink-soft">
+              Aktueller Tag
+            </p>
             <p className="font-display text-4xl leading-none">{campaign.day}</p>
           </div>
           <button
@@ -38,7 +39,9 @@ export function CampaignScreen() {
             onClick={() => setConfirmPotion(true)}
             className="flex flex-col items-end rounded-lg px-2 py-1 active:translate-y-px disabled:opacity-40"
           >
-            <p className="text-xs uppercase tracking-wide text-ink-soft">Tränke</p>
+            <p className="text-xs uppercase tracking-wide text-ink-soft">
+              Tränke
+            </p>
             <p className="font-display text-4xl leading-none">{potions}</p>
           </button>
         </div>
@@ -50,7 +53,7 @@ export function CampaignScreen() {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-3 grid grid-cols-2 gap-3">
         <Link
           to="/campaign/quests"
           className="paper-card flex flex-col items-center gap-2 px-4 py-6 text-center active:translate-y-px"
@@ -88,7 +91,7 @@ export function CampaignScreen() {
           onCancel={() => setConfirmPotion(false)}
         />
       )}
-    </Screen>
+    </>
   );
 }
 

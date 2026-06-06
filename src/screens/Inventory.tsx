@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
-import { Stepper } from "../ui/Stepper";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { ownHunter } from "../lib/hunter";
 import { gameData } from "../data/gameData";
-import { inventoryMonsters } from "../data/ancientForest";
+import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
 import { useBodyScrollLock } from "../ui/forge/ForgeTreeCanvas";
 import type { Material } from "../domain/types";
@@ -32,15 +31,20 @@ const ICON_SUB_LABELS: Record<string, string> = {
 };
 
 function iconSubLabel(material: Material): string {
+  if (material.group === "monster" && material.monsterId) {
+    return catalog.monster(material.monsterId)?.name ?? material.monsterId;
+  }
   return ICON_SUB_LABELS[material.iconType] ?? material.group;
+}
+
+function tileLabel(material: Material, useShortName?: boolean): string {
+  if (useShortName) return material.shortName ?? material.name;
+  return material.name;
 }
 
 /** Inventory: Material, Other, Monster Teile with tap-to-edit sheet. */
 export function Inventory() {
   const [tab, setTab] = useState<Tab>("material");
-  const [selectedMonsterId, setSelectedMonsterId] = useState<string | null>(
-    null,
-  );
   const [showEmpty, setShowEmpty] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null,
@@ -55,18 +59,12 @@ export function Inventory() {
 
   const materials = gameData.materials.filter((m) => m.group === "material");
   const others = gameData.materials.filter((m) => m.group === "other");
-  const monsterParts = gameData.materials.filter(
-    (m) => m.group === "monster" && m.monsterId === selectedMonsterId,
-  );
-  const selectedMonster = inventoryMonsters.find(
-    (m) => m.id === selectedMonsterId,
-  );
+  const monsterItems = gameData.materials.filter((m) => m.group === "monster");
 
   const qtyOf = (id: string) => hunter.materials[id] ?? 0;
 
   const handleTabChange = (next: Tab) => {
     setTab(next);
-    setSelectedMonsterId(null);
     setSelectedMaterial(null);
     setShowEmpty(false);
   };
@@ -110,35 +108,17 @@ export function Inventory() {
         />
       )}
 
-      {tab === "monster" && !selectedMonsterId && (
-        <MonsterPicker onSelect={setSelectedMonsterId} />
-      )}
-
-      {tab === "monster" && selectedMonsterId && selectedMonster && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setSelectedMonsterId(null)}
-            className="mb-3 flex items-center gap-1 text-sm font-semibold text-accent active:translate-y-px"
-          >
-            ← Monster
-          </button>
-          <p className="mb-3 px-1 font-display text-xl">
-            {selectedMonster.name}
-          </p>
-          <div className="flex flex-col gap-2">
-            {monsterParts.map((m) => (
-              <MaterialRow
-                key={m.id}
-                material={m}
-                label={m.shortName ?? m.name}
-                qty={qtyOf(m.id)}
-                onSet={(next) => setMaterial(hunter.id, m.id, next)}
-                showMonsterIcon
-              />
-            ))}
-          </div>
-        </div>
+      {tab === "monster" && (
+        <MaterialGrid
+          items={monsterItems}
+          qtyOf={qtyOf}
+          showEmpty={showEmpty}
+          onToggleEmpty={() => setShowEmpty((v) => !v)}
+          selectedId={selectedMaterial?.id ?? null}
+          onSelect={setSelectedMaterial}
+          showMonsterBadge
+          useShortName
+        />
       )}
 
       {selectedMaterial && (
@@ -160,6 +140,8 @@ function MaterialGrid({
   onToggleEmpty,
   selectedId,
   onSelect,
+  showMonsterBadge,
+  useShortName,
 }: {
   items: Material[];
   qtyOf: (id: string) => number;
@@ -167,6 +149,8 @@ function MaterialGrid({
   onToggleEmpty: () => void;
   selectedId: string | null;
   onSelect: (material: Material | null) => void;
+  showMonsterBadge?: boolean;
+  useShortName?: boolean;
 }) {
   const owned = items.filter((m) => qtyOf(m.id) > 0);
   const empty = items.filter((m) => qtyOf(m.id) <= 0);
@@ -185,6 +169,8 @@ function MaterialGrid({
               qty={qty}
               selected={selectedId === m.id}
               dimmed={isEmpty}
+              showMonsterBadge={showMonsterBadge}
+              label={tileLabel(m, useShortName)}
               onClick={() => onSelect(m)}
             />
           );
@@ -221,12 +207,16 @@ function InventoryTile({
   qty,
   selected,
   dimmed,
+  showMonsterBadge,
+  label,
   onClick,
 }: {
   material: Material;
   qty: number;
   selected: boolean;
   dimmed: boolean;
+  showMonsterBadge?: boolean;
+  label: string;
   onClick: () => void;
 }) {
   return (
@@ -241,6 +231,19 @@ function InventoryTile({
             : "border-accent/40 bg-paper"
       }`}
     >
+      {showMonsterBadge && material.monsterId && (
+        <span
+          className={`absolute left-1 top-1 rounded-md border border-line-strong bg-paper-2 p-0.5 ${
+            dimmed ? "opacity-50" : ""
+          }`}
+        >
+          <img
+            src={iconUrl(material.monsterId)}
+            alt=""
+            className="h-6 w-6 object-contain"
+          />
+        </span>
+      )}
       <span
         className={`absolute right-1 top-1 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold tabular-nums text-white ${
           dimmed ? "bg-ink-soft/50" : "bg-accent"
@@ -258,7 +261,7 @@ function InventoryTile({
           dimmed ? "text-ink-soft" : "text-ink"
         }`}
       >
-        {material.name}
+        {label}
       </span>
     </button>
   );
@@ -289,11 +292,20 @@ function InventoryItemSheet({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <img
-              src={iconUrl(material.iconType)}
-              alt=""
-              className="h-10 w-10 shrink-0 object-contain"
-            />
+            <div className="flex shrink-0 items-center gap-1">
+              <img
+                src={iconUrl(material.iconType)}
+                alt=""
+                className="h-10 w-10 object-contain"
+              />
+              {material.group === "monster" && material.monsterId && (
+                <img
+                  src={iconUrl(material.monsterId)}
+                  alt=""
+                  className="h-8 w-8 object-contain"
+                />
+              )}
+            </div>
             <div className="min-w-0">
               <p className="truncate font-display text-lg leading-tight text-white">
                 {material.name}
@@ -325,98 +337,6 @@ function InventoryItemSheet({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function MonsterPicker({ onSelect }: { onSelect: (id: string) => void }) {
-  const topRow = inventoryMonsters.slice(0, 2);
-  const midRow = inventoryMonsters.slice(2, 4);
-  const bottom = inventoryMonsters[4];
-
-  return (
-    <div className="rounded-xl border-[3px] border-double border-line-strong bg-paper-2 p-4">
-      <div className="grid grid-cols-2 gap-4">
-        {topRow.map((m) => (
-          <MonsterPickerButton key={m.id} monster={m} onSelect={onSelect} />
-        ))}
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        {midRow.map((m) => (
-          <MonsterPickerButton key={m.id} monster={m} onSelect={onSelect} />
-        ))}
-      </div>
-      {bottom && (
-        <div className="mt-4 flex justify-center">
-          <MonsterPickerButton monster={bottom} onSelect={onSelect} wide />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MonsterPickerButton({
-  monster,
-  onSelect,
-  wide,
-}: {
-  monster: { id: string; name: string };
-  onSelect: (id: string) => void;
-  wide?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(monster.id)}
-      className={`flex flex-col items-center gap-2 active:translate-y-px ${
-        wide ? "w-36" : "w-full"
-      }`}
-    >
-      <img
-        src={iconUrl(monster.id)}
-        alt=""
-        className="h-20 w-20 object-contain"
-      />
-      <span className="text-center text-xs font-semibold leading-tight">
-        {monster.name}
-      </span>
-    </button>
-  );
-}
-
-function MaterialRow({
-  material,
-  label,
-  qty,
-  onSet,
-  showMonsterIcon,
-}: {
-  material: Material;
-  label: string;
-  qty: number;
-  onSet: (next: number) => void;
-  showMonsterIcon?: boolean;
-}) {
-  return (
-    <div className="paper-card flex items-center justify-between gap-2 px-3 py-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="flex shrink-0 items-center gap-0.5">
-          <img
-            src={iconUrl(material.iconType)}
-            alt=""
-            className="h-5 w-5 object-contain"
-          />
-          {showMonsterIcon && material.monsterId && (
-            <img
-              src={iconUrl(material.monsterId)}
-              alt=""
-              className="h-5 w-5 object-contain"
-            />
-          )}
-        </div>
-        <span className="truncate font-medium">{label}</span>
-      </div>
-      <Stepper value={qty} onChange={onSet} />
     </div>
   );
 }

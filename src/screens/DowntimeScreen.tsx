@@ -27,7 +27,7 @@ import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
 import { Stepper } from "../ui/Stepper";
 import { Screen } from "../ui/Screen";
-import { ConfirmDialog } from "./CampaignScreen";
+import { ConfirmDialog } from "../ui/CampaignPanel";
 
 const ALL_ACTIVITIES: {
   id: DowntimeActivityId;
@@ -119,7 +119,7 @@ export function DowntimeScreen() {
       return;
     }
     setConfirmEnd(false);
-    navigate("/campaign");
+    navigate("/");
   };
 
   return (
@@ -230,7 +230,7 @@ export function DowntimeScreen() {
               type="button"
               onClick={() => {
                 cancelDowntime();
-                navigate("/campaign");
+                navigate("/");
               }}
               className="flex-1 rounded-xl border-[1.5px] border-line-strong py-3 text-sm font-semibold active:translate-y-px"
             >
