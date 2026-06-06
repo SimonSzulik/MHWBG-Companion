@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { WeaponType } from "../domain/types";
 import { Screen } from "../ui/Screen";
+import { Field } from "../ui/Field";
+import { Button } from "../ui/Button";
 import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
 import { isWeaponImplemented } from "../data/weapons";
@@ -105,52 +107,44 @@ export function JoinCampaignScreen() {
     <Screen title="Kampagne beitreten" subtitle={step === "code" ? "Join-Code" : "Jäger"}>
       {step === "code" && (
         <div className="flex flex-col gap-4">
-          <label className="text-sm">
-            <span className="text-xs uppercase tracking-wide text-ink-soft">
-              Join-Code
-            </span>
-            <input
-              value={joinCode}
-              onChange={(e) => setJoinCode(normalizeJoinCode(e.target.value))}
-              placeholder="z. B. A1B2C3D4"
-              maxLength={8}
-              className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 font-display tracking-widest uppercase outline-none"
-            />
-          </label>
+          <Field
+            label="Join-Code"
+            value={joinCode}
+            onChange={(e) => setJoinCode(normalizeJoinCode(e.target.value))}
+            placeholder="z. B. A1B2C3D4"
+            maxLength={8}
+            className="font-display tracking-widest uppercase"
+          />
           {error && <p className="text-sm text-red-600">{error}</p>}
           {existingCampaignId && (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              rounded="lg"
               disabled={busy}
               onClick={() => void openExistingCampaign()}
-              className="rounded-lg border-[1.5px] border-line-strong bg-card py-2.5 text-sm font-semibold active:translate-y-px"
+              className="bg-card py-2.5 text-sm font-semibold"
             >
               Kampagne öffnen
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
+          <Button
+            rounded="lg"
             disabled={busy || !codeValid}
             onClick={() => void validateCode()}
-            className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2.5 font-semibold text-white active:translate-y-px disabled:opacity-40"
+            className="py-2.5 font-semibold"
           >
             {busy ? "Prüfe…" : "Weiter"}
-          </button>
+          </Button>
         </div>
       )}
 
       {step === "setup" && (
         <div className="flex flex-col gap-4">
-          <label className="text-sm">
-            <span className="text-xs uppercase tracking-wide text-ink-soft">
-              Jägername
-            </span>
-            <input
-              value={hunterName}
-              onChange={(e) => setHunterName(e.target.value)}
-              className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-            />
-          </label>
+          <Field
+            label="Jägername"
+            value={hunterName}
+            onChange={(e) => setHunterName(e.target.value)}
+          />
 
           <WeaponPicker
             value={weaponType}
@@ -160,8 +154,8 @@ export function JoinCampaignScreen() {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <button
-            type="button"
+          <Button
+            rounded="lg"
             disabled={
               busy ||
               !weaponType ||
@@ -170,10 +164,10 @@ export function JoinCampaignScreen() {
               !hunterName.trim()
             }
             onClick={() => void confirm()}
-            className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2.5 font-semibold text-white active:translate-y-px disabled:opacity-40"
+            className="py-2.5 font-semibold"
           >
             {busy ? "Beitreten…" : "Beitreten"}
-          </button>
+          </Button>
 
           <button
             type="button"

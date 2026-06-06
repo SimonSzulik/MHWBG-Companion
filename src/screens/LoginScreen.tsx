@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isSupabaseConfigured, getSupabaseConfigIssue } from "../lib/supabase";
 import { useAuth } from "../store/auth";
+import { Field } from "../ui/Field";
+import { Button } from "../ui/Button";
+import { SegmentedTabs } from "../ui/SegmentedTabs";
 
 type Mode = "login" | "signup";
 
@@ -67,70 +70,48 @@ export function LoginScreen() {
       <h1 className="font-display text-3xl">MHWBG Companion</h1>
       <p className="mt-1 text-sm text-ink-soft">Melde dich mit deinem Jägernamen an.</p>
 
-      <div className="mb-4 mt-6 flex rounded-xl border-[1.5px] border-line-strong bg-paper-2 p-1 text-sm font-semibold">
-        <button
-          type="button"
-          onClick={() => setMode("login")}
-          className={`flex-1 rounded-lg px-3 py-2 ${
-            mode === "login" ? "bg-accent text-white" : "text-ink-soft"
-          }`}
-        >
-          Login
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={`flex-1 rounded-lg px-3 py-2 ${
-            mode === "signup" ? "bg-accent text-white" : "text-ink-soft"
-          }`}
-        >
-          Konto erstellen
-        </button>
-      </div>
+      <SegmentedTabs<Mode>
+        className="mb-4 mt-6"
+        value={mode}
+        onChange={setMode}
+        tabs={[
+          { value: "login", label: "Login" },
+          { value: "signup", label: "Konto erstellen" },
+        ]}
+      />
 
       <div className="paper-card flex flex-col gap-3 p-4">
-        <label className="text-sm">
-          <span className="text-xs uppercase tracking-wide text-ink-soft">Jägername</span>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-          />
-        </label>
-        <label className="text-sm">
-          <span className="text-xs uppercase tracking-wide text-ink-soft">Passwort</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-          />
-        </label>
+        <Field
+          label="Jägername"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
+        />
+        <Field
+          label="Passwort"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+        />
         {mode === "signup" && (
-          <label className="text-sm">
-            <span className="text-xs uppercase tracking-wide text-ink-soft">
-              Passwort wiederholen
-            </span>
-            <input
-              type="password"
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              autoComplete="new-password"
-              className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-            />
-          </label>
+          <Field
+            label="Passwort wiederholen"
+            type="password"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+            autoComplete="new-password"
+          />
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="button"
+        <Button
+          rounded="lg"
           disabled={busy || !username.trim() || !password}
           onClick={() => void submit()}
-          className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2.5 font-semibold text-white active:translate-y-px disabled:opacity-40"
+          className="py-2.5 font-semibold"
         >
           {mode === "login" ? "Einloggen" : "Konto erstellen"}
-        </button>
+        </Button>
       </div>
     </div>
   );

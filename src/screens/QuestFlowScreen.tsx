@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
+import { Button } from "../ui/Button";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { ownHunter } from "../lib/hunter";
@@ -13,6 +14,7 @@ import {
 } from "../data/lootTables";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
+import { clamp } from "../lib/math";
 import {
   LootMaterialPreviewList,
   LootMaterialRow,
@@ -102,16 +104,16 @@ export function QuestFlowScreen() {
           </div>
 
           {ready && (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => {
                 leaveQuestLobby(hunter.id);
                 navigate("/campaign/quests");
               }}
-              className="w-full rounded-xl border-[1.5px] border-line-strong bg-paper-2 py-3 text-sm font-semibold active:translate-y-px"
+              className="w-full bg-paper-2 py-3 text-sm font-semibold"
             >
               Verlassen
-            </button>
+            </Button>
           )}
         </div>
       </Screen>
@@ -140,23 +142,22 @@ export function QuestFlowScreen() {
           </div>
 
           <div className="grid w-full grid-cols-2 gap-3">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => completeQuestSuccess()}
-              className="rounded-xl border-[1.5px] border-line-strong bg-ok py-4 text-sm font-bold text-white active:translate-y-px"
+              className="bg-ok py-4 text-sm font-bold text-white"
             >
               Completed
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => {
                 completeQuestFailure();
                 navigate("/", { replace: true });
               }}
-              className="rounded-xl border-[1.5px] border-line-strong bg-accent py-4 text-sm font-bold text-white active:translate-y-px"
+              className="py-4 text-sm font-bold"
             >
               Failure
-            </button>
+            </Button>
           </div>
         </div>
       </Screen>
@@ -207,7 +208,7 @@ export function QuestFlowScreen() {
   const materialIds = Object.keys(progress.lootQuantities).sort();
   const setDieFace = (index: 0 | 1, raw: string) => {
     const parsed = Number.parseInt(raw, 10);
-    const nextFace = Number.isNaN(parsed) ? 1 : clampDieFace(parsed);
+    const nextFace = Number.isNaN(parsed) ? 1 : clamp(parsed, 1, 6);
     const nextDice: [number, number] = index === 0 ? [nextFace, y] : [x, nextFace];
     setLootDice(hunter.id, nextDice);
   };
@@ -256,13 +257,13 @@ export function QuestFlowScreen() {
           </div>
         </div>
 
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => setLootDice(hunter.id, rollDice())}
-          className="w-full rounded-xl border-[1.5px] border-line-strong bg-paper-2 py-2 text-sm font-semibold active:translate-y-px"
+          className="w-full bg-paper-2 py-2 text-sm font-semibold"
         >
           Neu würfeln
-        </button>
+        </Button>
 
         <div className="flex flex-col gap-2">
           <LootOption
@@ -368,14 +369,13 @@ export function QuestFlowScreen() {
           </div>
         )}
 
-        <button
-          type="button"
+        <Button
           disabled={!progress.choice}
           onClick={() => confirmLoot(hunter.id)}
-          className="w-full rounded-xl border-[1.5px] border-line-strong bg-accent py-3 text-sm font-bold text-white active:translate-y-px disabled:opacity-40"
+          className="w-full py-3 text-sm font-bold"
         >
           Beute bestätigen
-        </button>
+        </Button>
       </div>
     </Screen>
   );
@@ -421,8 +421,4 @@ function LootOption({
       )}
     </button>
   );
-}
-
-function clampDieFace(value: number): number {
-  return Math.max(1, Math.min(6, value));
 }

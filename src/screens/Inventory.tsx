@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
+import { SegmentedTabs } from "../ui/SegmentedTabs";
+import { BottomSheet } from "../ui/BottomSheet";
 import { useCampaign } from "../store/campaign";
-import { useAuth } from "../store/auth";
-import { ownHunter } from "../lib/hunter";
+import { useOwnHunter } from "../store/hooks";
 import { gameData } from "../data/gameData";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import { useBodyScrollLock } from "../ui/forge/ForgeTreeCanvas";
 import type { Material } from "../domain/types";
 
 type Tab = "material" | "other" | "monster";
@@ -49,13 +49,9 @@ export function Inventory() {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null,
   );
-  const campaign = useCampaign((s) => s.campaign);
+  const { campaign, hunter } = useOwnHunter();
   const setMaterial = useCampaign((s) => s.setMaterial);
-  const userId = useAuth((s) => s.userId);
-  if (!campaign) return null;
-
-  const hunter = ownHunter(campaign, userId);
-  if (!hunter) return null;
+  if (!campaign || !hunter) return null;
 
   const materials = gameData.materials.filter((m) => m.group === "material");
   const others = gameData.materials.filter((m) => m.group === "other");
@@ -71,20 +67,16 @@ export function Inventory() {
 
   return (
     <Screen title="Box" subtitle={hunter.name}>
-      <div className="mb-4 flex rounded-xl border-[1.5px] border-line-strong bg-paper-2 p-1 text-sm font-semibold">
-        <TabBtn
-          active={tab === "material"}
-          onClick={() => handleTabChange("material")}
-        >
-          Material
-        </TabBtn>
-        <TabBtn active={tab === "other"} onClick={() => handleTabChange("other")}>
-          Other
-        </TabBtn>
-        <TabBtn active={tab === "monster"} onClick={() => handleTabChange("monster")}>
-          Monster
-        </TabBtn>
-      </div>
+      <SegmentedTabs<Tab>
+        className="mb-4"
+        value={tab}
+        onChange={handleTabChange}
+        tabs={[
+          { value: "material", label: "Material" },
+          { value: "other", label: "Other" },
+          { value: "monster", label: "Monster" },
+        ]}
+      />
 
       {tab === "material" && (
         <MaterialGrid
@@ -274,87 +266,55 @@ function InventoryItemSheet({
   onSet: (next: number) => void;
   onClose: () => void;
 }) {
-  useBodyScrollLock(true);
-
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-ink/40">
-      <button
-        type="button"
-        className="min-h-0 flex-1"
-        aria-label="Schließen"
-        onClick={onClose}
-      />
-      <div className="rounded-t-2xl border-t border-line-strong bg-[#2a231c] px-4 pb-8 pt-4 shadow-lg">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex shrink-0 items-center gap-1">
+    <BottomSheet onClose={onClose} className="bg-[#2a231c]">
+      <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1">
+            <img
+              src={iconUrl(material.iconType)}
+              alt=""
+              className="h-10 w-10 object-contain"
+            />
+            {material.group === "monster" && material.monsterId && (
               <img
-                src={iconUrl(material.iconType)}
+                src={iconUrl(material.monsterId)}
                 alt=""
-                className="h-10 w-10 object-contain"
+                className="h-8 w-8 object-contain"
               />
-              {material.group === "monster" && material.monsterId && (
-                <img
-                  src={iconUrl(material.monsterId)}
-                  alt=""
-                  className="h-8 w-8 object-contain"
-                />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate font-display text-lg leading-tight text-white">
-                {material.name}
-              </p>
-              <p className="text-xs text-[#cabfa9]">{iconSubLabel(material)}</p>
-            </div>
+            )}
           </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onSet(Math.max(0, qty - 1))}
-              aria-label="weniger"
-              disabled={qty <= 0}
-              className="grid h-10 w-10 place-items-center rounded-full bg-[#3d352c] text-lg font-bold text-white active:translate-y-px disabled:opacity-40"
-            >
-              −
-            </button>
-            <span className="min-w-[2ch] text-center text-2xl font-bold tabular-nums text-white">
-              {qty}
-            </span>
-            <button
-              type="button"
-              onClick={() => onSet(qty + 1)}
-              aria-label="mehr"
-              className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-lg font-bold text-white active:translate-y-px"
-            >
-              +
-            </button>
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg leading-tight text-white">
+              {material.name}
+            </p>
+            <p className="text-xs text-[#cabfa9]">{iconSubLabel(material)}</p>
           </div>
         </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onSet(Math.max(0, qty - 1))}
+            aria-label="weniger"
+            disabled={qty <= 0}
+            className="grid h-10 w-10 place-items-center rounded-full bg-[#3d352c] text-lg font-bold text-white active:translate-y-px disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="min-w-[2ch] text-center text-2xl font-bold tabular-nums text-white">
+            {qty}
+          </span>
+          <button
+            type="button"
+            onClick={() => onSet(qty + 1)}
+            aria-label="mehr"
+            className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-lg font-bold text-white active:translate-y-px"
+          >
+            +
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function TabBtn({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex-1 rounded-lg px-2 py-2 transition ${
-        active ? "bg-accent text-white" : "text-ink-soft"
-      }`}
-    >
-      {children}
-    </button>
+    </BottomSheet>
   );
 }

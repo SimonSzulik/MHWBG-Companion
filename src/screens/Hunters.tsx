@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
+import { SLOT_BADGE } from "../ui/GearSlotIcons";
 import { useCampaign } from "../store/campaign";
-import { useAuth } from "../store/auth";
+import { useOwnHunter } from "../store/hooks";
 import { gameData } from "../data/gameData";
 import { catalog, hunterTotalDefense } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import { ownHunter } from "../lib/hunter";
 import type { GearDef, GearSlot, Hunter } from "../domain/types";
 
 const ARMOUR_SLOTS: { slot: GearSlot; label: string }[] = [
@@ -16,12 +16,8 @@ const ARMOUR_SLOTS: { slot: GearSlot; label: string }[] = [
 
 /** Hunter sheet: equip owned gear, see derived skills. */
 export function Hunters() {
-  const campaign = useCampaign((s) => s.campaign);
-  const userId = useAuth((s) => s.userId);
-
-  if (!campaign) return null;
-  const hunter = ownHunter(campaign, userId);
-  if (!hunter) return null;
+  const { campaign, hunter } = useOwnHunter();
+  if (!campaign || !hunter) return null;
 
   return (
     <Screen title="Jäger" subtitle={hunter.name}>
@@ -242,7 +238,7 @@ function GearIcon({ gear, slot }: { gear?: GearDef; slot: GearSlot }) {
   }
   return (
     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border-[1.5px] border-dashed border-line bg-paper-2 text-[10px] text-ink-soft">
-      {slot === "weapon" ? "⚔" : slot === "head" ? "H" : slot === "chest" ? "M" : "G"}
+      {SLOT_BADGE[slot]}
     </span>
   );
 }

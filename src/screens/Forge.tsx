@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Screen } from "../ui/Screen";
+import { SegmentedTabs } from "../ui/SegmentedTabs";
 import { useCampaign } from "../store/campaign";
-import { useAuth } from "../store/auth";
+import { useOwnHunter } from "../store/hooks";
 import {
   armorForgeGraph,
   weaponForgeGraph,
@@ -10,7 +11,6 @@ import {
   type ForgeNode,
   type ForgeRootGroup,
 } from "../domain/catalog";
-import { ownHunter } from "../lib/hunter";
 import { ForgeTreeCanvas } from "../ui/forge/ForgeTreeCanvas";
 import { ForgeArmorCanvas } from "../ui/forge/ForgeArmorCanvas";
 import { ForgeNodeSheet } from "../ui/forge/ForgeNodeSheet";
@@ -35,13 +35,9 @@ type ArmorSheetTarget = {
  */
 export function Forge() {
   const [tab, setTab] = useState<Tab>("weapons");
-  const campaign = useCampaign((s) => s.campaign);
+  const { campaign, hunter } = useOwnHunter();
   const craft = useCampaign((s) => s.craftGear);
-  const userId = useAuth((s) => s.userId);
-  if (!campaign) return null;
-
-  const hunter = ownHunter(campaign, userId);
-  if (!hunter) return null;
+  if (!campaign || !hunter) return null;
 
   const onCraft = (id: string) => {
     const res = craft(hunter.id, id);
@@ -50,26 +46,15 @@ export function Forge() {
 
   return (
     <Screen title="Forge">
-      <div className="mb-4 flex rounded-xl border-[1.5px] border-line-strong bg-paper-2 p-1 text-sm font-semibold">
-        <button
-          type="button"
-          onClick={() => setTab("weapons")}
-          className={`flex-1 rounded-lg px-3 py-2 ${
-            tab === "weapons" ? "bg-accent text-white" : "text-ink-soft"
-          }`}
-        >
-          Waffen
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("armour")}
-          className={`flex-1 rounded-lg px-3 py-2 ${
-            tab === "armour" ? "bg-accent text-white" : "text-ink-soft"
-          }`}
-        >
-          Rüstung
-        </button>
-      </div>
+      <SegmentedTabs<Tab>
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: "weapons", label: "Waffen" },
+          { value: "armour", label: "Rüstung" },
+        ]}
+      />
 
       {tab === "weapons" ? (
         <WeaponForgeGraph hunter={hunter} campaign={campaign} onCraft={onCraft} />

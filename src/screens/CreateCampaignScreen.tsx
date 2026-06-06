@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { WeaponType } from "../domain/types";
 import { Screen } from "../ui/Screen";
+import { Field } from "../ui/Field";
+import { Button } from "../ui/Button";
 import { Stepper } from "../ui/Stepper";
 import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
@@ -85,13 +87,13 @@ export function CreateCampaignScreen() {
           >
             Code kopieren
           </button>
-          <button
-            type="button"
+          <Button
+            rounded="lg"
             onClick={() => nav("/", { replace: true })}
-            className="mt-6 w-full rounded-lg border-[1.5px] border-line-strong bg-accent py-2.5 font-semibold text-white active:translate-y-px"
+            className="mt-6 w-full py-2.5 font-semibold"
           >
             Ins Camp
-          </button>
+          </Button>
         </div>
       </Screen>
     );
@@ -100,30 +102,27 @@ export function CreateCampaignScreen() {
   return (
     <Screen title="Neue Kampagne" subtitle="Setup">
       <div className="flex flex-col gap-4">
-        <Field label="Kampagnenname" value={campaignName} onChange={setCampaignName} />
+        <Field
+          label="Kampagnenname"
+          value={campaignName}
+          onChange={(e) => setCampaignName(e.target.value)}
+        />
 
         <Field
           label="Jägername"
           value={hunterName}
-          onChange={setHunterName}
+          onChange={(e) => setHunterName(e.target.value)}
         />
 
-        <label className="text-sm">
-          <span className="text-xs uppercase tracking-wide text-ink-soft">
-            Join-Code
-          </span>
-          <input
-            value={chosenJoinCode}
-            onChange={(e) => setChosenJoinCode(normalizeJoinCode(e.target.value))}
-            placeholder="z. B. A1B2C3D4"
-            maxLength={8}
-            className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 font-display tracking-widest uppercase outline-none"
-          />
-          <span className="mt-1 block text-xs text-ink-soft">
-            8 Zeichen (Buchstaben & Zahlen) — wird von anderen zum Beitreten
-            eingegeben.
-          </span>
-        </label>
+        <Field
+          label="Join-Code"
+          value={chosenJoinCode}
+          onChange={(e) => setChosenJoinCode(normalizeJoinCode(e.target.value))}
+          placeholder="z. B. A1B2C3D4"
+          maxLength={8}
+          className="font-display tracking-widest uppercase"
+          hint="8 Zeichen (Buchstaben & Zahlen) — wird von anderen zum Beitreten eingegeben."
+        />
 
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -147,8 +146,8 @@ export function CreateCampaignScreen() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="button"
+        <Button
+          rounded="lg"
           disabled={
             busy ||
             !campaignName.trim() ||
@@ -158,33 +157,12 @@ export function CreateCampaignScreen() {
             !hunterName.trim()
           }
           onClick={() => void finish()}
-          className="rounded-lg border-[1.5px] border-line-strong bg-accent py-3 font-semibold text-white active:translate-y-px disabled:opacity-40"
+          className="py-3 font-semibold"
         >
           {busy ? "Wird erstellt…" : "Auf in die Jagd"}
-        </button>
+        </Button>
       </div>
     </Screen>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="text-sm">
-      <span className="text-xs uppercase tracking-wide text-ink-soft">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border-[1.5px] border-line-strong bg-paper-2 px-3 py-2 outline-none"
-      />
-    </label>
   );
 }
 

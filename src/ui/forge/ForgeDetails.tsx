@@ -1,6 +1,7 @@
 import { catalog } from "../../domain/catalog";
 import type { ForgeNode } from "../../domain/catalog";
 import type { DeckChanges, GearDef, Hunter } from "../../domain/types";
+import { Button } from "../Button";
 
 export function forgeNodeBadge(node: ForgeNode): { label: string; cls: string } {
   if (node.forged) {
@@ -44,14 +45,14 @@ export function CraftButton({
   disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      rounded="lg"
       onClick={onClick}
       disabled={disabled}
-      className="mt-3 w-full rounded-lg border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white active:translate-y-px disabled:opacity-40"
+      className="mt-3 w-full py-2 text-sm font-semibold"
     >
       {label}
-    </button>
+    </Button>
   );
 }
 

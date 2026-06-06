@@ -1,17 +1,12 @@
 import { Link } from "react-router-dom";
-import { useCampaign } from "../store/campaign";
-import { useAuth } from "../store/auth";
-import { ownHunter } from "../lib/hunter";
+import { useOwnHunter } from "../store/hooks";
 import { CampHunterCard } from "../ui/CampHunterCard";
 import { CampaignPanel } from "../ui/CampaignPanel";
 
 /** Camp hub: own hunter banner, campaign calendar, quest/downtime entry. */
 export function Camp() {
-  const campaign = useCampaign((s) => s.campaign);
-  const userId = useAuth((s) => s.userId);
+  const { campaign, hunter } = useOwnHunter();
   if (!campaign) return null;
-
-  const hunter = ownHunter(campaign, userId);
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-4 pb-24 pt-5">

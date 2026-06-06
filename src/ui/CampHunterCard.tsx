@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { catalog, hunterTotalDefense } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
+import { GearSlotIcons } from "./GearSlotIcons";
 import type { GearSlot, Hunter } from "../domain/types";
 
 const ARMOR_SLOTS: GearSlot[] = ["head", "chest", "legs"];
@@ -41,30 +42,7 @@ export function CampHunterCard({ hunter }: { hunter: Hunter }) {
           </p>
         </div>
 
-        <div className="mt-2 flex gap-1.5">
-          {ARMOR_SLOTS.map((slot) => {
-            const gearId = hunter.equipped[slot];
-            const gear = gearId ? catalog.gear(gearId) : undefined;
-            if (gear?.tierIcon) {
-              return (
-                <img
-                  key={slot}
-                  src={iconUrl(gear.tierIcon)}
-                  alt=""
-                  className="h-7 w-7 object-contain"
-                />
-              );
-            }
-            return (
-              <span
-                key={slot}
-                className="grid h-7 w-7 place-items-center rounded-md border border-dashed border-line bg-paper-2 text-[9px] text-ink-soft"
-              >
-                {slot === "head" ? "H" : slot === "chest" ? "M" : "G"}
-              </span>
-            );
-          })}
-        </div>
+        <GearSlotIcons hunter={hunter} slots={ARMOR_SLOTS} />
       </div>
 
       <span className="shrink-0 self-center text-ink-soft">›</span>

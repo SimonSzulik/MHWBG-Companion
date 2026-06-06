@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { otherHunters } from "../lib/hunter";
+import { Button } from "./Button";
 import { HunterSummaryCard } from "./HunterSummaryCard";
 import type { CalendarDayEntry } from "../domain/types";
 import { iconUrl } from "../domain/icons";
@@ -193,20 +194,21 @@ export function ConfirmDialog({
         <p className="font-display text-xl">{title}</p>
         <p className="mt-2 text-sm text-ink-soft">{message}</p>
         <div className="mt-4 flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            rounded="lg"
             onClick={onCancel}
-            className="flex-1 rounded-lg border-[1.5px] border-line-strong py-2 text-sm font-semibold active:translate-y-px"
+            className="flex-1 py-2 text-sm font-semibold"
           >
             Abbrechen
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            rounded="lg"
             onClick={onConfirm}
-            className="flex-1 rounded-lg border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white active:translate-y-px"
+            className="flex-1 py-2 text-sm font-semibold"
           >
             Ja
-          </button>
+          </Button>
         </div>
       </div>
     </div>

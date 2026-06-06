@@ -16,6 +16,7 @@ import type {
 import { normalizeCalendarDayEntry } from "../domain/types";
 import { gameData } from "../data/gameData";
 import { questsForMonster } from "../data/quests";
+import { clamp } from "../lib/math";
 import { isRecraftableRoot, rootForgeUsage } from "../domain/catalog";
 import {
   applyStarterKitToHunter,
@@ -640,7 +641,7 @@ export const useCampaign = create<CampaignState>()(
           return {
             campaign: touch({
               ...s.campaign,
-              day: Math.max(1, Math.min(s.campaign.maxDay, Math.floor(day))),
+              day: clamp(Math.floor(day), 1, s.campaign.maxDay),
             }),
           };
         }),

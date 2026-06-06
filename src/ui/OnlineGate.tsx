@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useSyncStatus } from "../lib/sync/useSync";
+import { Button } from "./Button";
 
 /** Blocks the app shell when offline or sync is not live. */
 export function OnlineGate({ children }: { children: ReactNode }) {
@@ -33,13 +34,13 @@ export function OnlineGate({ children }: { children: ReactNode }) {
         <p className="mt-2 text-sm text-ink-soft">
           {detail ?? "Verbindung zur Kampagne fehlgeschlagen."}
         </p>
-        <button
-          type="button"
+        <Button
+          rounded="lg"
           onClick={() => window.location.reload()}
-          className="mt-4 rounded-lg border-[1.5px] border-line-strong bg-accent px-4 py-2 text-sm font-semibold text-white"
+          className="mt-4 px-4 py-2 text-sm font-semibold"
         >
           Neu laden
-        </button>
+        </Button>
       </div>
     );
   }

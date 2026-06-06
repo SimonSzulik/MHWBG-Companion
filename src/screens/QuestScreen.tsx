@@ -2,14 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
-import { useAuth } from "../store/auth";
-import { ownHunter } from "../lib/hunter";
+import { useOwnHunter } from "../store/hooks";
 import {
   QUEST_MONSTERS,
   STAR_ORDER,
   questsForMonster,
   type QuestDef,
-  type QuestStars,
 } from "../data/quests";
 import {
   canStartQuest,
@@ -19,22 +17,20 @@ import {
   maxCompletionsForQuest,
   questTierLockReason,
   questById,
+  starLabel,
 } from "../domain/quests";
 import { iconUrl } from "../domain/icons";
 
 /** Quest picker grouped by monster and star tier. */
 export function QuestScreen() {
-  const campaign = useCampaign((s) => s.campaign);
+  const { campaign, hunter } = useOwnHunter();
   const startQuest = useCampaign((s) => s.startQuest);
-  const userId = useAuth((s) => s.userId);
   const navigate = useNavigate();
   const [openMonster, setOpenMonster] = useState<string | null>(
     QUEST_MONSTERS[0]?.id ?? null,
   );
 
-  if (!campaign) return null;
-  const hunter = ownHunter(campaign, userId);
-  if (!hunter) return null;
+  if (!campaign || !hunter) return null;
 
   const hasActiveQuest = campaign.activeQuest != null;
 
@@ -227,17 +223,4 @@ function QuestRow({
       </span>
     </button>
   );
-}
-
-function starLabel(stars: QuestStars): string {
-  switch (stars) {
-    case "one-star":
-      return "1★";
-    case "two-star":
-      return "2★";
-    case "three-star":
-      return "3★";
-    case "four-star":
-      return "4★";
-  }
 }

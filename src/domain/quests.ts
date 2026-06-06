@@ -57,12 +57,13 @@ export function questTierLockReason(
   );
   if (incomplete.length === 0) return undefined;
   const tiers = [
-    ...new Set(incomplete.map((q) => starLabelShort(q.stars))),
+    ...new Set(incomplete.map((q) => starLabel(q.stars))),
   ].join(" und ");
   return `Zuerst ${tiers} abschließen`;
 }
 
-function starLabelShort(stars: QuestStars): string {
+/** Short star-tier label, e.g. "3★". */
+export function starLabel(stars: QuestStars): string {
   switch (stars) {
     case "one-star":
       return "1★";

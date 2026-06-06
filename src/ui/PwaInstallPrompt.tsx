@@ -1,3 +1,5 @@
+import { Button } from "./Button";
+
 type Props = {
   iosMode: boolean;
   onInstall: () => void;
@@ -34,21 +36,22 @@ export function PwaInstallPrompt({ iosMode, onInstall, onClose }: Props) {
           </button>
         </div>
         <div className="mt-3 flex items-center justify-end gap-2">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            rounded="lg"
             onClick={onClose}
-            className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-sm font-semibold active:translate-y-px"
+            className="bg-card px-3 py-2 text-sm font-semibold"
           >
             Später
-          </button>
+          </Button>
           {!iosMode && (
-            <button
-              type="button"
+            <Button
+              rounded="lg"
               onClick={onInstall}
-              className="rounded-lg border-[1.5px] border-line-strong bg-accent px-3 py-2 text-sm font-semibold text-white active:translate-y-px"
+              className="px-3 py-2 text-sm font-semibold"
             >
               Installieren
-            </button>
+            </Button>
           )}
         </div>
       </section>

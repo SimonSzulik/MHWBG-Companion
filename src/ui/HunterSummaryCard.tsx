@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { catalog } from "../domain/catalog";
-import { iconUrl } from "../domain/icons";
+import { GearSlotIcons } from "./GearSlotIcons";
 import type { GearSlot, Hunter } from "../domain/types";
 
 const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
@@ -39,7 +38,7 @@ export function HunterSummaryCard({
           )}
         </p>
         <p className="truncate text-sm text-ink-soft">{sub}</p>
-        <EquippedIconRow hunter={hunter} />
+        <GearSlotIcons hunter={hunter} slots={EQUIP_SLOTS} />
       </div>
       {to && <span className="ml-auto text-ink-soft">›</span>}
     </>
@@ -58,33 +57,4 @@ export function HunterSummaryCard({
   }
 
   return <div className={className}>{body}</div>;
-}
-
-function EquippedIconRow({ hunter }: { hunter: Hunter }) {
-  return (
-    <div className="mt-2 flex gap-1.5">
-      {EQUIP_SLOTS.map((slot) => {
-        const gearId = hunter.equipped[slot];
-        const gear = gearId ? catalog.gear(gearId) : undefined;
-        if (gear?.tierIcon) {
-          return (
-            <img
-              key={slot}
-              src={iconUrl(gear.tierIcon)}
-              alt=""
-              className="h-7 w-7 object-contain"
-            />
-          );
-        }
-        return (
-          <span
-            key={slot}
-            className="grid h-7 w-7 place-items-center rounded-md border border-dashed border-line bg-paper-2 text-[9px] text-ink-soft"
-          >
-            {slot === "weapon" ? "⚔" : slot === "head" ? "H" : slot === "chest" ? "M" : "G"}
-          </span>
-        );
-      })}
-    </div>
-  );
 }

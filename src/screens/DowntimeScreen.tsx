@@ -22,11 +22,11 @@ import type {
 import { questById } from "../domain/quests";
 import type { QuestDef } from "../data/quests";
 import { iconUrl } from "../domain/icons";
-import { ownHunter } from "../lib/hunter";
-import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
+import { useOwnHunter } from "../store/hooks";
 import { Stepper } from "../ui/Stepper";
 import { Screen } from "../ui/Screen";
+import { Button } from "../ui/Button";
 import { ConfirmDialog } from "../ui/CampaignPanel";
 
 const ALL_ACTIVITIES: {
@@ -37,7 +37,7 @@ const ALL_ACTIVITIES: {
 
 /** Downtime day: pick 3 activities, resolve each, confirm with party. */
 export function DowntimeScreen() {
-  const campaign = useCampaign((s) => s.campaign);
+  const { campaign, hunter } = useOwnHunter();
   const beginDowntime = useCampaign((s) => s.beginDowntime);
   const setDowntimePicks = useCampaign((s) => s.setDowntimePicks);
   const resolveProvisions = useCampaign((s) => s.resolveProvisions);
@@ -46,7 +46,6 @@ export function DowntimeScreen() {
   const setHandlerQuest = useCampaign((s) => s.setHandlerQuest);
   const confirmDowntime = useCampaign((s) => s.confirmDowntime);
   const cancelDowntime = useCampaign((s) => s.cancelDowntime);
-  const userId = useAuth((s) => s.userId);
   const navigate = useNavigate();
   const [confirmEnd, setConfirmEnd] = useState(false);
 
@@ -54,9 +53,7 @@ export function DowntimeScreen() {
     beginDowntime();
   }, [beginDowntime]);
 
-  if (!campaign) return null;
-  const hunter = ownHunter(campaign, userId);
-  if (!hunter) return null;
+  if (!campaign || !hunter) return null;
 
   if (campaign.activeQuest) {
     return (
@@ -226,27 +223,26 @@ export function DowntimeScreen() {
           )}
 
           <div className="mt-4 flex gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => {
                 cancelDowntime();
                 navigate("/");
               }}
-              className="flex-1 rounded-xl border-[1.5px] border-line-strong py-3 text-sm font-semibold active:translate-y-px"
+              className="flex-1 py-3 text-sm font-semibold"
             >
               Abbrechen
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => {
                 savePicks();
                 setConfirmEnd(true);
               }}
               disabled={myPicks.length !== MAX_DOWNTIME_PICKS}
-              className="flex-1 rounded-xl border-[1.5px] border-line-strong bg-accent py-3 text-sm font-semibold text-white active:translate-y-px disabled:opacity-40"
+              className="flex-1 py-3 text-sm font-semibold"
             >
               Tag abschließen
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -390,14 +386,13 @@ function ProvisionsPanel({
           Trank ({potions}/{MAX_POTIONS})
         </button>
       </div>
-      <button
-        type="button"
+      <Button
         disabled={saved != null}
         onClick={() => onSave({ offered, rewardId })}
-        className="mt-3 w-full rounded-xl border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white disabled:opacity-40"
+        className="mt-3 w-full py-2 text-sm font-semibold"
       >
         {saved ? "Getauscht ✓" : "Tausch bestätigen"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -431,13 +426,12 @@ function ResourceCenterPanel({
         </p>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
-          <button
-            type="button"
+          <Button
             onClick={() => onRoll(roll2d6())}
-            className="rounded-xl border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white"
+            className="py-2 text-sm font-semibold"
           >
             Würfeln
-          </button>
+          </Button>
           <div className="flex gap-2">
             <input
               type="number"
@@ -448,16 +442,16 @@ function ResourceCenterPanel({
               onChange={(e) => setManual(e.target.value)}
               className="flex-1 rounded-lg border border-line-strong bg-paper px-3 py-2 text-sm"
             />
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => {
                 const n = parseInt(manual, 10);
                 if (n >= 2 && n <= 12) onRoll(n);
               }}
-              className="rounded-xl border-[1.5px] border-line-strong px-4 py-2 text-sm font-semibold"
+              className="px-4 py-2 text-sm font-semibold"
             >
               OK
-            </button>
+            </Button>
           </div>
         </div>
       )}
