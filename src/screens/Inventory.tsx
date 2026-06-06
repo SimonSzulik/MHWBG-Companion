@@ -232,17 +232,13 @@ function InventoryTile({
       }`}
     >
       {showMonsterBadge && material.monsterId && (
-        <span
-          className={`absolute left-1 top-1 rounded-md border border-line-strong bg-paper-2 p-0.5 ${
-            dimmed ? "opacity-50" : ""
+        <img
+          src={iconUrl(material.monsterId)}
+          alt=""
+          className={`absolute left-0.5 top-0.5 h-4 w-4 object-contain ${
+            dimmed ? "opacity-40" : ""
           }`}
-        >
-          <img
-            src={iconUrl(material.monsterId)}
-            alt=""
-            className="h-6 w-6 object-contain"
-          />
-        </span>
+        />
       )}
       <span
         className={`absolute right-1 top-1 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold tabular-nums text-white ${

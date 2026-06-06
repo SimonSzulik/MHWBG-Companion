@@ -1,17 +1,18 @@
 import { useEffect, type ReactNode } from "react";
 import type { ForgeBranch, ForgeNode, ForgeRootGroup } from "../../domain/catalog";
 import { ForgeTreeNode } from "./ForgeTreeNode";
-
-const NODE = 48;
-const RING = 3;
-/** Outer radius for edge attachment (node half + conic ring). */
-const NODE_R = NODE / 2 + RING;
-const ROW_H = 88;
-const PAD_X = 12;
-const PAD_Y = 16;
-const COL_FRACTIONS = [0.1, 0.42, 0.74] as const;
-
-type Pt = { x: number; y: number };
+import {
+  colX,
+  FORGE_COL_COUNT,
+  NODE,
+  NODE_R,
+  NODE_WRAPPER_W,
+  PAD_Y,
+  ROW_H,
+  rowCenterY,
+  useForgeCanvasWidth,
+  type Pt,
+} from "./forgeLayout";
 
 type EdgeStyle = {
   stroke: string;
@@ -45,16 +46,6 @@ function edgeStyle(node: ForgeNode): EdgeStyle {
     return { stroke: "rgba(255,255,255,0.1)", width: 2, flow: false, dash: "3 6" };
   }
   return { stroke: "rgba(255,255,255,0.22)", width: 2, flow: false };
-}
-
-function colX(col: number, width: number): number {
-  const inner = width - PAD_X * 2;
-  const frac = COL_FRACTIONS[col] ?? COL_FRACTIONS[COL_FRACTIONS.length - 1];
-  return PAD_X + inner * frac;
-}
-
-function rowCenterY(row: number): number {
-  return PAD_Y + row * ROW_H + ROW_H / 2;
 }
 
 /** Horizontal edge from right of `from` to left of `to`, stopping at node borders. */
@@ -96,7 +87,7 @@ function buildLayout(groups: ForgeRootGroup[], width: number) {
       range.start === range.end
         ? rowCenterY(range.start)
         : (rowCenterY(range.start) + rowCenterY(range.end)) / 2;
-    const center: Pt = { x: colX(0, width), y };
+    const center: Pt = { x: colX(0, FORGE_COL_COUNT, width), y };
     rootCenters.set(group.rootId, center);
     nodes.push({
       node: group.root,
@@ -112,7 +103,10 @@ function buildLayout(groups: ForgeRootGroup[], width: number) {
         node,
         branch,
         group,
-        center: { x: colX(tierIdx + 1, width), y: rowCenterY(row) },
+        center: {
+          x: colX(tierIdx + 1, FORGE_COL_COUNT, width),
+          y: rowCenterY(row),
+        },
         key: node.gear.id,
       });
     });
@@ -125,7 +119,10 @@ function buildLayout(groups: ForgeRootGroup[], width: number) {
 
     let parent = rootCenter;
     branch.nodes.forEach((node, tierIdx) => {
-      const childCenter: Pt = { x: colX(tierIdx + 1, width), y: rowCenterY(row) };
+      const childCenter: Pt = {
+        x: colX(tierIdx + 1, FORGE_COL_COUNT, width),
+        y: rowCenterY(row),
+      };
       edges.push({
         id: `${branch.id}-${tierIdx}`,
         d: edgePath(parent, childCenter),
@@ -145,12 +142,12 @@ export function ForgeTreeCanvas({
   groups: ForgeRootGroup[];
   onNodeClick: (node: ForgeNode, branch?: ForgeBranch, group?: ForgeRootGroup) => void;
 }) {
-  const width = 360;
+  const { ref, width } = useForgeCanvasWidth();
   const { nodes, edges, height } = buildLayout(groups, width);
 
   return (
     <div className="forge-graph overflow-x-hidden p-2">
-      <div className="relative mx-auto w-full max-w-[360px]" style={{ height }}>
+      <div ref={ref} className="relative mx-auto w-full" style={{ height }}>
         <svg
           width={width}
           height={height}
@@ -176,7 +173,7 @@ export function ForgeTreeCanvas({
         </svg>
 
         {nodes.map((ln) => (
-          <NodeWrapper key={ln.key} center={ln.center} width={100}>
+          <NodeWrapper key={ln.key} center={ln.center}>
             <ForgeTreeNode
               node={ln.node}
               size={NODE}
@@ -191,19 +188,17 @@ export function ForgeTreeCanvas({
 
 function NodeWrapper({
   center,
-  width,
   children,
 }: {
   center: Pt;
-  width: number;
   children: ReactNode;
 }) {
   return (
     <div
       className="absolute flex flex-col items-center"
       style={{
-        width,
-        left: center.x - width / 2,
+        width: NODE_WRAPPER_W,
+        left: center.x - NODE_WRAPPER_W / 2,
         top: center.y - NODE / 2,
       }}
     >

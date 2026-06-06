@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
 import type { ForgeArmorSetRow, ForgeNode } from "../../domain/catalog";
-import { iconUrl } from "../../domain/icons";
 import { ForgeTreeNode } from "./ForgeTreeNode";
-
-const NODE = 48;
-const RING = 3;
-const NODE_R = NODE / 2 + RING;
-const ROW_H = 88;
-const PAD_X = 12;
-const PAD_Y = 16;
-const LABEL_W = 72;
-const NODE_COLS = [0.32, 0.58, 0.84] as const;
-
-type Pt = { x: number; y: number };
+import {
+  colX,
+  FORGE_COL_COUNT,
+  NODE,
+  NODE_R,
+  NODE_WRAPPER_W,
+  PAD_Y,
+  ROW_H,
+  rowCenterY,
+  useForgeCanvasWidth,
+  type Pt,
+} from "./forgeLayout";
 
 type EdgeStyle = {
   stroke: string;
@@ -44,16 +44,6 @@ function edgeStyle(node: ForgeNode): EdgeStyle {
   return { stroke: "rgba(255,255,255,0.22)", width: 2, flow: false };
 }
 
-function nodeX(col: number, width: number): number {
-  const inner = width - PAD_X * 2 - LABEL_W;
-  const frac = NODE_COLS[col] ?? NODE_COLS[NODE_COLS.length - 1];
-  return PAD_X + LABEL_W + inner * frac;
-}
-
-function rowCenterY(row: number): number {
-  return PAD_Y + row * ROW_H + ROW_H / 2;
-}
-
 function edgePath(from: Pt, to: Pt): string {
   const start: Pt = { x: from.x + NODE_R, y: from.y };
   const end: Pt = { x: to.x - NODE_R, y: to.y };
@@ -67,7 +57,9 @@ function buildLayout(rows: ForgeArmorSetRow[], width: number) {
 
   rows.forEach((row, ri) => {
     const y = rowCenterY(ri);
-    const centers = row.nodes.map((_, ci): Pt => ({ x: nodeX(ci, width), y }));
+    const centers = row.nodes.map(
+      (_, ci): Pt => ({ x: colX(ci, FORGE_COL_COUNT, width), y }),
+    );
 
     row.nodes.forEach((node, ci) => {
       nodes.push({
@@ -97,12 +89,12 @@ export function ForgeArmorCanvas({
   rows: ForgeArmorSetRow[];
   onNodeClick: (node: ForgeNode, row: ForgeArmorSetRow) => void;
 }) {
-  const width = 360;
+  const { ref, width } = useForgeCanvasWidth();
   const { nodes, edges, height } = buildLayout(rows, width);
 
   return (
     <div className="forge-graph overflow-x-hidden p-2">
-      <div className="relative mx-auto w-full max-w-[360px]" style={{ height }}>
+      <div ref={ref} className="relative mx-auto w-full" style={{ height }}>
         <svg
           width={width}
           height={height}
@@ -127,12 +119,8 @@ export function ForgeArmorCanvas({
           ))}
         </svg>
 
-        {rows.map((row, ri) => (
-          <SetLabel key={row.set.id} row={row} y={rowCenterY(ri)} />
-        ))}
-
         {nodes.map((ln) => (
-          <NodeWrapper key={ln.key} center={ln.center} width={100}>
+          <NodeWrapper key={ln.key} center={ln.center}>
             <ForgeTreeNode
               node={ln.node}
               size={NODE}
@@ -145,43 +133,19 @@ export function ForgeArmorCanvas({
   );
 }
 
-function SetLabel({ row, y }: { row: ForgeArmorSetRow; y: number }) {
-  return (
-    <div
-      className="absolute flex flex-col items-center justify-center gap-0.5"
-      style={{
-        left: PAD_X,
-        top: y - 28,
-        width: LABEL_W - 8,
-      }}
-    >
-      <img
-        src={iconUrl(row.set.icon)}
-        alt=""
-        className="h-9 w-9 object-contain"
-      />
-      <span className="max-w-full truncate text-center text-[9px] font-semibold uppercase tracking-wide text-[#cabfa9]">
-        {row.set.label}
-      </span>
-    </div>
-  );
-}
-
 function NodeWrapper({
   center,
-  width,
   children,
 }: {
   center: Pt;
-  width: number;
   children: ReactNode;
 }) {
   return (
     <div
       className="absolute flex flex-col items-center"
       style={{
-        width,
-        left: center.x - width / 2,
+        width: NODE_WRAPPER_W,
+        left: center.x - NODE_WRAPPER_W / 2,
         top: center.y - NODE / 2,
       }}
     >
