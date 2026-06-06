@@ -1,81 +1,102 @@
-import type { ForgeBranch, ForgeNode } from "../../domain/catalog";
+import type { ForgeNode } from "../../domain/catalog";
 import { iconUrl } from "../../domain/icons";
 import { ForgeNodeBadge } from "./ForgeDetails";
 
+const RING_COLORS = {
+  equipped: "#5fb6cc",
+  forged: "#6fae62",
+  craftable: "#d9a72c",
+  idle: "rgba(255,255,255,0.16)",
+} as const;
+
+/** A single circular forge node: progress ring, weapon icon, name + badge. */
 export function ForgeTreeNode({
   node,
-  branch,
+  size,
   onClick,
 }: {
   node: ForgeNode;
-  branch?: ForgeBranch;
+  size: number;
   onClick: () => void;
 }) {
   const gear = node.gear;
   const icon = gear.tierIcon ?? gear.pathIcon ?? "";
   const pct = Math.round(node.materialProgress * 100);
-  const locked = node.state === "locked" || branch?.locked;
+  const locked = node.state === "locked";
   const craftable = node.state === "craftable";
   const forged = node.forged;
+  const equipped = node.equipped;
 
-  const ringColor = forged
-    ? "var(--color-ok)"
-    : craftable
-      ? "var(--color-accent)"
-      : "var(--color-line-strong)";
+  const ringColor = equipped
+    ? RING_COLORS.equipped
+    : forged
+      ? RING_COLORS.forged
+      : craftable
+        ? RING_COLORS.craftable
+        : node.prerequisiteMet && node.materialProgress > 0
+          ? RING_COLORS.craftable
+          : RING_COLORS.idle;
 
   const fillDeg = forged ? 360 : node.materialProgress * 360;
+
+  const borderColor = equipped
+    ? RING_COLORS.equipped
+    : forged
+      ? RING_COLORS.forged
+      : craftable
+        ? RING_COLORS.craftable
+        : "rgba(255,255,255,0.16)";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group flex flex-col items-center gap-1.5 active:scale-95 ${
-        locked ? "opacity-50" : ""
+      className={`flex w-full flex-col items-center gap-1 active:scale-95 ${
+        locked ? "opacity-45" : ""
       }`}
     >
       <div
-        className={`relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full p-[3px] ${
-          craftable ? "shadow-[0_0_12px_rgba(201,162,39,0.45)]" : ""
+        className={`relative flex shrink-0 items-center justify-center rounded-full p-[3px] ${
+          craftable ? "forge-node-craftable" : ""
         }`}
         style={{
-          background: `conic-gradient(${ringColor} ${fillDeg}deg, var(--color-line) ${fillDeg}deg)`,
+          width: size,
+          height: size,
+          background: `conic-gradient(${ringColor} ${fillDeg}deg, rgba(255,255,255,0.09) ${fillDeg}deg)`,
         }}
       >
         <div
-          className={`flex h-full w-full items-center justify-center rounded-full border-2 bg-card ${
-            forged
-              ? "border-ok"
-              : craftable
-                ? "border-accent"
-                : "border-line-strong"
-          }`}
+          className="flex h-full w-full items-center justify-center rounded-full border-2"
+          style={{
+            background: "#241f18",
+            borderColor,
+          }}
         >
           {icon ? (
-            <img src={iconUrl(icon)} alt="" className="h-8 w-8 object-contain" />
+            <img
+              src={iconUrl(icon)}
+              alt=""
+              className="object-contain"
+              style={{ width: size * 0.5, height: size * 0.5 }}
+            />
           ) : (
-            <span className="text-xs font-bold text-ink-soft">?</span>
+            <span className="text-xs font-bold text-[#b9af9c]">?</span>
           )}
         </div>
         {craftable && (
-          <span className="absolute -right-0.5 -top-0.5 text-sm">🔨</span>
+          <span className="absolute -right-1 -top-1 text-sm drop-shadow">🔨</span>
         )}
-        {!node.prerequisiteMet && !forged && (
-          <span className="absolute -left-0.5 -top-0.5 text-[10px]">🔒</span>
+        {!node.prerequisiteMet && !forged && !craftable && (
+          <span className="absolute -left-1 -top-1 text-[10px]">🔒</span>
         )}
       </div>
-      <p className="max-w-[5.5rem] truncate text-center text-[11px] font-semibold leading-tight">
+
+      <p className="mt-0.5 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-[#ece4d4]">
         {gear.name}
       </p>
       <ForgeNodeBadge node={node} />
       {!forged && node.state === "pending" && node.prerequisiteMet && (
-        <span className="text-[10px] tabular-nums text-ink-soft">{pct}%</span>
-      )}
-      {branch && (
-        <span className="flex items-center gap-0.5 text-[9px] text-ink-soft">
-          <img src={iconUrl(branch.icon)} alt="" className="h-3 w-3 object-contain" />
-          {branch.label}
-        </span>
+        <span className="text-[9px] tabular-nums text-[#b9af9c]">{pct}%</span>
       )}
     </button>
   );

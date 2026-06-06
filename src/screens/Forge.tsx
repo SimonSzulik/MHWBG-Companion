@@ -106,9 +106,9 @@ function WeaponForgeGraph({
   return (
     <>
       <p className="mb-3 px-1 text-xs leading-relaxed text-ink-soft">
-        Tippe auf eine Waffe für Details. Der Ring zeigt Material-Fortschritt.{" "}
-        <span className="text-ok">Grün</span> = geschmiedet,{" "}
-        <span className="text-accent">gold</span> = baubar.
+        Tippe auf eine Waffe für Details. Der Ring zeigt den Material-Fortschritt;
+        leuchtende <span className="text-accent">goldene</span> Linien führen zu
+        baubaren Waffen, <span className="text-ok">grün</span> = geschmiedet.
       </p>
       <div className="flex flex-col gap-4">
         {groups.map((group) => (

@@ -78,3 +78,46 @@ body {
   border-radius: var(--radius-card);
   box-shadow: 2px 3px 0 rgba(43, 38, 32, 0.12);
 }
+
+/* ---------- Forge graph (dark viewport) ---------- */
+.forge-graph {
+  background:
+    radial-gradient(120% 90% at 50% 0%, #2a241d 0%, #1b1712 55%, #121009 100%);
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    2px 3px 0 rgba(43, 38, 32, 0.18);
+}
+
+/* Flowing dashed edge toward a craftable node. */
+@keyframes forgeDashFlow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.forge-edge-flow {
+  stroke-dasharray: 7 7;
+  animation: forgeDashFlow 0.8s linear infinite;
+}
+
+/* Soft pulse on a craftable node ring. */
+@keyframes forgeNodePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px 0 rgba(217, 167, 44, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 18px 3px rgba(217, 167, 44, 0.6);
+  }
+}
+.forge-node-craftable {
+  animation: forgeNodePulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forge-edge-flow,
+  .forge-node-craftable {
+    animation: none;
+  }
+}
