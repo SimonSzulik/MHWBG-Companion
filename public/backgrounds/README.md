@@ -28,15 +28,16 @@ also unproblematisch. Aktuell eingebaut:
 | ----------- | ------ | -------------------------- |
 | `camp.webp` | Camp   | Astera (Schiffe / Hafen)   |
 | `forge.png` | Forge  | Tradeyard / Schmiede-Halle |
+| `box.jpg`   | Box    | Item-Box / Vorratskiste    |
 
-Die SVG-Szenen (`camp.svg` / `forge.svg`) bleiben als Fallback liegen, falls
-eine Foto-Datei mal fehlt — sie werden dann automatisch wieder angezeigt.
+Die SVG-Szenen (`camp.svg` / `forge.svg` / `box.svg`) bleiben als Fallback
+liegen, falls eine Foto-Datei mal fehlt — sie werden dann automatisch wieder
+angezeigt.
 
-Zum Austauschen einfach `camp.webp` bzw. `forge.png` durch eine neue Datei
-**mit gleichem Namen** ersetzen, oder eine neue Datei ablegen und den Pfad
-anpassen (`src` in `src/screens/Camp.tsx` bzw. das `background`-Prop von
-`<Screen>` in `Forge.tsx`). Für die Box analog eine Datei ablegen und in
-`Inventory.tsx` `background="/backgrounds/box.<ext>"` setzen.
+Zum Austauschen einfach `camp.webp` / `forge.png` / `box.jpg` durch eine neue
+Datei **mit gleichem Namen** ersetzen, oder eine neue Datei ablegen und den
+Pfad anpassen (`src` in `src/screens/Camp.tsx` bzw. das `background`-Prop von
+`<Screen>` in `Forge.tsx` / `Inventory.tsx`).
 
 ## Wo finde ich passende Bilder
 

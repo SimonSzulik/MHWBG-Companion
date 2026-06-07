@@ -66,7 +66,12 @@ export function Inventory() {
   };
 
   return (
-    <Screen title="Box" subtitle={hunter.name} background="/backgrounds/box.svg">
+    <Screen
+      title="Box"
+      subtitle={hunter.name}
+      background="/backgrounds/box.jpg"
+      backgroundFallback="/backgrounds/box.svg"
+    >
       <SegmentedTabs<Tab>
         className="mb-4"
         value={tab}
