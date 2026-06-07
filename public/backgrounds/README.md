@@ -18,33 +18,24 @@ Als Standard liegen hier handgezeichnete **SVG-Szenen** im Farbschema der App:
 Diese sind Eigen-Vektorgrafiken (kein Urheberrechtsproblem, winzig, im
 PWA-Precache).
 
-## Durch echte Monster-Hunter-Bilder ersetzen
+## Aktuelle Hintergründe / austauschen
 
 Das Repo ist **privat**, für die private Nutzung ist offizielles MHW-Artwork
-also unproblematisch.
+also unproblematisch. Aktuell eingebaut:
 
-**Camp und Forge sind bereits auf Fotos verdrahtet** – du musst nur die Datei
-mit dem passenden Namen hier ablegen, kein Code nötig:
+| Datei       | Screen | Motiv                      |
+| ----------- | ------ | -------------------------- |
+| `camp.webp` | Camp   | Astera (Schiffe / Hafen)   |
+| `forge.png` | Forge  | Tradeyard / Schmiede-Halle |
 
-| Datei ablegen | übernimmt für | Fallback (bleibt) |
-| ------------- | ------------- | ----------------- |
-| `camp.jpg`    | Camp          | `camp.svg`        |
-| `forge.jpg`   | Forge         | `forge.svg`       |
+Die SVG-Szenen (`camp.svg` / `forge.svg`) bleiben als Fallback liegen, falls
+eine Foto-Datei mal fehlt — sie werden dann automatisch wieder angezeigt.
 
-Solange die `*.jpg` fehlt, zeigt der Screen die Vektor-Szene; sobald die
-`*.jpg` da ist, wird sie automatisch darüber gezeichnet (kein leerer Screen
-in der Zwischenzeit). Für die Box analog `box.jpg` ablegen und in
-`Inventory.tsx` `background="/backgrounds/box.jpg"` +
-`backgroundFallback="/backgrounds/box.svg"` setzen.
-
-> Dateiname muss exakt passen (`camp.jpg` / `forge.jpg`). Ein JPG eines
-> Screenshots ist völlig ok; optional vorher verkleinern (s. u.). Für WebP/PNG
-> einfach die Endung im jeweiligen Screen anpassen.
-
-> Hinweis: In dieser Build-Umgebung war der Zugriff auf externe Bilder
-> blockiert (Netzwerk nur zu GitHub erreichbar; eingefügte Bilder sind hier
-> nicht als Datei verfügbar). Deshalb die SVG-Defaults — die echten Fotos
-> legst du lokal/per GitHub-Upload ab und committest sie.
+Zum Austauschen einfach `camp.webp` bzw. `forge.png` durch eine neue Datei
+**mit gleichem Namen** ersetzen, oder eine neue Datei ablegen und den Pfad
+anpassen (`src` in `src/screens/Camp.tsx` bzw. das `background`-Prop von
+`<Screen>` in `Forge.tsx`). Für die Box analog eine Datei ablegen und in
+`Inventory.tsx` `background="/backgrounds/box.<ext>"` setzen.
 
 ## Wo finde ich passende Bilder
 

@@ -47,7 +47,7 @@ export function Forge() {
   return (
     <Screen
       title="Forge"
-      background="/backgrounds/forge.jpg"
+      background="/backgrounds/forge.png"
       backgroundFallback="/backgrounds/forge.svg"
     >
       <SegmentedTabs<Tab>
