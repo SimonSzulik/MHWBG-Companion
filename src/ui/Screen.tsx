@@ -13,6 +13,7 @@ export function Screen({
   back = true,
   right,
   background,
+  backgroundFallback,
   children,
 }: {
   title: string;
@@ -20,12 +21,15 @@ export function Screen({
   back?: boolean;
   right?: ReactNode;
   background?: string;
+  backgroundFallback?: string;
   children: ReactNode;
 }) {
   const nav = useNavigate();
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col overflow-x-clip">
-      {background && <ScreenBackground src={background} />}
+      {background && (
+        <ScreenBackground src={background} fallback={backgroundFallback} />
+      )}
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
         {back && (
           <button

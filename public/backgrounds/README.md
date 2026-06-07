@@ -21,21 +21,30 @@ PWA-Precache).
 ## Durch echte Monster-Hunter-Bilder ersetzen
 
 Das Repo ist **privat**, für die private Nutzung ist offizielles MHW-Artwork
-also unproblematisch. So tauschst du aus:
+also unproblematisch.
 
-1. Bild besorgen (Motive wie oben) und als WebP optimieren (s. u.).
-2. Entweder die `.svg` gleichnamig durch eine Datei ersetzen **oder** eine
-   `*.webp` ablegen und den Pfad anpassen:
-   - Camp: `src="/backgrounds/camp.webp"` in `src/screens/Camp.tsx`
-   - Forge / Box: das `background="…"`-Prop von `<Screen>` in
-     `Forge.tsx` / `Inventory.tsx`
+**Camp und Forge sind bereits auf Fotos verdrahtet** – du musst nur die Datei
+mit dem passenden Namen hier ablegen, kein Code nötig:
 
-Fehlt eine Datei, rendert der Layer einfach nichts — der Screen bleibt nutzbar.
+| Datei ablegen | übernimmt für | Fallback (bleibt) |
+| ------------- | ------------- | ----------------- |
+| `camp.jpg`    | Camp          | `camp.svg`        |
+| `forge.jpg`   | Forge         | `forge.svg`       |
 
-> Hinweis: In dieser Build-Umgebung war der direkte Download von externen
-> Bild-Hostern (Unsplash/Pexels/Wallpaper-Seiten) durch die Netzwerk-Policy
-> blockiert (nur GitHub erreichbar). Deshalb die SVG-Defaults — echte Fotos
-> legst du lokal ab und committest sie dann.
+Solange die `*.jpg` fehlt, zeigt der Screen die Vektor-Szene; sobald die
+`*.jpg` da ist, wird sie automatisch darüber gezeichnet (kein leerer Screen
+in der Zwischenzeit). Für die Box analog `box.jpg` ablegen und in
+`Inventory.tsx` `background="/backgrounds/box.jpg"` +
+`backgroundFallback="/backgrounds/box.svg"` setzen.
+
+> Dateiname muss exakt passen (`camp.jpg` / `forge.jpg`). Ein JPG eines
+> Screenshots ist völlig ok; optional vorher verkleinern (s. u.). Für WebP/PNG
+> einfach die Endung im jeweiligen Screen anpassen.
+
+> Hinweis: In dieser Build-Umgebung war der Zugriff auf externe Bilder
+> blockiert (Netzwerk nur zu GitHub erreichbar; eingefügte Bilder sind hier
+> nicht als Datei verfügbar). Deshalb die SVG-Defaults — die echten Fotos
+> legst du lokal/per GitHub-Upload ab und committest sie.
 
 ## Wo finde ich passende Bilder
 
