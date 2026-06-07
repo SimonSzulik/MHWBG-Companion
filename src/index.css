@@ -135,20 +135,22 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  opacity: var(--screen-bg-opacity, 0.16);
-  /* pull the colours toward the kraft-paper palette and soften detail */
-  filter: sepia(0.3) saturate(0.9) contrast(0.96);
-  /* fade out toward the bottom so the tab bar area stays clean */
+  opacity: var(--screen-bg-opacity, 0.4);
+  /* gently warm the colours but keep the artwork clearly legible */
+  filter: sepia(0.2) saturate(0.95) contrast(0.97);
+  /* keep most of the image visible, fade only the very bottom for the tab bar */
   -webkit-mask-image: linear-gradient(
     to bottom,
     #000 0%,
-    rgba(0, 0, 0, 0.4) 55%,
-    transparent 92%
+    #000 62%,
+    rgba(0, 0, 0, 0.55) 84%,
+    transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
     #000 0%,
-    rgba(0, 0, 0, 0.4) 55%,
-    transparent 92%
+    #000 62%,
+    rgba(0, 0, 0, 0.55) 84%,
+    transparent 100%
   );
 }
