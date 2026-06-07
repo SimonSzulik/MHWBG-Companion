@@ -127,6 +127,16 @@ body {
  * public/backgrounds/ (see the README there). A missing file just renders
  * nothing, so screens stay usable without artwork.
  * Tune the overall strength with --screen-bg-opacity. */
+/* Opaque paper base under the artwork: hides the notebook grid on screens
+ * that have a background image, so the photo reads cleanly instead of being
+ * crossed by grid lines. */
+.screen-bg-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -11;
+  pointer-events: none;
+  background-color: var(--color-paper);
+}
 .screen-bg {
   position: fixed;
   inset: 0;
@@ -135,9 +145,9 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  opacity: var(--screen-bg-opacity, 0.4);
-  /* gently warm the colours but keep the artwork clearly legible */
-  filter: sepia(0.2) saturate(0.95) contrast(0.97);
+  opacity: var(--screen-bg-opacity, 0.55);
+  /* a hint of warmth to tie into the theme; colours stay readable */
+  filter: sepia(0.15) saturate(0.97) contrast(0.98);
   /* keep most of the image visible, fade only the very bottom for the tab bar */
   -webkit-mask-image: linear-gradient(
     to bottom,

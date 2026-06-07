@@ -1,9 +1,10 @@
 /**
  * Decorative, faded full-screen background image for a screen.
  *
- * Renders a fixed layer that sits behind the whole UI (below the paper cards,
- * above the notebook grid). The fading / warm tint lives in the `.screen-bg`
- * CSS rule so it always matches the theme — pass raw image paths here.
+ * Renders a fixed layer behind the whole UI. A solid paper base
+ * (`.screen-bg-scrim`) sits underneath so the notebook grid does not show
+ * through the artwork; the fading / warm tint lives in the `.screen-bg` CSS
+ * rule so it always matches the theme — pass raw image paths here.
  *
  * Pass an optional `fallback` image that is drawn *beneath* `src`. If `src`
  * is missing (e.g. you haven't dropped in the real photo yet) the fallback
@@ -24,6 +25,9 @@ export function ScreenBackground({
     ? `url("${src}"), url("${fallback}")`
     : `url("${src}")`;
   return (
-    <div aria-hidden="true" className="screen-bg" style={{ backgroundImage }} />
+    <>
+      <div aria-hidden="true" className="screen-bg-scrim" />
+      <div aria-hidden="true" className="screen-bg" style={{ backgroundImage }} />
+    </>
   );
 }

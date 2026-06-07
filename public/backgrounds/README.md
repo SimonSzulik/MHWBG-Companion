@@ -1,9 +1,10 @@
 # Screen-Hintergrundbilder
 
-Ausgeblasste Hintergründe für die Screens **Camp**, **Forge** und **Box**.
-Die Optik (Ausblassen auf ~40 %, leichte Warm-Tönung, Verlauf nach unten)
-macht das CSS (`.screen-bg` in `src/index.css`) — die Bilder selbst müssen
-also nicht vorbearbeitet werden.
+Hintergründe für die Screens **Camp**, **Forge** und **Box**. Die Optik
+(Deckkraft ~55 %, leichte Warm-Tönung, Verlauf nach unten) macht das CSS
+(`.screen-bg` in `src/index.css`) — die Bilder selbst müssen also nicht
+vorbearbeitet werden. Auf diesen Screens wird das Notiz-Raster ausgeblendet
+(`.screen-bg-scrim`), damit das Bild sauber durchkommt.
 
 ## Mitgelieferte Standard-Bilder
 
@@ -72,7 +73,7 @@ cwebp -q 70 -resize 1080 0 camp-original.jpg -o camp.webp
 
 ## Feintuning
 
-- Gesamtstärke: CSS-Variable `--screen-bg-opacity` (Standard `0.4`) in
+- Gesamtstärke: CSS-Variable `--screen-bg-opacity` (Standard `0.55`) in
   `src/index.css` – höher = kräftiger, niedriger = dezenter.
 - Tönung/Verlauf: ebenfalls in der `.screen-bg`-Regel
   (`filter: sepia(...)`, `mask-image: linear-gradient(...)`).
