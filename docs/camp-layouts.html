@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camp – Layout-Entwürfe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap');
+:root{
+  --paper:#f5f1e6;--paper2:#efe9da;--card:#faf7ef;--ink:#3a332a;--ink-soft:#6b6253;
+  --line:#d9cfba;--line-strong:#2b2620;--accent:#c47a2c;--accent-soft:#e9c79a;
+  --accent-faint:#f3e2cb;--ok:#5b8a51;--ok-soft:#d9e6cf;--info:#4a8fa3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e7e0d0;color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:30px 26px 60px}
+.disp{font-family:'Caveat',cursive}
+h1{font-family:'Caveat',cursive;font-size:40px;margin:0 0 4px}
+.lead{color:#5a5142;max-width:920px;margin:0 0 28px;line-height:1.55;font-size:15px}
+.grid{display:flex;flex-wrap:wrap;gap:38px;align-items:flex-start}
+.mockup{width:392px}
+.mockup .name{font-family:'Caveat',cursive;font-size:27px;font-weight:700;margin:0 0 2px}
+.mockup .cap{color:#5a5142;font-size:13px;margin:0 0 12px;line-height:1.45;min-height:54px}
+.phone{width:392px;border-radius:34px;border:11px solid #2b2620;background:var(--paper);
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:24px 24px;overflow:hidden;position:relative;box-shadow:0 20px 44px rgba(0,0,0,.25)}
+.screen{padding:18px 14px 80px;position:relative;min-height:768px;display:flex;flex-direction:column;gap:12px}
+/* primitives — mirror the app's paper-card theme */
+.card{background:var(--card);border:1.5px solid var(--line-strong);border-radius:16px;
+  box-shadow:2px 3px 0 rgba(43,38,32,.12)}
+.self{outline:2px solid rgba(196,122,44,.4);outline-offset:-1px}
+.muted{color:var(--ink-soft)}
+.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700}
+.lbl.acc{color:var(--accent)}
+.row{display:flex;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--line-strong);
+  border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;background:var(--card)}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--accent);
+  background:var(--accent-faint);color:#9a5d1d;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:600}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line-strong);
+  border-radius:14px;padding:12px;font-weight:700;font-size:14px}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.ghost{background:var(--paper2)}
+.gi{width:30px;height:30px;border-radius:8px;border:1px dashed var(--line);background:var(--paper2);
+  display:grid;place-items:center;font-size:15px}
+.gi.f{border:1px solid var(--ok);background:var(--ok-soft)}
+.av{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line-strong);
+  background:var(--paper2);display:grid;place-items:center;font-size:22px}
+.cal{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.cal .d{aspect-ratio:1;border:1px solid var(--line);border-radius:4px;background:var(--paper2);
+  display:grid;place-items:center;font-size:9px}
+.cal .d.cur{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:700}
+.cal .d.q{background:var(--ok-soft);border-color:var(--ok)}
+.cal .d.dt{background:var(--accent-faint);border-color:var(--accent-soft)}
+.cal .d.f{background:#ecdcd2;color:#9a3b3b}
+.tabs{display:flex;border:1.5px solid var(--line-strong);background:var(--paper2);border-radius:14px;
+  padding:4px;font-size:13px;font-weight:700}
+.tabs .t{flex:1;text-align:center;padding:7px;border-radius:10px;color:var(--ink-soft)}
+.tabs .t.on{background:var(--accent);color:#fff}
+.bnav{position:absolute;left:0;right:0;bottom:0;height:60px;border-top:1.5px solid var(--line-strong);
+  background:rgba(245,241,230,.96);display:flex}
+.bnav .t{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:10px;color:var(--ink-soft)}
+.bnav .t.on{color:var(--accent)}
+.bnav .t .i{font-size:17px}
+.sm{font-size:12px}.xs{font-size:11px}
+</style>
+</head>
+<body>
+<h1>Camp – Layout-Entwürfe</h1>
+<p class="lead">5 Varianten für die Camp-Seite (Charakter-Übersicht, aktive Fähigkeiten, Ausrüstung,
+Kampagnen-Kalender, Tränke, Mitjäger + Quest/Downtime-Auswahl). Echtes Farbschema, im Stil der
+Forge/Box-Seiten (Paper-Cards, Segment-Tabs, Akzent-Buttons, untere Nav). Icons hier als Emoji-Platzhalter
+– in der App kommen die echten Tier-/Material-Icons rein. Sag mir, welches (A–E) – gern auch ein Mix.</p>
+
+<div class="grid">
+
+<!-- ============ A ============ -->
+<div class="mockup">
+  <div class="name">A · Hero-Stack</div>
+  <div class="cap">Klassische Einzelspalte: großes Charakter-Banner oben, dann Fähigkeiten,
+    Tag/Tränke, Kalender, Quest/Downtime, Mitjäger. Ruhig &amp; übersichtlich.</div>
+  <div class="phone"><div class="screen">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="disp muted" style="font-size:21px">Ancient Forest</div>
+      <div class="gi" style="border-radius:50%">⚙</div>
+    </div>
+    <div class="card self" style="padding:14px;display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:46px;line-height:1">🗡️</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div class="disp" style="font-size:30px;line-height:1">Aria</div>
+          <div class="muted sm"><b class="disp" style="font-size:19px;color:var(--ink)">14</b> Verteidigung</div>
+        </div>
+        <div class="muted sm">Großschwert · Palico Felix</div>
+        <div class="row" style="margin-top:8px;gap:6px">
+          <span class="gi f">🗡️</span><span class="gi f">🪖</span><span class="gi f">🧥</span><span class="gi">👖</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:12px">
+      <div class="lbl acc">Aktive Fähigkeiten</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+        <span class="chip">Vitalität +1</span><span class="chip">Angriff +2</span>
+        <span class="chip">Eisresistenz</span><span class="chip">Schnellschärfen</span></div>
+    </div>
+    <div class="row">
+      <div class="card" style="flex:1;padding:12px"><div class="lbl">Tag</div>
+        <div class="disp" style="font-size:34px;line-height:1.1">7<span class="muted" style="font-size:16px">/25</span></div></div>
+      <div class="card" style="flex:1;padding:12px"><div class="lbl">Tränke</div>
+        <div class="disp" style="font-size:34px;line-height:1.1">🧪 2<span class="muted" style="font-size:16px">/3</span></div></div>
+    </div>
+    <div class="card" style="padding:12px"><div class="lbl">Kalender · 25 Tage</div>
+      <div class="cal" data-cal data-max="25" data-cur="7" data-q="1,3,6" data-dt="5" data-f="4" style="margin-top:8px"></div></div>
+    <div class="row">
+      <div class="btn primary" style="flex:1">⚔ Quest</div>
+      <div class="btn ghost" style="flex:1">🏠 Downtime</div></div>
+    <div>
+      <div class="lbl acc" style="margin-bottom:6px">Mitjäger · 2</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">
+          <div class="av">🧍</div><div><b>Bjorn</b><div class="muted xs">Hammer · Palico Mochi</div></div></div>
+        <div class="card" style="padding:10px;display:flex;gap:10px;align-items:center">
+          <div class="av">🧍</div><div><b>Mira</b><div class="muted xs">Bogen · Palico Yuki</div></div></div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ B ============ -->
+<div class="mockup">
+  <div class="name">B · Bento-Dashboard</div>
+  <div class="cap">Kachel-Raster mit gemischten Größen. Alles auf einen Blick, dicht gepackt –
+    Stat-Kacheln, Ausrüstung &amp; Fähigkeiten nebeneinander, Quest/Downtime als Kacheln.</div>
+  <div class="phone"><div class="screen" style="gap:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="disp" style="font-size:23px">Camp <span class="muted" style="font-size:15px">· Ancient Forest</span></div>
+      <div class="gi" style="border-radius:50%">⚙</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="card self" style="grid-column:1/3;padding:12px;display:flex;gap:12px;align-items:center">
+        <div class="av" style="width:54px;height:54px;font-size:26px">🗡️</div>
+        <div style="flex:1"><div class="disp" style="font-size:26px;line-height:1">Aria</div>
+          <div class="muted xs">Großschwert · Palico Felix</div></div>
+        <div style="text-align:center"><div class="disp" style="font-size:30px;line-height:1">14</div>
+          <div class="muted" style="font-size:10px">DEF</div></div>
+      </div>
+      <div class="card" style="padding:12px"><div class="lbl">Tag</div>
+        <div class="disp" style="font-size:30px">7<span class="muted" style="font-size:14px">/25</span></div></div>
+      <div class="card" style="padding:12px"><div class="lbl">Tränke</div>
+        <div class="disp" style="font-size:30px">🧪 2<span class="muted" style="font-size:14px">/3</span></div></div>
+      <div class="card" style="padding:12px"><div class="lbl">Ausrüstung</div>
+        <div class="row" style="gap:5px;margin-top:8px;flex-wrap:wrap">
+          <span class="gi f">🗡️</span><span class="gi f">🪖</span><span class="gi f">🧥</span><span class="gi">👖</span></div></div>
+      <div class="card" style="padding:12px"><div class="lbl">Fähigkeiten</div>
+        <div class="xs" style="margin-top:6px;line-height:1.7">• Vitalität +1<br>• Angriff +2<br>• Eisresistenz</div></div>
+      <div class="card" style="grid-column:1/3;padding:12px"><div class="lbl">Kalender</div>
+        <div class="cal" data-cal data-max="25" data-cur="7" data-q="1,3,6" data-dt="5" data-f="4" style="margin-top:8px"></div></div>
+      <div class="btn primary" style="flex-direction:column;padding:16px"><div style="font-size:26px">⚔</div>Quest</div>
+      <div class="btn ghost" style="flex-direction:column;padding:16px"><div style="font-size:26px">🏠</div>Downtime</div>
+      <div class="card" style="grid-column:1/3;padding:12px"><div class="lbl acc">Mitjäger · 2</div>
+        <div class="row" style="margin-top:8px;gap:16px">
+          <div style="display:flex;gap:8px;align-items:center"><div class="av">🧍</div>
+            <div class="xs"><b>Bjorn</b><br><span class="muted">Hammer</span></div></div>
+          <div style="display:flex;gap:8px;align-items:center"><div class="av">🧍</div>
+            <div class="xs"><b>Mira</b><br><span class="muted">Bogen</span></div></div></div></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ C ============ -->
+<div class="mockup">
+  <div class="name">C · Segment-Übersicht</div>
+  <div class="cap">Am nächsten an Forge/Box: Hero + Quest/Downtime fix oben, darunter Segment-Tabs
+    (Ausrüstung / Fähigkeiten / Kalender / Gruppe). Aufgeräumt, Details auf Abruf.</div>
+  <div class="phone"><div class="screen">
+    <div class="card self" style="padding:12px;display:flex;gap:10px;align-items:center">
+      <div class="av" style="width:48px;height:48px;font-size:24px">🗡️</div>
+      <div style="flex:1"><div class="disp" style="font-size:24px;line-height:1">Aria</div>
+        <div class="muted xs">Großschwert · DEF 14</div></div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span class="pill">📅 7/25</span><span class="pill">🧪 2/3</span></div>
+    </div>
+    <div class="row"><div class="btn primary" style="flex:1">⚔ Quest starten</div>
+      <div class="btn ghost" style="flex:1">🏠 Downtime</div></div>
+    <div class="tabs"><div class="t on">Ausrüstung</div><div class="t">Fähigkeiten</div>
+      <div class="t">Kalender</div><div class="t">Gruppe</div></div>
+    <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:center"><span class="gi f">🗡️</span>
+        <div><b>Eisenklinge II</b><div class="muted xs">Großschwert</div></div></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="gi f">🪖</span>
+        <div><b>Jagras-Helm</b><div class="muted xs">+2 Verteidigung</div></div></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="gi f">🧥</span>
+        <div><b>Jagras-Mail</b><div class="muted xs">+2 Verteidigung</div></div></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="gi">👖</span>
+        <div class="muted"><b>— leer —</b></div></div>
+    </div>
+    <div class="muted xs" style="text-align:center">Tabs wechseln zu Fähigkeiten / Kalender / Gruppe</div>
+  </div></div>
+</div>
+
+<!-- ============ D ============ -->
+<div class="mockup">
+  <div class="name">D · Stat-Strip + 2 Spalten</div>
+  <div class="cap">Schmale Status-Zeile oben, dann zweispaltig: links Ausrüstung + Fähigkeiten,
+    rechts Kalender. Mitjäger als Avatar-Reihe. Kompakt &amp; informationsdicht.</div>
+  <div class="phone"><div class="screen">
+    <div class="card" style="padding:10px 12px;display:flex;align-items:center;gap:10px">
+      <div class="av" style="width:42px;height:42px;font-size:20px">🗡️</div>
+      <div style="flex:1;min-width:0"><div class="disp" style="font-size:22px;line-height:1">Aria</div>
+        <div class="muted xs">Großschwert</div></div>
+      <span class="pill">DEF 14</span><span class="pill">📅 7</span><span class="pill">🧪 2</span>
+    </div>
+    <div class="row"><div class="btn primary" style="flex:1">⚔ Quest</div>
+      <div class="btn ghost" style="flex:1">🏠 Downtime</div></div>
+    <div class="row" style="align-items:flex-start">
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="padding:10px"><div class="lbl">Ausrüstung</div>
+          <div class="row" style="gap:5px;margin-top:6px;flex-wrap:wrap">
+            <span class="gi f">🗡️</span><span class="gi f">🪖</span><span class="gi f">🧥</span><span class="gi">👖</span></div></div>
+        <div class="card" style="padding:10px"><div class="lbl">Fähigkeiten</div>
+          <div class="xs" style="line-height:1.7;margin-top:4px">• Vitalität +1<br>• Angriff +2<br>• Eisresistenz<br>• Schnellschärfen</div></div>
+      </div>
+      <div class="card" style="flex:1;padding:10px"><div class="lbl">Kalender</div>
+        <div class="cal" data-cal data-max="25" data-cur="7" data-q="1,3,6" data-dt="5" data-f="4"
+          style="margin-top:6px;grid-template-columns:repeat(5,1fr)"></div></div>
+    </div>
+    <div><div class="lbl acc" style="margin-bottom:6px">Mitjäger</div>
+      <div class="row" style="gap:12px">
+        <div style="text-align:center"><div class="av">🧍</div><div class="xs" style="margin-top:2px">Bjorn</div></div>
+        <div style="text-align:center"><div class="av">🧍</div><div class="xs" style="margin-top:2px">Mira</div></div>
+        <div style="text-align:center"><div class="av" style="border-style:dashed;color:var(--ink-soft)">+</div>
+          <div class="xs muted" style="margin-top:2px">offen</div></div>
+      </div></div>
+  </div></div>
+</div>
+
+<!-- ============ E ============ -->
+<div class="mockup">
+  <div class="name">E · Action-First</div>
+  <div class="cap">Quest/Downtime als große Auswahl oben im Fokus (die eigentliche Entscheidung),
+    Charakter, Ausrüstung+Fähigkeiten, Kalender &amp; Gruppe kompakt darunter.</div>
+  <div class="phone"><div class="screen">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="disp muted" style="font-size:18px">Ancient Forest · Tag 7</div>
+      <div class="gi" style="border-radius:50%">⚙</div></div>
+    <div class="row" style="gap:12px">
+      <div class="card" style="flex:1;padding:18px;text-align:center;background:var(--accent);color:#fff">
+        <div style="font-size:40px">⚔</div><div class="disp" style="font-size:24px">Quest</div>
+        <div class="xs" style="opacity:.9">Auf die Jagd</div></div>
+      <div class="card" style="flex:1;padding:18px;text-align:center">
+        <div style="font-size:40px">🏠</div><div class="disp" style="font-size:24px">Downtime</div>
+        <div class="muted xs">3 Aktivitäten</div></div>
+    </div>
+    <div class="card self" style="padding:12px;display:flex;gap:10px;align-items:center">
+      <div class="av" style="width:48px;height:48px;font-size:24px">🗡️</div>
+      <div style="flex:1"><div class="disp" style="font-size:22px;line-height:1">Aria <span class="muted" style="font-size:13px">· Felix</span></div>
+        <div class="muted xs">Großschwert · DEF 14 · 🧪 2/3</div></div></div>
+    <div class="card" style="padding:12px">
+      <div class="row" style="gap:6px"><span class="gi f">🗡️</span><span class="gi f">🪖</span><span class="gi f">🧥</span><span class="gi">👖</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+        <span class="chip">Vitalität +1</span><span class="chip">Angriff +2</span><span class="chip">Eisresistenz</span></div>
+    </div>
+    <div class="card" style="padding:12px"><div class="lbl">Kalender · 25 Tage</div>
+      <div class="cal" data-cal data-max="25" data-cur="7" data-q="1,3,6" data-dt="5" data-f="4" style="margin-top:8px"></div></div>
+    <div class="card" style="padding:10px;display:flex;gap:14px;align-items:center">
+      <div class="lbl acc">Gruppe</div>
+      <div style="display:flex;gap:8px"><div class="av" style="width:36px;height:36px;font-size:18px">🧍</div>
+        <div class="av" style="width:36px;height:36px;font-size:18px">🧍</div></div>
+      <div class="muted xs">Bjorn, Mira</div></div>
+  </div></div>
+</div>
+
+</div>
+
+<script>
+// fill calendars
+document.querySelectorAll('[data-cal]').forEach(el=>{
+  const max=+el.dataset.max, cur=+el.dataset.cur;
+  const q=(el.dataset.q||'').split(',').filter(Boolean).map(Number);
+  const dt=(el.dataset.dt||'').split(',').filter(Boolean).map(Number);
+  const f=(el.dataset.f||'').split(',').filter(Boolean).map(Number);
+  let h='';
+  for(let d=1; d<=max; d++){
+    let c='d', t='';
+    if(d===cur){c+=' cur'; t=d;}
+    else if(f.includes(d)){c+=' f'; t='✗';}
+    else if(q.includes(d)){c+=' q'; t='🦖';}
+    else if(dt.includes(d)){c+=' dt'; t='🏠';}
+    h+='<span class="'+c+'">'+t+'</span>';
+  }
+  el.innerHTML=h;
+});
+// bottom nav on every phone
+const nav='<div class="t"><span class="i">🧍</span>Jäger</div>'+
+  '<div class="t"><span class="i">📦</span>Box</div>'+
+  '<div class="t on"><span class="i">⛺</span>Camp</div>'+
+  '<div class="t"><span class="i">🔨</span>Forge</div>'+
+  '<div class="t"><span class="i">📖</span>Info</div>';
+document.querySelectorAll('.screen').forEach(s=>{
+  const b=document.createElement('div'); b.className='bnav'; b.innerHTML=nav; s.appendChild(b);
+});
+</script>
+</body>
+</html>
