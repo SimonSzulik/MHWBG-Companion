@@ -190,12 +190,6 @@ function MaterialGrid({
             : `+${empty.length} empty items`}
         </button>
       )}
-
-      {!showEmpty && owned.length === 0 && (
-        <p className="mt-6 text-center text-sm text-ink-soft">
-          No items in the box yet.
-        </p>
-      )}
     </div>
   );
 }
