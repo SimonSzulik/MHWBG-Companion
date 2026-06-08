@@ -551,11 +551,11 @@ export const useCampaign = create<CampaignState>()(
 
       craftGear: (hunterId, gearId) => {
         const s = get();
-        if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
         const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
-        if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
+        if (!hunter) return { ok: false, reason: "Hunter not found." };
         const def = gameData.gear.find((g) => g.id === gearId);
-        if (!def) return { ok: false, reason: "Unbekanntes Gear." };
+        if (!def) return { ok: false, reason: "Unknown gear." };
 
         const isWeapon = def.slot === "weapon";
         const order = def.pathOrder ?? 0;
@@ -564,14 +564,14 @@ export const useCampaign = create<CampaignState>()(
         // Re-craftable roots may be forged again (to open another path); every
         // other piece is one-and-done.
         if (hunter.ownedGear.includes(gearId) && !recraftableRoot)
-          return { ok: false, reason: "Bereits geschmiedet." };
+          return { ok: false, reason: "Already forged." };
 
         // Weapon prerequisites: a tier consumes one held instance of its base.
         let prevId: string | undefined;
         if (isWeapon) {
           if (order === 0) {
             if (!recraftableRoot)
-              return { ok: false, reason: "Startwaffe – wird gestellt." };
+              return { ok: false, reason: "Starter weapon — provided." };
             const { used, cap } = rootForgeUsage(
               hunter,
               gearId,
@@ -580,20 +580,20 @@ export const useCampaign = create<CampaignState>()(
             if (used >= cap)
               return {
                 ok: false,
-                reason: "Alle Pfade dieser Waffe sind bereits erschlossen.",
+                reason: "All paths of this weapon are already unlocked.",
               };
           } else {
             const path = gameData.weaponPaths?.find((p) => p.id === def.pathId);
             prevId = path?.gearIds[order - 1];
             const held = prevId ? (hunter.weaponStock?.[prevId] ?? 0) : 0;
             if (!prevId || held < 1)
-              return { ok: false, reason: "Basiswaffe fehlt." };
+              return { ok: false, reason: "Base weapon missing." };
           }
         }
 
         for (const c of def.cost) {
           if ((hunter.materials[c.materialId] ?? 0) < c.qty)
-            return { ok: false, reason: "Material fehlt." };
+            return { ok: false, reason: "Materials missing." };
         }
 
         const materials = { ...hunter.materials };

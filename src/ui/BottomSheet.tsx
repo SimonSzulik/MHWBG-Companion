@@ -23,7 +23,7 @@ export function BottomSheet({
       <button
         type="button"
         className="min-h-0 flex-1"
-        aria-label="Schließen"
+        aria-label="Close"
         onClick={onClose}
       />
       <div

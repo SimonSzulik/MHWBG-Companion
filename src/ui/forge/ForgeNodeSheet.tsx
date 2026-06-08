@@ -48,8 +48,8 @@ export function ForgeNodeSheet({
             <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
               <img src={iconUrl(branch.icon)} alt="" className="h-4 w-4" />
               {branch.label}
-              {branch.locked && " · gesperrt"}
-              {branch.chosen && " · gewählt"}
+              {branch.locked && " · locked"}
+              {branch.chosen && " · chosen"}
             </p>
           )}
           {armorSet && (
@@ -74,7 +74,7 @@ export function ForgeNodeSheet({
         node.state === "pending" &&
         node.enoughMats &&
         !node.prerequisiteMet && (
-        <p className="mt-2 text-xs text-ink-soft">Erst die Vorstufe schmieden.</p>
+        <p className="mt-2 text-xs text-ink-soft">Forge the previous tier first.</p>
       )}
 
       {gear.deckChanges && <DeckChangesBlock changes={gear.deckChanges} />}
@@ -87,17 +87,17 @@ export function ForgeNodeSheet({
           }}
           label={
             recraftable && node.forged
-              ? "Erneut schmieden"
+              ? "Re-forge"
               : node.held > 0 && recraftable
-                ? "Erneut schmieden"
-                : "Schmieden"
+                ? "Re-forge"
+                : "Forge"
           }
         />
       )}
 
       {node.state === "locked" && gear.slot === "weapon" && (
         <p className="mt-3 text-xs text-ink-soft">
-          Dieser Pfad ist gesperrt — eine andere Route wurde bereits gewählt.
+          This path is locked — another route was already chosen.
         </p>
       )}
 
@@ -107,7 +107,7 @@ export function ForgeNodeSheet({
         onClick={onClose}
         className="mt-3 w-full py-2 text-sm font-semibold"
       >
-        Schließen
+        Close
       </Button>
     </BottomSheet>
   );

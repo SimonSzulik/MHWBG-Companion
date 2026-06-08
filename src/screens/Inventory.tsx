@@ -69,6 +69,7 @@ export function Inventory() {
     <Screen
       title="Box"
       subtitle={hunter.name}
+      hideHeader
       background="/backgrounds/box.jpg"
       backgroundFallback="/backgrounds/box.svg"
     >
@@ -185,14 +186,14 @@ function MaterialGrid({
           }`}
         >
           {showEmpty
-            ? "Leere ausblenden"
-            : `+${empty.length} leere Items anzeigen`}
+            ? "Hide empty"
+            : `+${empty.length} empty items`}
         </button>
       )}
 
       {!showEmpty && owned.length === 0 && (
         <p className="mt-6 text-center text-sm text-ink-soft">
-          Noch keine Items in der Box.
+          No items in the box yet.
         </p>
       )}
     </div>
@@ -301,7 +302,7 @@ function InventoryItemSheet({
           <button
             type="button"
             onClick={() => onSet(Math.max(0, qty - 1))}
-            aria-label="weniger"
+            aria-label="less"
             disabled={qty <= 0}
             className="grid h-10 w-10 place-items-center rounded-full bg-[#3d352c] text-lg font-bold text-white active:translate-y-px disabled:opacity-40"
           >
@@ -313,7 +314,7 @@ function InventoryItemSheet({
           <button
             type="button"
             onClick={() => onSet(qty + 1)}
-            aria-label="mehr"
+            aria-label="more"
             className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-lg font-bold text-white active:translate-y-px"
           >
             +

@@ -14,6 +14,7 @@ export function Screen({
   right,
   background,
   backgroundFallback,
+  hideHeader = false,
   children,
 }: {
   title: string;
@@ -22,6 +23,7 @@ export function Screen({
   right?: ReactNode;
   background?: string;
   backgroundFallback?: string;
+  hideHeader?: boolean;
   children: ReactNode;
 }) {
   const nav = useNavigate();
@@ -30,28 +32,36 @@ export function Screen({
       {background && (
         <ScreenBackground src={background} fallback={backgroundFallback} />
       )}
-      <header className="sticky top-0 z-10 flex items-center gap-3 bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
-        {back && (
-          <button
-            type="button"
-            onClick={() => nav(-1)}
-            aria-label="Zurück"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-card text-lg active:translate-y-px"
-          >
-            ‹
-          </button>
-        )}
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display truncate text-2xl leading-tight">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="truncate text-sm text-ink-soft">{subtitle}</p>
+      {!hideHeader && (
+        <header className="sticky top-0 z-10 flex items-center gap-3 bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
+          {back && (
+            <button
+              type="button"
+              onClick={() => nav(-1)}
+              aria-label="Zurück"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-card text-lg active:translate-y-px"
+            >
+              ‹
+            </button>
           )}
-        </div>
-        {right}
-      </header>
-      <main className="flex-1 overflow-x-clip px-4 pb-24 pt-1">{children}</main>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display truncate text-2xl leading-tight">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="truncate text-sm text-ink-soft">{subtitle}</p>
+            )}
+          </div>
+          {right}
+        </header>
+      )}
+      <main
+        className={`flex-1 overflow-x-clip px-4 pb-24 ${
+          hideHeader ? "pt-[calc(env(safe-area-inset-top)+0.75rem)]" : "pt-1"
+        }`}
+      >
+        {children}
+      </main>
     </div>
   );
 }

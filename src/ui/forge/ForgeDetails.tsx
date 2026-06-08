@@ -6,19 +6,19 @@ import { Button } from "../Button";
 export function forgeNodeBadge(node: ForgeNode): { label: string; cls: string } {
   if (node.forged) {
     return node.equipped
-      ? { label: "AUSGERÜSTET", cls: "bg-accent-faint text-accent" }
-      : { label: "GESCHMIEDET", cls: "bg-ok-soft text-ok" };
+      ? { label: "EQUIPPED", cls: "bg-accent-faint text-accent" }
+      : { label: "FORGED", cls: "bg-ok-soft text-ok" };
   }
   switch (node.state) {
     case "craftable":
-      return { label: "BAUBAR", cls: "bg-ok-soft text-ok" };
+      return { label: "CRAFTABLE", cls: "bg-ok-soft text-ok" };
     case "locked":
-      return { label: "GESPERRT", cls: "bg-paper-2 text-ink-soft" };
+      return { label: "LOCKED", cls: "bg-paper-2 text-ink-soft" };
     default:
       return {
         label: node.prerequisiteMet
           ? `${Math.round(node.materialProgress * 100)}%`
-          : "BASIS FEHLT",
+          : "BASE MISSING",
         cls: "bg-paper-2 text-ink-soft",
       };
   }
@@ -85,7 +85,7 @@ export function DeckChangesBlock({ changes }: { changes: DeckChanges }) {
         {hasRemove && (
           <div>
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
-              Entfernen
+              Remove
             </p>
             <ul className="flex flex-col gap-0.5 text-[11px] leading-snug">
               {changes.remove!.map((card) => (
@@ -97,7 +97,7 @@ export function DeckChangesBlock({ changes }: { changes: DeckChanges }) {
         {hasAdd && (
           <div>
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
-              Hinzufügen
+              Add
             </p>
             <ul className="flex flex-col gap-0.5 text-[11px] leading-snug">
               {changes.add!.map((card) => (

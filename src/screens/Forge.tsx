@@ -47,6 +47,7 @@ export function Forge() {
   return (
     <Screen
       title="Forge"
+      hideHeader
       background="/backgrounds/forge.png"
       backgroundFallback="/backgrounds/forge.svg"
     >
@@ -55,8 +56,8 @@ export function Forge() {
         value={tab}
         onChange={setTab}
         tabs={[
-          { value: "weapons", label: "Waffen" },
-          { value: "armour", label: "Rüstung" },
+          { value: "weapons", label: "Weapons" },
+          { value: "armour", label: "Armor" },
         ]}
       />
 
@@ -82,7 +83,7 @@ function WeaponForgeGraph({
   const [sheet, setSheet] = useState<WeaponSheetTarget | null>(null);
 
   if (groups.length === 0) {
-    return <p className="text-sm text-ink-soft">Keine Schmiedepfade.</p>;
+    return <p className="text-sm text-ink-soft">No forge paths.</p>;
   }
 
   return (
@@ -123,7 +124,7 @@ function ArmorForgeGraph({
   const [sheet, setSheet] = useState<ArmorSheetTarget | null>(null);
 
   if (rows.length === 0) {
-    return <p className="text-sm text-ink-soft">Keine Rüstungssets.</p>;
+    return <p className="text-sm text-ink-soft">No armor sets.</p>;
   }
 
   return (
