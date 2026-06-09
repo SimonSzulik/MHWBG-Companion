@@ -28,19 +28,28 @@ const STAR_COUNT: Record<QuestStars, number> = {
   "four-star": 4,
 };
 
-/** Quest board: monster boards, ordered by star tier, with completion marks. */
+/** Quest-type label per star tier (assigned / investigation / tempered). */
+const STAR_TYPE_LABEL: Record<QuestStars, string> = {
+  "one-star": "Aufträge",
+  "two-star": "Untersuchungen",
+  "three-star": "Untersuchungen",
+  "four-star": "Tempered",
+};
+
+/** Quest board, grouped by star difficulty; expand a tier to pick a hunt. */
 export function QuestScreen() {
   const { campaign, hunter } = useOwnHunter();
   const startQuest = useCampaign((s) => s.startQuest);
   const navigate = useNavigate();
-  const [openMonster, setOpenMonster] = useState<string | null>(
-    QUEST_MONSTERS[0]?.id ?? null,
+  const [openStar, setOpenStar] = useState<QuestStars | null>(
+    STAR_ORDER[0] ?? null,
   );
 
   if (!campaign || !hunter) return null;
 
   const hasActiveQuest = campaign.activeQuest != null;
   const completions = campaign.questCompletions;
+  const allQuests = QUEST_MONSTERS.flatMap((m) => questsForMonster(m.id));
 
   const handleStart = (quest: QuestDef) => {
     const res = startQuest(quest.id, hunter.id);
@@ -74,31 +83,31 @@ export function QuestScreen() {
       )}
 
       <div className="flex flex-col gap-3">
-        {QUEST_MONSTERS.map((monster) => {
-          const monsterQuests = questsForMonster(monster.id);
-          const ordered = [...monsterQuests].sort(
-            (a, b) => STAR_ORDER.indexOf(a.stars) - STAR_ORDER.indexOf(b.stars),
-          );
-          const open = openMonster === monster.id;
+        {STAR_ORDER.map((stars) => {
+          const quests = allQuests.filter((q) => q.stars === stars);
+          if (quests.length === 0) return null;
+          const open = openStar === stars;
+          const tempered = stars === "four-star";
 
           return (
-            <div key={monster.id} className="paper-card overflow-hidden">
+            <div key={stars} className="paper-card overflow-hidden">
               <button
                 type="button"
                 onClick={() =>
-                  setOpenMonster((cur) =>
-                    cur === monster.id ? null : monster.id,
-                  )
+                  setOpenStar((cur) => (cur === stars ? null : stars))
                 }
                 className="flex w-full items-center gap-3 bg-paper-2 px-4 py-3 text-left active:translate-y-px"
               >
-                <img
-                  src={iconUrl(monster.icon)}
-                  alt=""
-                  className="h-10 w-10 shrink-0 object-contain"
-                />
+                <span
+                  className={`shrink-0 text-base leading-none tracking-tighter ${
+                    tempered ? "text-red-600" : "text-accent"
+                  }`}
+                  aria-hidden
+                >
+                  {"★".repeat(STAR_COUNT[stars])}
+                </span>
                 <p className="min-w-0 flex-1 truncate font-display text-xl leading-tight">
-                  {monster.name}
+                  {STAR_TYPE_LABEL[stars]}
                 </p>
                 <span
                   className={`shrink-0 text-lg text-ink-soft transition-transform duration-200 ${
@@ -115,27 +124,30 @@ export function QuestScreen() {
               >
                 <div className="overflow-hidden">
                   <div className="divide-y divide-line border-t border-line-strong">
-                    {ordered.map((q) => (
-                      <QuestRow
-                        key={q.id}
-                        quest={q}
-                        completions={completions}
-                        count={completions[q.id] ?? 0}
-                        monsterQuests={monsterQuests}
-                        pendingHandlerQuestId={campaign.pendingHandlerQuestId}
-                        locked={!isQuestUnlocked(q, completions, monsterQuests)}
-                        disabled={
-                          !canStartQuest(
-                            q,
-                            completions,
-                            hasActiveQuest,
-                            monsterQuests,
-                            campaign.pendingHandlerQuestId,
-                          )
-                        }
-                        onStart={() => handleStart(q)}
-                      />
-                    ))}
+                    {quests.map((q) => {
+                      const monsterQuests = questsForMonster(q.monsterId);
+                      return (
+                        <QuestRow
+                          key={q.id}
+                          quest={q}
+                          completions={completions}
+                          count={completions[q.id] ?? 0}
+                          monsterQuests={monsterQuests}
+                          pendingHandlerQuestId={campaign.pendingHandlerQuestId}
+                          locked={!isQuestUnlocked(q, completions, monsterQuests)}
+                          disabled={
+                            !canStartQuest(
+                              q,
+                              completions,
+                              hasActiveQuest,
+                              monsterQuests,
+                              campaign.pendingHandlerQuestId,
+                            )
+                          }
+                          onStart={() => handleStart(q)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -186,18 +198,10 @@ function QuestRow({
       }`}
     >
       <img
-        src={iconUrl(quest.type)}
+        src={iconUrl(quest.icon)}
         alt=""
         className="h-8 w-8 shrink-0 object-contain"
       />
-      <span
-        className={`shrink-0 text-sm leading-none tracking-tighter ${
-          quest.stars === "four-star" ? "text-red-600" : "text-accent"
-        }`}
-        aria-hidden
-      >
-        {"★".repeat(STAR_COUNT[quest.stars])}
-      </span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium">
         {quest.name}
         {isHandlerPick ? " (Handler)" : ""}

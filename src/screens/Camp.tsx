@@ -165,7 +165,7 @@ export function Camp() {
       {confirmPotion && (
         <ConfirmDialog
           title="Trank verbrauchen?"
-          message="Einen Trank aus dem Vorrat entfernen?"
+          message="Tränke kommen aus dem gemeinsamen Gruppen-Vorrat. Wirklich einen Trank verbrauchen?"
           onConfirm={usePotion}
           onCancel={() => setConfirmPotion(false)}
         />
