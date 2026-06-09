@@ -62,6 +62,59 @@ export function questTierLockReason(
   return `Zuerst ${tiers} abschließen`;
 }
 
+/** The campaign's mandatory first quest — the 1★ Great Jagras. */
+export const FIRST_QUEST_ID = "great-jagras-1";
+
+/** Whether the mandatory first quest (1★ Great Jagras) has been completed. */
+export function isFirstQuestCleared(
+  completions: Record<string, number>,
+): boolean {
+  const first = questById(FIRST_QUEST_ID);
+  return first
+    ? isQuestFullyCompleted(first, completions[FIRST_QUEST_ID] ?? 0)
+    : true;
+}
+
+/**
+ * Campaign gate: only the 1★ Great Jagras is available at the start; the
+ * remaining assigned (1★) quests stay locked until it is cleared. Higher
+ * tiers are gated transitively via their monster's own 1★ assignment.
+ */
+function isCampaignUnlocked(
+  quest: QuestDef,
+  completions: Record<string, number>,
+): boolean {
+  if (quest.id === FIRST_QUEST_ID) return true;
+  if (questCategory(quest) === "assigned") {
+    return isFirstQuestCleared(completions);
+  }
+  return true;
+}
+
+/** Full unlock check: campaign gate (Great Jagras first) + star-tier order. */
+export function isQuestUnlocked(
+  quest: QuestDef,
+  completions: Record<string, number>,
+  monsterQuests: QuestDef[],
+): boolean {
+  return (
+    isCampaignUnlocked(quest, completions) &&
+    isQuestTierUnlocked(quest, completions, monsterQuests)
+  );
+}
+
+/** Reason a quest is locked — campaign gate first, then star-tier order. */
+export function questLockReason(
+  quest: QuestDef,
+  completions: Record<string, number>,
+  monsterQuests: QuestDef[],
+): string | undefined {
+  if (!isCampaignUnlocked(quest, completions)) {
+    return "Zuerst den 1★ Großen Jagras erlegen";
+  }
+  return questTierLockReason(quest, completions, monsterQuests);
+}
+
 /** Short star-tier label, e.g. "3★". */
 export function starLabel(stars: QuestStars): string {
   switch (stars) {
@@ -115,7 +168,7 @@ export function canStartQuest(
     return false;
   }
   if (pendingHandlerQuestId === quest.id) return true;
-  if (!isQuestTierUnlocked(quest, completions, monsterQuests)) return false;
+  if (!isQuestUnlocked(quest, completions, monsterQuests)) return false;
   const count = completions[quest.id] ?? 0;
   return !isQuestFullyCompleted(quest, count);
 }
