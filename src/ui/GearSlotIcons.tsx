@@ -41,7 +41,7 @@ export function GearSlotIcons({
         return (
           <span
             key={slot}
-            className="grid h-7 w-7 place-items-center rounded-md border border-dashed border-line text-[9px] text-ink-soft"
+            className="grid h-7 w-7 place-items-center rounded-md border border-dashed border-line bg-paper-2 text-[9px] text-ink-soft"
           >
             {SLOT_BADGE[slot]}
           </span>

@@ -6,12 +6,12 @@ export function OwnedGearGrid({
   items,
   isEquipped,
   emptyLabel,
-  onEquip,
+  onSelect,
 }: {
   items: GearDef[];
   isEquipped: (gear: GearDef) => boolean;
   emptyLabel: string;
-  onEquip: (gearId: string) => void;
+  onSelect: (gear: GearDef) => void;
 }) {
   if (items.length === 0) {
     return (
@@ -29,7 +29,7 @@ export function OwnedGearGrid({
             key={gear.id}
             gear={gear}
             equipped={isEquipped(gear)}
-            onClick={() => onEquip(gear.id)}
+            onClick={() => onSelect(gear)}
           />
         ))}
       </div>

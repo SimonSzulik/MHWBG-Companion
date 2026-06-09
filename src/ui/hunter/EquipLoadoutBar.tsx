@@ -1,4 +1,4 @@
-import { catalog } from "../../domain/catalog";
+import { catalog, hunterTotalDefense } from "../../domain/catalog";
 import { iconUrl } from "../../domain/icons";
 import { LOADOUT_SLOTS } from "../../domain/loadout";
 import { SLOT_BADGE } from "../GearSlotIcons";
@@ -44,7 +44,7 @@ function EquipSlotButton({
         />
       ) : (
         <span
-          className={`grid h-full w-full place-items-center rounded-xl border border-dashed border-line text-sm text-ink-soft ${
+          className={`grid h-full w-full place-items-center rounded-xl border border-dashed border-line bg-paper-2 text-sm text-ink-soft ${
             slot === "weapon" ? "text-xl" : "text-[11px]"
           }`}
         >
@@ -55,7 +55,7 @@ function EquipSlotButton({
   );
 }
 
-/** Top loadout strip: weapon + armour in one equal-sized row; tap equipped slot to unequip. */
+/** Top loadout strip: weapon + armour slots with defence total on the right. */
 export function EquipLoadoutBar({
   hunter,
   tab,
@@ -65,20 +65,35 @@ export function EquipLoadoutBar({
   tab: Tab;
   onUnequip: (slot: GearSlot) => void;
 }) {
+  const totalDef = hunterTotalDefense(hunter);
+
   return (
-    <div className="paper-card flex items-center justify-center gap-2 px-3 py-3">
-      {LOADOUT_SLOTS.map((slot) => (
-        <EquipSlotButton
-          key={slot}
-          slot={slot}
-          gearId={hunter.equipped[slot]}
-          highlight={slotHighlighted(slot, tab)}
-          onTap={() => {
-            const gearId = hunter.equipped[slot];
-            if (gearId) onUnequip(slot);
-          }}
-        />
-      ))}
+    <div className="paper-card flex items-center gap-2 px-3 py-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {LOADOUT_SLOTS.map((slot) => (
+          <EquipSlotButton
+            key={slot}
+            slot={slot}
+            gearId={hunter.equipped[slot]}
+            highlight={slotHighlighted(slot, tab)}
+            onTap={() => {
+              const gearId = hunter.equipped[slot];
+              if (gearId) onUnequip(slot);
+            }}
+          />
+        ))}
+      </div>
+      <div
+        className="flex shrink-0 flex-col items-end pl-1"
+        title="Verteidigung"
+      >
+        <span className="font-display text-3xl leading-none text-ink">
+          {totalDef}
+        </span>
+        <span className="text-[10px] uppercase tracking-wide text-ink-soft">
+          Verteidigung
+        </span>
+      </div>
     </div>
   );
 }
