@@ -1,12 +1,9 @@
 import type { GearDef } from "../../domain/types";
 import { iconUrl } from "../../domain/icons";
-import {
-  FORGE_IDLE_TRACK,
-  FORGE_NODE_FILL,
-  FORGE_RING,
-} from "../forge/forgeTheme";
+import { FORGE_IDLE_TRACK, FORGE_RING } from "../forge/forgeTheme";
 
 const NODE = 48;
+const ICON_SCALE = 0.72;
 
 /**
  * Forge-style circle for the loadout grid — owned (green) or equipped (blue).
@@ -38,18 +35,18 @@ export function EquipNode({
         }}
       >
         <div
-          className="flex h-full w-full items-center justify-center rounded-full border-2"
-          style={{
-            background: FORGE_NODE_FILL,
-            borderColor: ringColor,
-          }}
+          className="flex h-full w-full items-center justify-center rounded-full border-2 bg-transparent"
+          style={{ borderColor: ringColor }}
         >
           {icon ? (
             <img
               src={iconUrl(icon)}
               alt=""
               className="object-contain"
-              style={{ width: NODE * 0.5, height: NODE * 0.5 }}
+              style={{
+                width: NODE * ICON_SCALE,
+                height: NODE * ICON_SCALE,
+              }}
             />
           ) : (
             <span className="text-xs font-bold text-ink-soft">?</span>

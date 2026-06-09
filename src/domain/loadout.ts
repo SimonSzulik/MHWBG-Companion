@@ -24,3 +24,6 @@ export function equippableArmor(hunter: Hunter, gear: GearDef[]): GearDef[] {
 }
 
 export const LOADOUT_ARMOR_SLOTS: GearSlot[] = ARMOR_SLOTS;
+
+/** Top loadout bar: weapon + armour slots left to right. */
+export const LOADOUT_SLOTS: GearSlot[] = ["weapon", ...ARMOR_SLOTS];
