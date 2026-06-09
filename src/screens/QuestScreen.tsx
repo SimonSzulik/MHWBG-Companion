@@ -13,7 +13,6 @@ import {
 } from "../data/quests";
 import {
   canStartQuest,
-  isFirstQuestCleared,
   isQuestFullyCompleted,
   isQuestUnlocked,
   maxCompletionsForQuest,
@@ -42,7 +41,6 @@ export function QuestScreen() {
 
   const hasActiveQuest = campaign.activeQuest != null;
   const completions = campaign.questCompletions;
-  const firstCleared = isFirstQuestCleared(completions);
 
   const handleStart = (quest: QuestDef) => {
     const res = startQuest(quest.id, hunter.id);
@@ -75,14 +73,6 @@ export function QuestScreen() {
         </div>
       )}
 
-      {!firstCleared && (
-        <div className="mb-3 rounded-xl border-[1.5px] border-line-strong bg-paper-2 px-4 py-2.5 text-sm text-ink-soft">
-          Schließe zuerst den{" "}
-          <span className="font-semibold text-ink">1★ Großen Jagras</span> ab, um
-          die übrigen Aufträge freizuschalten.
-        </div>
-      )}
-
       <div className="flex flex-col gap-3">
         {QUEST_MONSTERS.map((monster) => {
           const monsterQuests = questsForMonster(monster.id);
@@ -90,14 +80,6 @@ export function QuestScreen() {
             (a, b) => STAR_ORDER.indexOf(a.stars) - STAR_ORDER.indexOf(b.stars),
           );
           const open = openMonster === monster.id;
-          const totalDone = monsterQuests.reduce(
-            (sum, q) => sum + (completions[q.id] ?? 0),
-            0,
-          );
-          const maxDone = monsterQuests.reduce(
-            (sum, q) => sum + maxCompletionsForQuest(q),
-            0,
-          );
 
           return (
             <div key={monster.id} className="paper-card overflow-hidden">
@@ -115,14 +97,9 @@ export function QuestScreen() {
                   alt=""
                   className="h-10 w-10 shrink-0 object-contain"
                 />
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-xl leading-tight">
-                    {monster.name}
-                  </p>
-                  <p className="text-xs text-ink-soft">
-                    {totalDone}/{maxDone} Abschlüsse
-                  </p>
-                </div>
+                <p className="min-w-0 flex-1 truncate font-display text-xl leading-tight">
+                  {monster.name}
+                </p>
                 <span
                   className={`shrink-0 text-lg text-ink-soft transition-transform duration-200 ${
                     open ? "rotate-90" : ""
@@ -137,7 +114,7 @@ export function QuestScreen() {
                 style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
               >
                 <div className="overflow-hidden">
-                  <div className="flex flex-col gap-1.5 border-t border-line-strong p-2.5">
+                  <div className="divide-y divide-line border-t border-line-strong">
                     {ordered.map((q) => (
                       <QuestRow
                         key={q.id}
@@ -204,8 +181,8 @@ function QuestRow({
       disabled={inactive}
       onClick={onStart}
       title={lockHint}
-      className={`flex w-full items-center gap-2.5 rounded-lg border-[1.5px] border-line-strong px-2.5 py-2 text-left active:translate-y-px ${
-        inactive ? "bg-paper-2 opacity-60" : "bg-card"
+      className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition enabled:active:bg-accent-faint ${
+        inactive ? "opacity-55" : ""
       }`}
     >
       <img
@@ -229,21 +206,24 @@ function QuestRow({
         <span className="shrink-0 text-base" aria-label="gesperrt">
           🔒
         </span>
-      ) : (
-        <span className="flex shrink-0 items-center gap-1.5">
-          {count >= 1 && (
-            <span
-              className={`text-lg font-black leading-none ${
-                maxed ? "text-red-600" : "text-ink-soft"
-              }`}
-              aria-label={maxed ? "vollständig abgeschlossen" : "abgeschlossen"}
-            >
-              ✓
-            </span>
-          )}
-          <span className="text-[11px] font-semibold tabular-nums text-ink-soft">
-            {Math.min(count, max)}/{max}
+      ) : done ? (
+        <span
+          className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+            maxed ? "bg-red-600 text-white" : "bg-ink-soft/15 text-ink-soft"
+          }`}
+        >
+          Abgeschlossen!
+        </span>
+      ) : count >= 1 ? (
+        <span className="flex shrink-0 items-center gap-1 text-ink-soft">
+          <span className="text-base font-black leading-none">✓</span>
+          <span className="text-[11px] font-semibold tabular-nums">
+            {count}/{max}
           </span>
+        </span>
+      ) : (
+        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-ink-soft/60">
+          0/{max}
         </span>
       )}
     </button>

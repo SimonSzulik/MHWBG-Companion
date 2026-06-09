@@ -71,7 +71,8 @@ export function Camp() {
           to="/campaign/quests"
           className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-line-strong bg-accent py-3.5 font-semibold text-white active:translate-y-px"
         >
-          <span className="text-xl leading-none">⚔</span> Quest
+          <img src="/icons/quest.png" alt="" className="h-7 w-7 object-contain" />{" "}
+          Quest
         </Link>
         <Link
           to="/campaign/downtime"
@@ -129,7 +130,7 @@ export function Camp() {
                 aria-label="Trank verbrauchen"
                 className="flex items-center gap-1 rounded-full border-[1.5px] border-line-strong bg-card px-2 py-0.5 active:translate-y-px disabled:opacity-50"
               >
-                <img src="/icons/ref-potion.svg" alt="" className="h-4 w-4" />
+                <img src="/icons/potion.png" alt="" className="h-5 w-5" />
                 <span className="text-sm font-bold tabular-nums">{potions}</span>
               </button>
             }
