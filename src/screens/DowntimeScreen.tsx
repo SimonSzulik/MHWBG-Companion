@@ -27,7 +27,7 @@ import { useOwnHunter } from "../store/hooks";
 import { Stepper } from "../ui/Stepper";
 import { Screen } from "../ui/Screen";
 import { Button } from "../ui/Button";
-import { ConfirmDialog } from "../ui/CampaignPanel";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 const ALL_ACTIVITIES: {
   id: DowntimeActivityId;
