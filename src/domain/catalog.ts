@@ -1,7 +1,6 @@
 import { gameData } from "../data/gameData";
 import type {
   ArmorForgeSet,
-  Campaign,
   GearDef,
   GearSlot,
   Hunter,
@@ -119,13 +118,12 @@ export function craftState(gear: GearDef, hunter: Hunter): CraftState {
   return hasMaterials(gear, hunter) ? "craftable" : "missing";
 }
 
-export function isEquipped(gearId: string, campaign: Campaign): boolean {
+/** Whether this exact gear piece is the one the given hunter has equipped. */
+export function isEquipped(gearId: string, hunter: Hunter): boolean {
   const gear = catalog.gear(gearId);
   if (!gear) return false;
-  return campaign.hunters.some((h) => {
-    if (gear.slot === "weapon") return h.equipped.weapon === gearId;
-    return h.equipped[gear.slot] === gearId;
-  });
+  if (gear.slot === "weapon") return hunter.equipped.weapon === gearId;
+  return hunter.equipped[gear.slot] === gearId;
 }
 
 /** Sum defense from all equipped gear pieces. */
@@ -178,7 +176,6 @@ export interface ForgeRootGroup {
 function makeNode(
   gear: GearDef,
   hunter: Hunter,
-  campaign: Campaign,
   state: ForgeNodeState,
 ): ForgeNode {
   return {
@@ -186,7 +183,7 @@ function makeNode(
     forged: hunter.ownedGear.includes(gear.id),
     held: heldCount(hunter, gear.id),
     enoughMats: hasMaterials(gear, hunter),
-    equipped: isEquipped(gear.id, campaign),
+    equipped: isEquipped(gear.id, hunter),
     state,
     materialProgress: computeMaterialProgress(gear, hunter),
     prerequisiteMet: canCraftGear(gear, hunter),
@@ -200,7 +197,6 @@ function makeNode(
 export function weaponForgeGraph(
   weaponType: WeaponType,
   hunter: Hunter,
-  campaign: Campaign,
 ): ForgeRootGroup[] {
   const owned = new Set(hunter.ownedGear);
 
@@ -234,7 +230,7 @@ export function weaponForgeGraph(
       else rootState = hasMaterials(rootGear, hunter) ? "craftable" : "pending";
     } else rootState = owned.has(rootId) ? "forged" : "pending";
 
-    const root = makeNode(rootGear, hunter, campaign, rootState);
+    const root = makeNode(rootGear, hunter, rootState);
     if (freeStarter) root.forged = true;
 
     // Which branches are already chosen (any tier beyond the root forged).
@@ -261,7 +257,7 @@ export function weaponForgeGraph(
         else state = "pending";
         prevId = id;
         return gear
-          ? makeNode(gear, hunter, campaign, state)
+          ? makeNode(gear, hunter, state)
           : null;
       });
 
@@ -320,7 +316,6 @@ export interface ForgeArmorSetRow {
 /** Forge graph rows for armour sets (helm → mail → greaves, no prerequisites). */
 export function armorForgeGraph(
   hunter: Hunter,
-  campaign: Campaign,
 ): ForgeArmorSetRow[] {
   return armorSets().map((set) => {
     const nodes = set.gearIds
@@ -333,7 +328,7 @@ export function armorForgeGraph(
         if (forged) state = "forged";
         else if (mats) state = "craftable";
         else state = "pending";
-        const node = makeNode(gear, hunter, campaign, state);
+        const node = makeNode(gear, hunter, state);
         node.prerequisiteMet = true;
         return node;
       })

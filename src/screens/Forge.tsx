@@ -14,7 +14,7 @@ import {
 import { ForgeTreeCanvas } from "../ui/forge/ForgeTreeCanvas";
 import { ForgeArmorCanvas } from "../ui/forge/ForgeArmorCanvas";
 import { ForgeNodeSheet } from "../ui/forge/ForgeNodeSheet";
-import type { Campaign, Hunter } from "../domain/types";
+import type { Hunter } from "../domain/types";
 
 type Tab = "weapons" | "armour";
 
@@ -62,9 +62,9 @@ export function Forge() {
       />
 
       {tab === "weapons" ? (
-        <WeaponForgeGraph hunter={hunter} campaign={campaign} onCraft={onCraft} />
+        <WeaponForgeGraph hunter={hunter} onCraft={onCraft} />
       ) : (
-        <ArmorForgeGraph hunter={hunter} campaign={campaign} onCraft={onCraft} />
+        <ArmorForgeGraph hunter={hunter} onCraft={onCraft} />
       )}
     </Screen>
   );
@@ -72,14 +72,12 @@ export function Forge() {
 
 function WeaponForgeGraph({
   hunter,
-  campaign,
   onCraft,
 }: {
   hunter: Hunter;
-  campaign: Campaign;
   onCraft: (id: string) => void;
 }) {
-  const groups = weaponForgeGraph(hunter.weaponType, hunter, campaign);
+  const groups = weaponForgeGraph(hunter.weaponType, hunter);
   const [sheet, setSheet] = useState<WeaponSheetTarget | null>(null);
 
   if (groups.length === 0) {
@@ -113,14 +111,12 @@ function WeaponForgeGraph({
 
 function ArmorForgeGraph({
   hunter,
-  campaign,
   onCraft,
 }: {
   hunter: Hunter;
-  campaign: Campaign;
   onCraft: (id: string) => void;
 }) {
-  const rows = armorForgeGraph(hunter, campaign);
+  const rows = armorForgeGraph(hunter);
   const [sheet, setSheet] = useState<ArmorSheetTarget | null>(null);
 
   if (rows.length === 0) {
