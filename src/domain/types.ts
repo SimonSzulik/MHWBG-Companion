@@ -131,6 +131,15 @@ export interface ProvisionsTrade {
   rewardId: string;
 }
 
+export interface TradeRequest {
+  id: string;
+  fromHunterId: string;
+  toHunterId: string;
+  offeredMaterialId: string;
+  requestedMaterialId: string;
+  status: "pending" | "accepted" | "declined";
+}
+
 export interface ActiveDowntime {
   picks: Record<string, DowntimeActivityId[]>;
   provisions: Record<string, ProvisionsTrade>;
@@ -225,6 +234,8 @@ export interface Campaign {
   pendingHandlerQuestId?: string | null;
   /** In-progress downtime day (synced). */
   activeDowntime?: ActiveDowntime | null;
+  /** Pending material trade requests between hunters. */
+  pendingTrades?: TradeRequest[];
   /** Share code for co-op (from cloud). */
   joinCode?: string;
   createdAt: number;

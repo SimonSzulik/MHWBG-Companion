@@ -452,3 +452,5 @@ alter table public.campaign_state
   add column if not exists pending_handler_quest text;
 alter table public.hunter
   add column if not exists element_resistance text;
+alter table public.campaign_state
+  add column if not exists pending_trades jsonb not null default '[]'::jsonb;

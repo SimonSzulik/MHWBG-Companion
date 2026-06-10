@@ -68,8 +68,8 @@ export function EquipLoadoutBar({
   const totalDef = hunterTotalDefense(hunter);
 
   return (
-    <div className="paper-card flex items-center gap-2 px-3 py-3">
-      <div className="flex items-center gap-2">
+    <div className="paper-card flex items-stretch gap-2 px-3 py-3">
+      <div className="flex shrink-0 items-center gap-2">
         {LOADOUT_SLOTS.map((slot) => (
           <EquipSlotButton
             key={slot}
@@ -83,9 +83,9 @@ export function EquipLoadoutBar({
           />
         ))}
       </div>
-      <div className="flex flex-1 items-center justify-center">
+      <div className="relative min-h-14 min-w-0 flex-1">
         <div
-          className="grid h-12 w-11 place-items-center"
+          className="absolute left-1/2 top-1/2 grid h-12 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center"
           title="Defense"
           style={{
             background: "var(--color-accent)",

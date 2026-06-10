@@ -43,7 +43,7 @@ export function CreateCampaignScreen() {
       return;
     }
     if (!navigator.onLine) {
-      setError("Internetverbindung erforderlich.");
+      setError("Internet connection required.");
       return;
     }
     setBusy(true);
@@ -103,13 +103,13 @@ export function CreateCampaignScreen() {
     <Screen title="Neue Kampagne" subtitle="Setup">
       <div className="flex flex-col gap-4">
         <Field
-          label="Kampagnenname"
+          label="Campaign name"
           value={campaignName}
           onChange={(e) => setCampaignName(e.target.value)}
         />
 
         <Field
-          label="Jägername"
+          label="Hunter name"
           value={hunterName}
           onChange={(e) => setHunterName(e.target.value)}
         />
@@ -140,7 +140,7 @@ export function CreateCampaignScreen() {
           <Stepper value={potions} onChange={setPotions} min={0} max={3} />
         </Row>
 
-        <Row label="Tage">
+        <Row label="Days">
           <Stepper value={maxDay} onChange={setMaxDay} min={0} max={60} />
         </Row>
 

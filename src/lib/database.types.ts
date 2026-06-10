@@ -108,6 +108,7 @@ export interface Database {
           day_log: Record<string, unknown>;
           active_downtime: unknown | null;
           pending_handler_quest: string | null;
+          pending_trades: unknown[];
           updated_at: string;
         };
         Insert: {
@@ -121,6 +122,7 @@ export interface Database {
           day_log?: Record<string, unknown>;
           active_downtime?: unknown | null;
           pending_handler_quest?: string | null;
+          pending_trades?: unknown[];
         };
         Update: Partial<{
           zenny: number;
@@ -132,6 +134,7 @@ export interface Database {
           day_log: Record<string, unknown>;
           active_downtime: unknown | null;
           pending_handler_quest: string | null;
+          pending_trades: unknown[];
         }>;
         Relationships: [];
       };

@@ -8,7 +8,7 @@ import { SegmentedTabs } from "../ui/SegmentedTabs";
 
 type Mode = "login" | "signup";
 
-/** Login or create account with Jägername + password. */
+/** Login or create account with hunter name + password. */
 export function LoginScreen() {
   const nav = useNavigate();
   const signIn = useAuth((s) => s.signIn);
@@ -24,10 +24,10 @@ export function LoginScreen() {
     return (
       <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6">
         <div className="paper-card p-6 text-center">
-          <p className="font-display text-xl">Supabase fehlt</p>
+          <p className="font-display text-xl">Supabase not configured</p>
           <p className="mt-2 text-sm text-ink-soft">
-            Trage <code>SUPABASE_URL</code> und{" "}
-            <code>SUPABASE_ANON_KEY</code> in <code>.env</code> ein.
+            Add <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> to{" "}
+            <code>.env</code>.
           </p>
         </div>
       </div>
@@ -39,7 +39,7 @@ export function LoginScreen() {
     return (
       <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6">
         <div className="paper-card p-6 text-center">
-          <p className="font-display text-xl">Supabase falsch konfiguriert</p>
+          <p className="font-display text-xl">Invalid Supabase configuration</p>
           <p className="mt-2 text-sm text-ink-soft">{configIssue}</p>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function LoginScreen() {
   const submit = async () => {
     setError(null);
     if (mode === "signup" && password !== password2) {
-      setError("Passwörter stimmen nicht überein.");
+      setError("Passwords do not match.");
       return;
     }
     setBusy(true);
@@ -59,7 +59,7 @@ export function LoginScreen() {
         : await signUp(username, password);
     setBusy(false);
     if (!res.ok) {
-      setError(res.error ?? "Fehler");
+      setError(res.error ?? "Error");
       return;
     }
     nav("/onboarding", { replace: true });
@@ -68,7 +68,7 @@ export function LoginScreen() {
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 py-8">
       <h1 className="font-display text-3xl">MHWBG Companion</h1>
-      <p className="mt-1 text-sm text-ink-soft">Melde dich mit deinem Jägernamen an.</p>
+      <p className="mt-1 text-sm text-ink-soft">Sign in with your hunter name.</p>
 
       <SegmentedTabs<Mode>
         className="mb-4 mt-6"
@@ -76,19 +76,19 @@ export function LoginScreen() {
         onChange={setMode}
         tabs={[
           { value: "login", label: "Login" },
-          { value: "signup", label: "Konto erstellen" },
+          { value: "signup", label: "Create account" },
         ]}
       />
 
       <div className="paper-card flex flex-col gap-3 p-4">
         <Field
-          label="Jägername"
+          label="Hunter name"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           autoComplete="username"
         />
         <Field
-          label="Passwort"
+          label="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -96,7 +96,7 @@ export function LoginScreen() {
         />
         {mode === "signup" && (
           <Field
-            label="Passwort wiederholen"
+            label="Repeat password"
             type="password"
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
@@ -110,7 +110,7 @@ export function LoginScreen() {
           onClick={() => void submit()}
           className="py-2.5 font-semibold"
         >
-          {mode === "login" ? "Einloggen" : "Konto erstellen"}
+          {mode === "login" ? "Sign in" : "Create account"}
         </Button>
       </div>
     </div>

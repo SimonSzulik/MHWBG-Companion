@@ -10,10 +10,10 @@ import { exportCampaign, importCampaign } from "../lib/backup";
 import { usePwaInstall } from "../lib/pwa/usePwaInstall";
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
-  off: { text: "Getrennt", cls: "text-ink-soft" },
-  connecting: { text: "Verbinde…", cls: "text-warn" },
-  live: { text: "● Live synchronisiert", cls: "text-ok" },
-  error: { text: "Fehler", cls: "text-red-600" },
+  off: { text: "Disconnected", cls: "text-ink-soft" },
+  connecting: { text: "Connecting…", cls: "text-warn" },
+  live: { text: "● Live sync", cls: "text-ok" },
+  error: { text: "Error", cls: "text-red-600" },
 };
 
 /** Settings: sync status, join code, backup, logout. */
@@ -29,7 +29,7 @@ export function Settings() {
   const st = STATUS_LABEL[status] ?? STATUS_LABEL.off;
 
   const logout = async () => {
-    if (!confirm("Abmelden und Kampagne verlassen?")) return;
+    if (!confirm("Sign out and leave the campaign?")) return;
     await stopSync();
     resetCampaign();
     await signOut();
@@ -43,12 +43,12 @@ export function Settings() {
   };
 
   return (
-    <Screen title="Einstellungen" subtitle={campaign?.name}>
-      <Section title="Kampagne">
+    <Screen title="Settings" subtitle={campaign?.name}>
+      <Section title="Campaign">
         {campaign?.joinCode ? (
           <div className="rounded-lg border border-dashed border-accent/70 bg-accent-faint/50 px-3 py-2 text-center">
             <p className="text-xs text-ink-soft">
-              Teile diesen Code, damit andere der Kampagne beitreten können:
+              Share this code so others can join the campaign:
             </p>
             <p className="font-display text-2xl tracking-widest">
               {campaign.joinCode}
@@ -60,18 +60,18 @@ export function Settings() {
               }}
               className="mt-2 text-sm text-accent underline"
             >
-              Code kopieren
+              Copy code
             </button>
           </div>
         ) : (
-          <p className="text-sm text-ink-soft">Join-Code wird geladen…</p>
+          <p className="text-sm text-ink-soft">Loading join code…</p>
         )}
         <button
           type="button"
           onClick={() => void switchCampaign()}
           className="rounded-lg border-[1.5px] border-line-strong bg-card py-2 text-sm font-semibold active:translate-y-px"
         >
-          Kampagne wechseln
+          Switch campaign
         </button>
       </Section>
 
@@ -84,10 +84,10 @@ export function Settings() {
 
       <Section title="App">
         {isInstalled ? (
-          <p className="text-sm text-ok">Diese App ist bereits installiert.</p>
+          <p className="text-sm text-ok">This app is already installed.</p>
         ) : isIos || !hasNativeInstallPrompt ? (
           <p className="text-sm text-ink-soft">
-            In Safari: Teilen antippen und dann „Zum Home-Bildschirm“ wählen.
+            In Safari: tap Share, then choose “Add to Home Screen”.
           </p>
         ) : (
           <button
@@ -97,7 +97,7 @@ export function Settings() {
             }}
             className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white active:translate-y-px"
           >
-            App installieren
+            Install app
           </button>
         )}
       </Section>
@@ -110,14 +110,14 @@ export function Settings() {
             onClick={() => exportCampaign()}
             className="flex-1 rounded-lg border-[1.5px] border-line-strong bg-card py-2 text-sm font-semibold active:translate-y-px disabled:opacity-40"
           >
-            Exportieren (JSON)
+            Export (JSON)
           </button>
           <button
             type="button"
             onClick={() => fileInput.current?.click()}
             className="flex-1 rounded-lg border-[1.5px] border-line-strong bg-card py-2 text-sm font-semibold active:translate-y-px"
           >
-            Importieren
+            Import
           </button>
         </div>
         <input
@@ -129,19 +129,19 @@ export function Settings() {
             const f = e.target.files?.[0];
             if (!f) return;
             const res = await importCampaign(f);
-            if (!res.ok) alert(res.reason ?? "Import fehlgeschlagen.");
+            if (!res.ok) alert(res.reason ?? "Import failed.");
             e.target.value = "";
           }}
         />
       </Section>
 
-      <Section title="Konto">
+      <Section title="Account">
         <button
           type="button"
           onClick={() => void logout()}
           className="rounded-lg border-[1.5px] border-line-strong bg-card py-2 text-sm font-semibold active:translate-y-px"
         >
-          Abmelden
+          Sign out
         </button>
       </Section>
     </Screen>

@@ -12,7 +12,7 @@ function EquipGearBadge({ equipped }: { equipped: boolean }) {
         equipped ? "bg-accent-faint text-accent" : "bg-ok-soft text-ok"
       }`}
     >
-      {equipped ? "AUSGERÜSTET" : "IM BESITZ"}
+      {equipped ? "EQUIPPED" : "OWNED"}
     </span>
   );
 }
@@ -61,14 +61,14 @@ export function EquipGearSheet({
             </p>
           )}
           {gear.isStarter && (
-            <p className="mt-0.5 text-xs text-ink-soft">Startausrüstung</p>
+            <p className="mt-0.5 text-xs text-ink-soft">Starter gear</p>
           )}
         </div>
       </div>
 
       {gear.slot !== "weapon" && gear.defense !== undefined && (
         <p className="mt-2 text-sm text-ink-soft">
-          Verteidigung{" "}
+          Defense{" "}
           <span className="font-semibold text-ink">
             {gear.defense > 0 ? `+${gear.defense}` : gear.defense}
           </span>
@@ -87,7 +87,7 @@ export function EquipGearSheet({
             onEquip();
             onClose();
           }}
-          label="Ausrüsten"
+          label="Equip"
         />
       )}
 
@@ -101,7 +101,7 @@ export function EquipGearSheet({
           }}
           className="mt-3 w-full py-2 text-sm font-semibold"
         >
-          Ablegen
+          Unequip
         </Button>
       )}
 
@@ -111,7 +111,7 @@ export function EquipGearSheet({
         onClick={onClose}
         className="mt-3 w-full py-2 text-sm font-semibold"
       >
-        Schließen
+        Close
       </Button>
     </BottomSheet>
   );

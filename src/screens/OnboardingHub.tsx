@@ -52,7 +52,7 @@ export function OnboardingHub() {
     const ok = await activateCampaign(id);
     setOpeningId(null);
     if (!ok) {
-      setError("Kampagne konnte nicht geladen werden.");
+      setError("Could not load campaign.");
       return;
     }
     nav("/", { replace: true });
@@ -67,21 +67,21 @@ export function OnboardingHub() {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 py-8">
-      <h1 className="font-display text-3xl">Willkommen</h1>
+      <h1 className="font-display text-3xl">Welcome</h1>
       <p className="mt-1 text-sm text-ink-soft">
-        {username ? `Jäger ${username}` : "Eingeloggt"}
+        {username ? `Hunter ${username}` : "Signed in"}
       </p>
 
       <div className="mt-8">
         <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-          Deine Kampagnen
+          Your campaigns
         </p>
         {loading && (
-          <p className="text-sm text-ink-soft">Lade Kampagnen…</p>
+          <p className="text-sm text-ink-soft">Loading campaigns…</p>
         )}
         {!loading && campaigns.length === 0 && !error && (
           <p className="paper-card px-4 py-3 text-sm text-ink-soft">
-            Noch keine Kampagne — starte eine neue oder tritt einer bei.
+            No campaign yet — start a new one or join an existing one.
           </p>
         )}
         {!loading && campaigns.length > 0 && (
@@ -102,12 +102,12 @@ export function OnboardingHub() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{c.name}</p>
                   <p className="truncate text-sm text-ink-soft">
-                    Tag {c.day}/{c.maxDay}
+                    Day {c.day}/{c.maxDay}
                     {c.hunterName ? ` · ${c.hunterName}` : ""}
                     {c.weaponType ? ` · ${c.weaponType}` : ""}
                   </p>
                   <p className="text-xs text-ink-soft">
-                    {c.role === "owner" ? "Ersteller" : "Spieler"} · Code{" "}
+                    {c.role === "owner" ? "Owner" : "Player"} · Code{" "}
                     {c.joinCode}
                   </p>
                 </div>
@@ -125,13 +125,13 @@ export function OnboardingHub() {
           to="/onboarding/new"
           className="paper-card px-4 py-5 text-center font-semibold active:translate-y-px"
         >
-          Neue Kampagne starten
+          Start new campaign
         </Link>
         <Link
           to="/onboarding/join"
           className="paper-card px-4 py-5 text-center font-semibold active:translate-y-px"
         >
-          Kampagne beitreten
+          Join campaign
         </Link>
       </div>
 
@@ -142,7 +142,7 @@ export function OnboardingHub() {
         onClick={() => void logout()}
         className="mt-auto pt-8 text-sm text-ink-soft underline"
       >
-        Abmelden
+        Sign out
       </button>
     </div>
   );

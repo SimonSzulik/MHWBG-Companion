@@ -38,7 +38,7 @@ export function Screen({
             <button
               type="button"
               onClick={() => nav(-1)}
-              aria-label="Zurück"
+              aria-label="Back"
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-card text-lg active:translate-y-px"
             >
               ‹

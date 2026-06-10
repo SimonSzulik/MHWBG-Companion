@@ -58,8 +58,8 @@ export function questTierLockReason(
   if (incomplete.length === 0) return undefined;
   const tiers = [
     ...new Set(incomplete.map((q) => starLabel(q.stars))),
-  ].join(" und ");
-  return `Zuerst ${tiers} abschließen`;
+  ].join(" and ");
+  return `Complete ${tiers} first`;
 }
 
 /** The campaign's mandatory first quest — the 1★ Great Jagras. */
@@ -110,7 +110,7 @@ export function questLockReason(
   monsterQuests: QuestDef[],
 ): string | undefined {
   if (!isCampaignUnlocked(quest, completions)) {
-    return "Zuerst den 1★ Großen Jagras erlegen";
+    return "Clear the 1★ Great Jagras first";
   }
   return questTierLockReason(quest, completions, monsterQuests);
 }

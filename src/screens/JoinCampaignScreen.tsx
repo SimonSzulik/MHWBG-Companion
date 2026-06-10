@@ -37,11 +37,11 @@ export function JoinCampaignScreen() {
 
   const validateCode = async () => {
     if (!navigator.onLine) {
-      setError("Internetverbindung erforderlich.");
+      setError("Internet connection required.");
       return;
     }
     if (!codeValid) {
-      setError("Join-Code muss 8 Zeichen haben (z. B. A1B2C3D4).");
+      setError("Join code must be 8 characters (e.g. A1B2C3D4).");
       return;
     }
     setBusy(true);
@@ -54,7 +54,7 @@ export function JoinCampaignScreen() {
     if (known) {
       setBusy(false);
       setExistingCampaignId(known.id);
-      setError("Du nimmst bereits an dieser Kampagne teil.");
+      setError("You are already in this campaign.");
       return;
     }
 
@@ -66,7 +66,7 @@ export function JoinCampaignScreen() {
     }
     if (peek.data.alreadyMember) {
       setExistingCampaignId(peek.data.campaignId);
-      setError("Du nimmst bereits an dieser Kampagne teil.");
+      setError("You are already in this campaign.");
       return;
     }
     setTakenWeapons(peek.data.takenWeapons);
@@ -80,7 +80,7 @@ export function JoinCampaignScreen() {
     const ok = await activateCampaign(existingCampaignId);
     setBusy(false);
     if (!ok) {
-      setError("Kampagne konnte nicht geöffnet werden.");
+      setError("Could not open campaign.");
       return;
     }
     nav("/", { replace: true });
@@ -97,14 +97,14 @@ export function JoinCampaignScreen() {
     );
     setBusy(false);
     if (!ok) {
-      setError("Beitritt fehlgeschlagen. Code oder Waffe prüfen.");
+      setError("Join failed. Check code or weapon.");
       return;
     }
     nav("/", { replace: true });
   };
 
   return (
-    <Screen title="Kampagne beitreten" subtitle={step === "code" ? "Join-Code" : "Jäger"}>
+    <Screen title="Join campaign" subtitle={step === "code" ? "Join code" : "Hunter"}>
       {step === "code" && (
         <div className="flex flex-col gap-4">
           <Field
@@ -124,7 +124,7 @@ export function JoinCampaignScreen() {
               onClick={() => void openExistingCampaign()}
               className="bg-card py-2.5 text-sm font-semibold"
             >
-              Kampagne öffnen
+              Open campaign
             </Button>
           )}
           <Button
@@ -141,7 +141,7 @@ export function JoinCampaignScreen() {
       {step === "setup" && (
         <div className="flex flex-col gap-4">
           <Field
-            label="Jägername"
+            label="Hunter name"
             value={hunterName}
             onChange={(e) => setHunterName(e.target.value)}
           />

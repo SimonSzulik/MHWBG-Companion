@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
+import { Button } from "../ui/Button";
 import { useCampaign } from "../store/campaign";
 import { useOwnHunter } from "../store/hooks";
 import {
@@ -40,6 +41,7 @@ const STAR_TYPE_LABEL: Record<QuestStars, string> = {
 export function QuestScreen() {
   const { campaign, hunter } = useOwnHunter();
   const startQuest = useCampaign((s) => s.startQuest);
+  const forceStartQuest = useCampaign((s) => s.forceStartQuest);
   const navigate = useNavigate();
   const [openStar, setOpenStar] = useState<QuestStars | null>(
     STAR_ORDER[0] ?? null,
@@ -72,6 +74,33 @@ export function QuestScreen() {
           Ancient Forest
         </p>
       </div>
+
+      {campaign.activeQuest?.phase === "lobby" && (
+        <div className="mb-3 rounded-xl border-[1.5px] border-warn bg-paper-2 px-4 py-3">
+          <p className="text-sm font-semibold">Quest lobby open</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            Not everyone has joined yet.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/campaign/quest")}
+              className="flex-1 py-2 text-sm font-semibold"
+            >
+              Open lobby
+            </Button>
+            <Button
+              onClick={() => {
+                forceStartQuest();
+                navigate("/campaign/quest");
+              }}
+              className="flex-1 py-2 text-sm font-semibold"
+            >
+              Start now (test)
+            </Button>
+          </div>
+        </div>
+      )}
 
       {pendingQuest && (
         <div className="mb-3 rounded-xl border-[1.5px] border-accent bg-accent-faint px-4 py-3 text-sm">

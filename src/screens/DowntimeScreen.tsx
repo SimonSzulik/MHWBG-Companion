@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gameData } from "../data/gameData";
 import {
@@ -15,6 +15,7 @@ import {
   roll2d6,
 } from "../domain/downtime";
 import type {
+  ActiveDowntime,
   DowntimeActivityId,
   ElementType,
   ProvisionsTrade,
@@ -29,13 +30,31 @@ import { Screen } from "../ui/Screen";
 import { Button } from "../ui/Button";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 
-const ALL_ACTIVITIES: {
-  id: DowntimeActivityId;
-  label: string;
-  description: string;
-}[] = [...DOWNTIME_ACTIVITIES, HANDLER_ACTIVITY];
+function isActivityResolved(
+  id: DowntimeActivityId,
+  hunterId: string,
+  dt: ActiveDowntime,
+  hunterIds: string[],
+): boolean {
+  switch (id) {
+    case "provisions":
+      return Boolean(dt.provisions[hunterId]);
+    case "resource-center":
+      return dt.resourceRoll[hunterId] != null;
+    case "chef":
+      return Boolean(dt.chefElement[hunterId]);
+    case "poogie":
+      return true;
+    case "handler":
+      return (
+        allHuntersPickedHandler(hunterIds, dt.picks) &&
+        Boolean(dt.handlerProposals[hunterId]) &&
+        Boolean(dt.handlerQuestId)
+      );
+  }
+}
 
-/** Downtime day: pick 3 activities, resolve each, confirm with party. */
+/** Downtime day: hub with activity cards, drill-in panels, confirm with party. */
 export function DowntimeScreen() {
   const { campaign, hunter } = useOwnHunter();
   const beginDowntime = useCampaign((s) => s.beginDowntime);
@@ -47,6 +66,9 @@ export function DowntimeScreen() {
   const confirmDowntime = useCampaign((s) => s.confirmDowntime);
   const cancelDowntime = useCampaign((s) => s.cancelDowntime);
   const navigate = useNavigate();
+  const [openActivity, setOpenActivity] = useState<DowntimeActivityId | null>(
+    null,
+  );
   const [confirmEnd, setConfirmEnd] = useState(false);
 
   useEffect(() => {
@@ -57,9 +79,13 @@ export function DowntimeScreen() {
 
   if (campaign.activeQuest) {
     return (
-      <Screen title="Downtime" subtitle="Nicht verfügbar">
+      <Screen
+        title="Downtime"
+        hideHeader
+        background="/backgrounds/Downtime.png"
+      >
         <div className="paper-card p-5 text-center text-sm text-ink-soft">
-          Während einer laufenden Quest kein Downtime möglich.
+          Downtime is unavailable while a quest is in progress.
         </div>
       </Screen>
     );
@@ -68,9 +94,13 @@ export function DowntimeScreen() {
   const dt = campaign.activeDowntime;
   if (!dt) {
     return (
-      <Screen title="Downtime" subtitle="Lädt…">
+      <Screen
+        title="Downtime"
+        hideHeader
+        background="/backgrounds/Downtime.png"
+      >
         <div className="paper-card p-5 text-center text-sm text-ink-soft">
-          Downtime wird vorbereitet…
+          Preparing downtime…
         </div>
       </Screen>
     );
@@ -85,28 +115,22 @@ export function DowntimeScreen() {
     ? questById(dt.handlerQuestId)
     : undefined;
 
-  const togglePick = (id: DowntimeActivityId) => {
+  const openActivityCard = (id: DowntimeActivityId) => {
     const cur = [...myPicks];
     const idx = cur.indexOf(id);
-    if (idx >= 0) {
-      cur.splice(idx, 1);
-    } else if (cur.length < MAX_DOWNTIME_PICKS) {
+    if (idx < 0) {
+      if (cur.length >= MAX_DOWNTIME_PICKS) {
+        alert(`Choose exactly ${MAX_DOWNTIME_PICKS} activities first.`);
+        return;
+      }
       cur.push(id);
-    } else {
-      return;
+      const res = setDowntimePicks(hunter.id, cur);
+      if (!res.ok) {
+        alert(res.reason);
+        return;
+      }
     }
-    const res = setDowntimePicks(hunter.id, cur);
-    if (!res.ok) alert(res.reason);
-  };
-
-  const savePicks = () => {
-    if (myPicks.length !== MAX_DOWNTIME_PICKS) {
-      alert(`Wähle genau ${MAX_DOWNTIME_PICKS} Aktivitäten.`);
-      return;
-    }
-    if (myPicks.includes("handler") && !handlerActive) {
-      alert("Handler: Alle Jäger müssen Handler wählen.");
-    }
+    setOpenActivity(id);
   };
 
   const finishDay = () => {
@@ -119,108 +143,155 @@ export function DowntimeScreen() {
     navigate("/");
   };
 
+  const activityMeta = (id: DowntimeActivityId) => {
+    if (id === "handler") return HANDLER_ACTIVITY;
+    return DOWNTIME_ACTIVITIES.find((a) => a.id === id)!;
+  };
+
+  if (openActivity && !myConfirmed) {
+    const meta = activityMeta(openActivity);
+    return (
+      <Screen
+        title="Downtime"
+        hideHeader
+        background="/backgrounds/Downtime.png"
+      >
+        <button
+          type="button"
+          onClick={() => setOpenActivity(null)}
+          aria-label="Back"
+          className="mb-3 grid h-9 w-9 place-items-center rounded-full border-[1.5px] border-line-strong bg-card text-lg active:translate-y-px"
+        >
+          ‹
+        </button>
+        <p className="font-display text-2xl leading-tight">{meta.label}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">{meta.description}</p>
+
+        <div className="mt-4">
+          {openActivity === "provisions" && (
+            <ProvisionsPanel
+              materials={hunter.materials}
+              potions={campaign.items.potion ?? 0}
+              saved={dt.provisions[hunter.id]}
+              onSave={(trade) => {
+                const res = resolveProvisions(hunter.id, trade);
+                if (!res.ok) alert(res.reason);
+              }}
+            />
+          )}
+          {openActivity === "resource-center" && (
+            <ResourceCenterPanel
+              savedRoll={dt.resourceRoll[hunter.id]}
+              onRoll={(sum) => {
+                const res = resolveResourceCenter(hunter.id, sum);
+                if (!res.ok) alert(res.reason);
+              }}
+            />
+          )}
+          {openActivity === "chef" && (
+            <ChefPanel
+              selected={dt.chefElement[hunter.id]}
+              onSelect={(el) => {
+                const res = resolveChef(hunter.id, el);
+                if (!res.ok) alert(res.reason);
+              }}
+            />
+          )}
+          {openActivity === "poogie" && (
+            <div className="paper-card p-4 text-center">
+              <p className="text-3xl">🐷</p>
+              <p className="mt-2 font-semibold">Pet Poogie</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                *happy oink* — maybe it brings luck!
+              </p>
+            </div>
+          )}
+          {openActivity === "handler" && handlerActive && (
+            <HandlerPanel
+              pool={handlerPool}
+              myProposal={dt.handlerProposals[hunter.id]}
+              unanimousQuest={unanimousQuest}
+              proposals={dt.handlerProposals}
+              hunterIds={hunterIds}
+              onPropose={(questId) => {
+                const res = setHandlerQuest(hunter.id, questId);
+                if (!res.ok) alert(res.reason);
+              }}
+            />
+          )}
+          {openActivity === "handler" && !handlerActive && (
+            <div className="paper-card p-4 text-sm text-ink-soft">
+              All hunters must pick Visit the Handler before choosing a quest.
+            </div>
+          )}
+        </div>
+      </Screen>
+    );
+  }
+
   return (
-    <Screen title="Downtime" subtitle={`Tag ${campaign.day} · 3 Aktivitäten`}>
-      <PartyStatus
-        hunters={campaign.hunters}
-        confirmedIds={dt.confirmedHunterIds}
-        picks={dt.picks}
-      />
+    <Screen title="Downtime" hideHeader background="/backgrounds/Downtime.png">
+      <div className="mb-4 text-center">
+        <p className="font-display text-3xl leading-none">Downtime</p>
+        <p className="mt-0.5 text-xs uppercase tracking-wide text-ink-soft">
+          Day {campaign.day} · {myPicks.length}/{MAX_DOWNTIME_PICKS} activities
+        </p>
+      </div>
 
       {!myConfirmed && (
         <>
-          <section className="paper-card p-4">
-            <p className="text-xs uppercase tracking-wide text-ink-soft">
-              Aktivitäten wählen ({myPicks.length}/{MAX_DOWNTIME_PICKS})
-            </p>
-            <div className="mt-3 flex flex-col gap-2">
-              {ALL_ACTIVITIES.map((a) => {
-                const selected = myPicks.includes(a.id);
-                const handlerBlocked =
-                  a.id === "handler" &&
-                  myPicks.includes("handler") &&
-                  !handlerActive &&
-                  selected;
-                return (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => togglePick(a.id)}
-                    className={`rounded-xl border-[1.5px] px-3 py-2.5 text-left active:translate-y-px ${
-                      selected
-                        ? "border-accent bg-accent-faint ring-1 ring-accent"
-                        : "border-line-strong bg-card"
-                    } ${myPicks.length >= MAX_DOWNTIME_PICKS && !selected ? "opacity-50" : ""}`}
-                  >
-                    <p className="font-semibold">{a.label}</p>
-                    <p className="mt-0.5 text-xs text-ink-soft">{a.description}</p>
-                    {handlerBlocked && (
-                      <p className="mt-1 text-[11px] text-accent">
-                        Warte auf alle Jäger…
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          {myPicks.length === MAX_DOWNTIME_PICKS && (
-            <div className="mt-4 flex flex-col gap-3">
-              {myPicks.includes("provisions") && (
-                <ProvisionsPanel
-                  hunterId={hunter.id}
-                  materials={hunter.materials}
-                  potions={campaign.items.potion ?? 0}
-                  saved={dt.provisions[hunter.id]}
-                  onSave={(trade) => {
-                    const res = resolveProvisions(hunter.id, trade);
-                    if (!res.ok) alert(res.reason);
-                  }}
-                />
-              )}
-              {myPicks.includes("resource-center") && (
-                <ResourceCenterPanel
-                  savedRoll={dt.resourceRoll[hunter.id]}
-                  onRoll={(sum) => {
-                    const res = resolveResourceCenter(hunter.id, sum);
-                    if (!res.ok) alert(res.reason);
-                  }}
-                />
-              )}
-              {myPicks.includes("chef") && (
-                <ChefPanel
-                  selected={dt.chefElement[hunter.id]}
-                  onSelect={(el) => {
-                    const res = resolveChef(hunter.id, el);
-                    if (!res.ok) alert(res.reason);
-                  }}
-                />
-              )}
-              {myPicks.includes("poogie") && (
-                <div className="paper-card p-4 text-center">
-                  <p className="text-3xl">🐷</p>
-                  <p className="mt-2 font-semibold">Poogie streicheln</p>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    *glückliches Grunzen* – vielleicht bringt&apos;s Glück!
+          <div className="grid grid-cols-2 gap-3">
+            {DOWNTIME_ACTIVITIES.map((a) => {
+              const selected = myPicks.includes(a.id);
+              const resolved = selected && isActivityResolved(a.id, hunter.id, dt, hunterIds);
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => openActivityCard(a.id)}
+                  className={`paper-card relative p-3 text-left active:translate-y-px ${
+                    selected ? "ring-1 ring-accent" : ""
+                  }`}
+                >
+                  {resolved && (
+                    <span className="absolute right-2 top-2 text-sm text-ok">✓</span>
+                  )}
+                  <p className="pr-5 font-semibold leading-tight">{a.label}</p>
+                  <p className="mt-1 text-[11px] leading-snug text-ink-soft">
+                    {a.description}
                   </p>
-                </div>
-              )}
-              {myPicks.includes("handler") && handlerActive && (
-                <HandlerPanel
-                  pool={handlerPool}
-                  myProposal={dt.handlerProposals[hunter.id]}
-                  unanimousQuest={unanimousQuest}
-                  proposals={dt.handlerProposals}
-                  hunterIds={hunterIds}
-                  onPropose={(questId) => {
-                    const res = setHandlerQuest(hunter.id, questId);
-                    if (!res.ok) alert(res.reason);
-                  }}
-                />
-              )}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => openActivityCard("handler")}
+            className={`paper-card mt-3 w-full border-[1.5px] p-3 text-left active:translate-y-px ${
+              myPicks.includes("handler")
+                ? "border-accent bg-accent-faint ring-1 ring-accent"
+                : "border-line-strong"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-semibold">{HANDLER_ACTIVITY.label}</p>
+                <p className="mt-1 text-[11px] text-ink-soft">
+                  {HANDLER_ACTIVITY.description}
+                </p>
+                {myPicks.includes("handler") && !handlerActive && (
+                  <p className="mt-1 text-[11px] text-accent">
+                    Waiting for all hunters…
+                  </p>
+                )}
+              </div>
+              {myPicks.includes("handler") &&
+                isActivityResolved("handler", hunter.id, dt, hunterIds) && (
+                  <span className="text-sm text-ok">✓</span>
+                )}
             </div>
-          )}
+          </button>
 
           <div className="mt-4 flex gap-2">
             <Button
@@ -231,17 +302,24 @@ export function DowntimeScreen() {
               }}
               className="flex-1 py-3 text-sm font-semibold"
             >
-              Abbrechen
+              Cancel
             </Button>
             <Button
               onClick={() => {
-                savePicks();
+                if (myPicks.length !== MAX_DOWNTIME_PICKS) {
+                  alert(`Choose exactly ${MAX_DOWNTIME_PICKS} activities.`);
+                  return;
+                }
+                if (myPicks.includes("handler") && !handlerActive) {
+                  alert("Handler: all hunters must pick Visit the Handler.");
+                  return;
+                }
                 setConfirmEnd(true);
               }}
               disabled={myPicks.length !== MAX_DOWNTIME_PICKS}
               className="flex-1 py-3 text-sm font-semibold"
             >
-              Tag abschließen
+              Finish day
             </Button>
           </div>
         </>
@@ -249,18 +327,18 @@ export function DowntimeScreen() {
 
       {myConfirmed && (
         <div className="paper-card p-5 text-center">
-          <p className="font-semibold">Bereit!</p>
+          <p className="font-semibold">Ready!</p>
           <p className="mt-2 text-sm text-ink-soft">
-            Warte auf {hunterIds.length - dt.confirmedHunterIds.length} weitere
-            Jäger…
+            Waiting for {hunterIds.length - dt.confirmedHunterIds.length} more
+            hunter{hunterIds.length - dt.confirmedHunterIds.length === 1 ? "" : "s"}…
           </p>
         </div>
       )}
 
       {confirmEnd && (
         <ConfirmDialog
-          title="Downtime abschließen?"
-          message="Der Kampagnentag wird verbraucht. Alle gewählten Aktivitäten sind erledigt?"
+          title="Finish downtime?"
+          message="This consumes a campaign day. Have you completed all chosen activities?"
           onConfirm={finishDay}
           onCancel={() => setConfirmEnd(false)}
         />
@@ -269,44 +347,12 @@ export function DowntimeScreen() {
   );
 }
 
-function PartyStatus({
-  hunters,
-  confirmedIds,
-  picks,
-}: {
-  hunters: { id: string; name: string }[];
-  confirmedIds: string[];
-  picks: Record<string, DowntimeActivityId[]>;
-}) {
-  return (
-    <div className="mb-4 paper-card p-3">
-      <p className="mb-2 text-xs uppercase tracking-wide text-ink-soft">Gruppe</p>
-      <div className="flex flex-col gap-1">
-        {hunters.map((h) => {
-          const p = picks[h.id] ?? [];
-          const done = confirmedIds.includes(h.id);
-          return (
-            <div key={h.id} className="flex items-center justify-between text-sm">
-              <span>{h.name}</span>
-              <span className="text-ink-soft">
-                {done ? "✓ bestätigt" : `${p.length}/3 gewählt`}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function ProvisionsPanel({
-  hunterId: _hunterId,
   materials,
   potions,
   saved,
   onSave,
 }: {
-  hunterId: string;
   materials: Record<string, number>;
   potions: number;
   saved?: ProvisionsTrade;
@@ -329,9 +375,9 @@ function ProvisionsPanel({
 
   return (
     <div className="paper-card p-4">
-      <p className="font-semibold">Vorratslager</p>
+      <p className="font-semibold">Provisions Stockpile</p>
       <p className="mt-1 text-xs text-ink-soft">
-        {total}/{PROVISIONS_TRADE_COST} Materialien abgeben
+        Trade {total}/{PROVISIONS_TRADE_COST} common materials
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {commons.map((id) => {
@@ -340,8 +386,15 @@ function ProvisionsPanel({
           const have = materials[id] ?? 0;
           if (have <= 0 && !(offered[id] ?? 0)) return null;
           return (
-            <div key={id} className="flex items-center gap-2 rounded-lg border border-line px-2 py-1">
-              <img src={iconUrl(mat.iconType)} alt="" className="h-6 w-6 object-contain" />
+            <div
+              key={id}
+              className="flex items-center gap-2 rounded-lg border border-line px-2 py-1"
+            >
+              <img
+                src={iconUrl(mat.iconType)}
+                alt=""
+                className="h-6 w-6 object-contain"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[11px] font-medium">{mat.name}</p>
                 <Stepper
@@ -356,7 +409,7 @@ function ProvisionsPanel({
         })}
       </div>
       <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-        Belohnung
+        Reward
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {commons.map((id) => {
@@ -383,7 +436,7 @@ function ProvisionsPanel({
             rewardId === "potion" ? "border-accent bg-accent-faint" : "border-line"
           }`}
         >
-          Trank ({potions}/{MAX_POTIONS})
+          Potion ({potions}/{MAX_POTIONS})
         </button>
       </div>
       <Button
@@ -391,7 +444,7 @@ function ProvisionsPanel({
         onClick={() => onSave({ offered, rewardId })}
         className="mt-3 w-full py-2 text-sm font-semibold"
       >
-        {saved ? "Getauscht ✓" : "Tausch bestätigen"}
+        {saved ? "Trade saved ✓" : "Confirm trade"}
       </Button>
     </div>
   );
@@ -406,31 +459,26 @@ function ResourceCenterPanel({
 }) {
   const [manual, setManual] = useState("");
 
-  const tableRows = useMemo(() => {
-    return Object.entries(RESOURCE_CENTER_TABLE).map(([roll, matId]) => {
-      const mat = gameData.materials.find((m) => m.id === matId);
-      return { roll: Number(roll), name: mat?.name ?? matId };
-    });
-  }, []);
+  const tableRows = Object.entries(RESOURCE_CENTER_TABLE).map(([roll, matId]) => {
+    const mat = gameData.materials.find((m) => m.id === matId);
+    return { roll: Number(roll), name: mat?.name ?? matId };
+  });
 
   return (
     <div className="paper-card p-4">
-      <p className="font-semibold">Ressourcenzentrum</p>
-      <p className="mt-1 text-xs text-ink-soft">2 Würfel (Summe 2–12)</p>
+      <p className="font-semibold">Resource Center</p>
+      <p className="mt-1 text-xs text-ink-soft">Roll 2 dice (sum 2–12)</p>
       {savedRoll != null ? (
         <p className="mt-3 text-sm">
-          Gewürfelt: <strong>{savedRoll}</strong> →{" "}
+          Rolled: <strong>{savedRoll}</strong> →{" "}
           {gameData.materials.find((m) => m.id === RESOURCE_CENTER_TABLE[savedRoll])
             ?.name ?? "?"}{" "}
           ✓
         </p>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
-          <Button
-            onClick={() => onRoll(roll2d6())}
-            className="py-2 text-sm font-semibold"
-          >
-            Würfeln
+          <Button onClick={() => onRoll(roll2d6())} className="py-2 text-sm font-semibold">
+            Roll dice
           </Button>
           <div className="flex gap-2">
             <input
@@ -456,7 +504,7 @@ function ResourceCenterPanel({
         </div>
       )}
       <details className="mt-3">
-        <summary className="cursor-pointer text-xs text-ink-soft">Tabelle</summary>
+        <summary className="cursor-pointer text-xs text-ink-soft">Table</summary>
         <ul className="mt-2 space-y-0.5 text-xs">
           {tableRows.map((r) => (
             <li key={r.roll}>
@@ -479,7 +527,7 @@ function ChefPanel({
   return (
     <div className="paper-card p-4">
       <p className="font-semibold">Meowscular Chef</p>
-      <p className="mt-1 text-xs text-ink-soft">+1 Widerstand für die nächste Quest</p>
+      <p className="mt-1 text-xs text-ink-soft">+1 resistance for the next quest</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {ELEMENT_TYPES.map((el) => (
           <button
@@ -495,7 +543,9 @@ function ChefPanel({
         ))}
       </div>
       {selected && (
-        <p className="mt-2 text-xs text-ok">Gewählt: {ELEMENT_TYPES.find((e) => e.id === selected)?.label} ✓</p>
+        <p className="mt-2 text-xs text-ok">
+          Selected: {ELEMENT_TYPES.find((e) => e.id === selected)?.label} ✓
+        </p>
       )}
     </div>
   );
@@ -523,7 +573,7 @@ function HandlerPanel({
   if (pool.length === 0) {
     return (
       <div className="paper-card p-4 text-sm text-ink-soft">
-        Keine erschöpften Untersuchungs-Quests verfügbar.
+        No exhausted investigation or tempered quests available.
       </div>
     );
   }
@@ -532,15 +582,13 @@ function HandlerPanel({
     <div className="paper-card p-4">
       <p className="font-semibold">Handler</p>
       <p className="mt-1 text-xs text-ink-soft">
-        Alle Jäger müssen dieselbe Quest wählen.
+        All hunters must pick the same quest.
       </p>
       {unanimousQuest ? (
-        <p className="mt-2 text-sm text-ok">
-          Einigung: {unanimousQuest.name} ✓
-        </p>
+        <p className="mt-2 text-sm text-ok">Agreed: {unanimousQuest.name} ✓</p>
       ) : (
         <p className="mt-2 text-xs text-ink-soft">
-          Übereinstimmung: {matchCount}/{hunterIds.length}
+          Agreement: {matchCount}/{hunterIds.length}
         </p>
       )}
       <div className="mt-3 flex flex-col gap-1">

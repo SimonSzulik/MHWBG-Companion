@@ -1,6 +1,7 @@
 import { gameData } from "../data/gameData";
 import { quests, questsForMonster, type QuestDef } from "../data/quests";
 import type {
+  Campaign,
   DowntimeActivityId,
   Hunter,
   MaterialStash,
@@ -15,11 +16,11 @@ import {
 export type { ElementType } from "./types";
 
 export const ELEMENT_TYPES: { id: import("./types").ElementType; label: string }[] = [
-  { id: "fire", label: "Feuer" },
-  { id: "water", label: "Wasser" },
-  { id: "thunder", label: "Blitz" },
-  { id: "ice", label: "Eis" },
-  { id: "dragon", label: "Drache" },
+  { id: "fire", label: "Fire" },
+  { id: "water", label: "Water" },
+  { id: "thunder", label: "Thunder" },
+  { id: "ice", label: "Ice" },
+  { id: "dragon", label: "Dragon" },
 ];
 
 export const DOWNTIME_ACTIVITIES: {
@@ -29,32 +30,32 @@ export const DOWNTIME_ACTIVITIES: {
 }[] = [
   {
     id: "provisions",
-    label: "Vorratslager",
+    label: "Provisions Stockpile",
     description:
-      "3 gewöhnliche Erze, Knochen oder Felle abgeben → 1 gewöhnliches Material oder 1 Trank.",
+      "Trade 3 common ores, bones, or pelts for 1 common material or 1 potion.",
   },
   {
     id: "resource-center",
-    label: "Ressourcenzentrum",
-    description: "2 Würfel würfeln und Belohnung von der Tabelle erhalten.",
+    label: "Resource Center",
+    description: "Roll 2 dice and take the reward from the table.",
   },
   {
     id: "chef",
     label: "Meowscular Chef",
-    description: "+1 Widerstand gegen ein Element für die nächste Quest.",
+    description: "+1 resistance to one element for the next quest.",
   },
   {
     id: "poogie",
-    label: "Poogie streicheln",
-    description: "Bringt Glück – oder eben nicht. Nur zum Spaß.",
+    label: "Pet Poogie",
+    description: "Good luck — or not. Just for fun.",
   },
 ];
 
 export const HANDLER_ACTIVITY = {
   id: "handler" as const,
-  label: "Handler besuchen",
+  label: "Visit the Handler",
   description:
-    "Erschöpfte Untersuchungs- oder Temperierte Quest erneut wählen (alle Jäger müssen zustimmen).",
+    "Replay an exhausted investigation or tempered quest (all hunters must agree).",
 };
 
 export const MAX_DOWNTIME_PICKS = 3;
@@ -98,18 +99,18 @@ export function canTradeProvisions(
 ): string | undefined {
   const total = provisionsOfferTotal(trade.offered);
   if (total !== PROVISIONS_TRADE_COST) {
-    return `Genau ${PROVISIONS_TRADE_COST} Materialien abgeben.`;
+    return `Offer exactly ${PROVISIONS_TRADE_COST} materials.`;
   }
   for (const [id, qty] of Object.entries(trade.offered)) {
-    if (!isCommonTradeable(id)) return "Nur gewöhnliche Erze, Knochen oder Felle.";
-    if ((hunter.materials[id] ?? 0) < qty) return "Material fehlt.";
+    if (!isCommonTradeable(id)) return "Only common ores, bones, or pelts.";
+    if ((hunter.materials[id] ?? 0) < qty) return "Not enough material.";
   }
   if (trade.rewardId === "potion") {
-    if (potionCount >= MAX_POTIONS) return `Maximal ${MAX_POTIONS} Tränke.`;
+    if (potionCount >= MAX_POTIONS) return `Maximum ${MAX_POTIONS} potions.`;
     return undefined;
   }
   if (!isCommonTradeable(trade.rewardId)) {
-    return "Ungültige Belohnung.";
+    return "Invalid reward.";
   }
   return undefined;
 }
@@ -198,4 +199,64 @@ export function isHunterDowntimeReady(
   }
 
   return true;
+}
+
+function applyProvisionsToHunter(
+  hunter: Hunter,
+  trade: ProvisionsTrade,
+): Hunter {
+  const materials = { ...hunter.materials };
+  for (const [id, qty] of Object.entries(trade.offered)) {
+    materials[id] = (materials[id] ?? 0) - qty;
+    if (materials[id] <= 0) delete materials[id];
+  }
+  if (trade.rewardId !== "potion") {
+    materials[trade.rewardId] = (materials[trade.rewardId] ?? 0) + 1;
+  }
+  return { ...hunter, materials };
+}
+
+/** Apply staged downtime rewards when all hunters confirm the day. */
+export function applyDowntimeRewards(campaign: Campaign): Campaign {
+  const dt = campaign.activeDowntime;
+  if (!dt) return campaign;
+
+  let items = { ...campaign.items };
+  const hunters = campaign.hunters.map((hunter) => {
+    const picks = dt.picks[hunter.id] ?? [];
+    let next = hunter;
+
+    if (picks.includes("provisions")) {
+      const trade = dt.provisions[hunter.id];
+      if (trade) {
+        next = applyProvisionsToHunter(next, trade);
+        if (trade.rewardId === "potion") {
+          items.potion = Math.min(MAX_POTIONS, (items.potion ?? 0) + 1);
+        }
+      }
+    }
+
+    if (picks.includes("resource-center")) {
+      const sum = dt.resourceRoll[hunter.id];
+      if (sum != null) {
+        const materialId = resolveResourceRoll(sum);
+        if (materialId) {
+          const materials = { ...next.materials };
+          materials[materialId] = (materials[materialId] ?? 0) + 1;
+          next = { ...next, materials };
+        }
+      }
+    }
+
+    if (picks.includes("chef")) {
+      const element = dt.chefElement[hunter.id];
+      if (element) {
+        next = { ...next, elementResistance: element };
+      }
+    }
+
+    return next;
+  });
+
+  return { ...campaign, items, hunters };
 }

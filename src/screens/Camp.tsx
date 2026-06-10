@@ -5,10 +5,13 @@ import { useAuth } from "../store/auth";
 import { useOwnHunter } from "../store/hooks";
 import { otherHunters } from "../lib/hunter";
 import { catalog, hunterTotalDefense } from "../domain/catalog";
+import { pendingTradeBetween } from "../domain/trade";
+import type { Hunter } from "../domain/types";
 import { ScreenBackground } from "../ui/ScreenBackground";
 import { CampaignCalendar } from "../ui/CampaignCalendar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { GearSlotIcons } from "../ui/GearSlotIcons";
+import { TradeSheet } from "../ui/camp/TradeSheet";
 import type { GearSlot } from "../domain/types";
 
 const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
@@ -17,8 +20,14 @@ const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
 export function Camp() {
   const { campaign, hunter } = useOwnHunter();
   const adjustItem = useCampaign((s) => s.adjustItem);
+  const proposeTrade = useCampaign((s) => s.proposeTrade);
+  const acceptTrade = useCampaign((s) => s.acceptTrade);
+  const declineTrade = useCampaign((s) => s.declineTrade);
+  const cancelTrade = useCampaign((s) => s.cancelTrade);
   const userId = useAuth((s) => s.userId);
   const [confirmPotion, setConfirmPotion] = useState(false);
+  const [tradePartner, setTradePartner] = useState<Hunter | null>(null);
+
   if (!campaign || !hunter) return null;
 
   const potions = campaign.items["potion"] ?? 0;
@@ -28,6 +37,27 @@ export function Camp() {
     .map((id) => (id ? catalog.gear(id) : undefined))
     .map((g) => g?.effect)
     .filter((effect): effect is string => Boolean(effect));
+
+  const pendingTrades = campaign.pendingTrades ?? [];
+  const incomingCount = pendingTrades.filter(
+    (t) => t.toHunterId === hunter.id && t.status === "pending",
+  ).length;
+
+  const activeTrade = tradePartner
+    ? {
+        incoming: pendingTrades.find(
+          (t) =>
+            t.status === "pending" &&
+            t.fromHunterId === tradePartner.id &&
+            t.toHunterId === hunter.id,
+        ),
+        outgoing: pendingTradeBetween(
+          pendingTrades,
+          hunter.id,
+          tradePartner.id,
+        ),
+      }
+    : { incoming: undefined, outgoing: undefined };
 
   const usePotion = () => {
     adjustItem("potion", -1);
@@ -122,7 +152,7 @@ export function Camp() {
           </div>
         </div>
 
-        <div className="paper-card flex flex-col px-3 py-2.5">
+        <div className="paper-card flex min-w-0 flex-col px-3 py-2.5">
           <CampaignCalendar
             day={campaign.day}
             maxDay={campaign.maxDay}
@@ -134,10 +164,12 @@ export function Camp() {
                 disabled={potions <= 0}
                 onClick={() => setConfirmPotion(true)}
                 aria-label="Use potion"
-                className="flex shrink-0 items-center gap-1 rounded-full border-[1.5px] border-line-strong bg-card px-2 py-0.5 active:translate-y-px disabled:opacity-50"
+                className="flex shrink-0 items-center gap-1 rounded-full border-[1.5px] border-line-strong bg-card px-1.5 py-0.5 leading-none active:translate-y-px disabled:opacity-50"
               >
-                <img src="/icons/potion.png" alt="" className="h-5 w-5" />
-                <span className="text-sm font-bold tabular-nums">{potions}</span>
+                <img src="/icons/potion.png" alt="" className="h-4 w-4 shrink-0" />
+                <span className="min-w-[1ch] text-sm font-bold tabular-nums">
+                  {potions}
+                </span>
               </button>
             }
           />
@@ -147,25 +179,81 @@ export function Camp() {
       {/* 5 · party */}
       {teammates.length > 0 && (
         <div className="paper-card mt-4 px-3 py-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-            Party · {teammates.length}
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-wide text-accent">
+              Party · {teammates.length}
+            </p>
+            {incomingCount > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+                {incomingCount} trade{incomingCount > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-4">
-            {teammates.map((mate) => (
-              <div
-                key={mate.id}
-                className="flex w-16 flex-col items-center gap-1 text-center"
-              >
-                <span className="grid h-16 w-16 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-3xl shadow-sm">
-                  🧍
-                </span>
-                <span className="w-full truncate text-xs font-medium">
-                  {mate.name}
-                </span>
-              </div>
-            ))}
+            {teammates.map((mate) => {
+              const hasIncoming = pendingTrades.some(
+                (t) =>
+                  t.status === "pending" &&
+                  t.fromHunterId === mate.id &&
+                  t.toHunterId === hunter.id,
+              );
+              return (
+                <button
+                  key={mate.id}
+                  type="button"
+                  onClick={() => setTradePartner(mate)}
+                  className="relative flex w-16 flex-col items-center gap-1 text-center active:scale-95"
+                >
+                  {hasIncoming && (
+                    <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-accent ring-2 ring-paper" />
+                  )}
+                  <span className="grid h-16 w-16 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-3xl shadow-sm">
+                    🧍
+                  </span>
+                  <span className="w-full truncate text-xs font-medium">
+                    {mate.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
+      )}
+
+      {tradePartner && (
+        <TradeSheet
+          self={hunter}
+          partner={tradePartner}
+          incoming={activeTrade.incoming}
+          outgoing={activeTrade.outgoing}
+          onPropose={(offeredId, requestedId) => {
+            const res = proposeTrade(
+              hunter.id,
+              tradePartner.id,
+              offeredId,
+              requestedId,
+            );
+            if (!res.ok) alert(res.reason);
+            else setTradePartner(null);
+          }}
+          onAccept={() => {
+            if (!activeTrade.incoming) return;
+            const res = acceptTrade(activeTrade.incoming.id, hunter.id);
+            if (!res.ok) alert(res.reason);
+            else setTradePartner(null);
+          }}
+          onDecline={() => {
+            if (!activeTrade.incoming) return;
+            declineTrade(activeTrade.incoming.id, hunter.id);
+            setTradePartner(null);
+          }}
+          onCancel={() => {
+            if (!activeTrade.outgoing) return;
+            cancelTrade(activeTrade.outgoing.id, hunter.id);
+            setTradePartner(null);
+          }}
+          onClose={() => setTradePartner(null)}
+        />
       )}
 
       {confirmPotion && (

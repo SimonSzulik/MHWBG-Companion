@@ -36,42 +36,42 @@ export function Reference() {
     {
       id: "hunters-turn",
       title: "Hunters Turn",
-      subtitle: "Ablauf und Aktionen",
+      subtitle: "Turn flow and actions",
       icon: "ref-time.svg",
       entries: HUNTERS_TURN,
     },
     {
       id: "attack-symbols",
       title: "Attack Card Symbols",
-      subtitle: "Schnelles Nachschlagen",
+      subtitle: "Quick lookup",
       icon: "ref-attack.svg",
       entries: ATTACK_SYMBOLS,
     },
     {
       id: "terrain",
       title: "Terrain Nodes",
-      subtitle: "Busch, Fels, Teich",
+      subtitle: "Bush, rock, pond",
       icon: "ref-rock.svg",
       entries: TERRAIN,
     },
     {
       id: "monster-ailments",
       title: "Monster Status Ailments",
-      subtitle: "Effekte auf Monster",
+      subtitle: "Effects on monsters",
       icon: "ref-status.svg",
       entries: MONSTER_AILMENTS,
     },
     {
       id: "hunter-ailments",
       title: "Hunter Status Ailments",
-      subtitle: "Effekte auf Jäger",
+      subtitle: "Effects on hunters",
       icon: "ref-status.svg",
       entries: HUNTER_AILMENTS,
     },
     {
       id: "armor-skills",
       title: "Armor Skills",
-      subtitle: "Komplette Referenz",
+      subtitle: "Full reference",
       icon: "green-mail",
       entries: armorSkills,
     },
@@ -83,9 +83,9 @@ export function Reference() {
         <div className="mb-2 flex items-center gap-3">
           <IconBubble icon="ref-quick-guide.svg" />
           <div>
-            <p className="font-semibold">Nachschlagewerk</p>
+            <p className="font-semibold">Quick reference</p>
             <p className="text-xs text-ink-soft">
-              Alles Wichtige direkt am Tisch. Downtime bewusst ausgeklammert.
+              Everything you need at the table. Downtime rules omitted on purpose.
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export function Reference() {
                   ))}
                   {section.entries.length === 0 && section.id === "armor-skills" && (
                     <li className="rounded-lg border border-line bg-card px-3 py-2 text-xs text-ink-soft">
-                      Keine Treffer fuer "{skillsQuery}".
+                      No results for "{skillsQuery}".
                     </li>
                   )}
                 </ul>
@@ -193,9 +193,9 @@ const ATTACK_SYMBOLS: GuideEntry[] = [
 ];
 
 const TERRAIN: GuideEntry[] = [
-  { name: "Bush", text: "Ein Jäger auf einem Busch-Feld hat −4 Bedrohung.", icon: "ref-bush.svg" },
-  { name: "Rock", text: "Ein Jäger auf einem Fels-Feld darf 1 Feld bewegen, ohne Angriffskarten auf dem Bedrohungs-Board zu platzieren.", icon: "ref-rock.svg" },
-  { name: "Pond", text: "Betritt ein Jäger aus beliebigem Grund ein Teich-Feld, muss er 1 Karte vom Schadensstapel ziehen.", icon: "ref-pond.svg" },
+  { name: "Bush", text: "A hunter on a bush tile has −4 threat.", icon: "ref-bush.svg" },
+  { name: "Rock", text: "A hunter on a rock tile may move 1 space without placing attack cards on the threat board.", icon: "ref-rock.svg" },
+  { name: "Pond", text: "If a hunter enters a pond tile for any reason, draw 1 card from the damage deck.", icon: "ref-pond.svg" },
 ];
 
 const MONSTER_AILMENTS: GuideEntry[] = [

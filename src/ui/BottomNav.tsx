@@ -9,7 +9,7 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { to: "/hunters", emoji: "🧍", label: "Jäger" },
+  { to: "/hunters", emoji: "🧍", label: "Hunter" },
   { to: "/inventory", icon: "/icons/box-tab.png", label: "Box" },
   { to: "/", icon: "/icons/camp-tab.png", label: "Camp", end: true },
   { to: "/forge", icon: "/icons/forge-tab.png", label: "Forge" },

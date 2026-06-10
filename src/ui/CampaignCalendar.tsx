@@ -26,7 +26,7 @@ export function CampaignCalendar({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-xs uppercase tracking-wide text-ink-soft">
+        <p className="min-w-0 flex-1 truncate text-xs uppercase tracking-wide text-ink-soft">
           Calendar · {maxDay} days
         </p>
         {right}
@@ -47,6 +47,7 @@ export function CampaignCalendar({
           const isDowntime = entry?.kind === "downtime";
           const questEntry = entry?.kind === "quest" ? entry : null;
           const failed = questEntry?.result === "failure";
+          const showDayNumber = !isDowntime && !questEntry;
 
           return (
             <span
@@ -66,6 +67,15 @@ export function CampaignCalendar({
                     : "border-line bg-paper"
               }`}
             >
+              {showDayNumber && (
+                <span
+                  className={`absolute right-0.5 top-0 text-[8px] font-semibold leading-none ${
+                    isCurrent ? "text-white/90" : "text-ink-soft"
+                  }`}
+                >
+                  {d}
+                </span>
+              )}
               {isDowntime ? (
                 <span className="text-sm">🏠</span>
               ) : questEntry ? (
@@ -73,7 +83,7 @@ export function CampaignCalendar({
                   src={iconUrl(questEntry.monsterId)}
                   alt=""
                   title={`Day ${d} · ${questEntry.result === "success" ? "Success" : "Failure"}`}
-                  className={`h-full w-full object-contain ${
+                  className={`h-5 w-5 min-h-[1.25rem] min-w-[1.25rem] object-contain ${
                     failed ? "opacity-50 grayscale" : ""
                   }`}
                 />

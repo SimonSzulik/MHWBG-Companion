@@ -9,6 +9,7 @@ import type {
   HunterLootProgress,
   MonsterPartId,
   ProvisionsTrade,
+  TradeRequest,
   WeaponType,
   GearSlot,
   MaterialStash,
@@ -34,11 +35,17 @@ import {
   MAX_DOWNTIME_PICKS,
   MAX_POTIONS,
   canTradeProvisions,
+  applyDowntimeRewards,
   emptyActiveDowntime,
   isHunterDowntimeReady,
   resolveResourceRoll,
   syncHandlerQuestId,
 } from "../domain/downtime";
+import {
+  applyTradeSwap,
+  createTradeId,
+  validateTradeProposal,
+} from "../domain/trade";
 import { seedLootQuantities, rollDice } from "../domain/loot";
 import { lootTableForMonster } from "../data/lootTables";
 import { useAuth } from "./auth";
@@ -174,6 +181,7 @@ function migrateCampaign(raw: LegacyCampaignV4): Campaign {
     zenny: rest.zenny ?? 0,
     pendingHandlerQuestId: rest.pendingHandlerQuestId ?? null,
     activeDowntime: rest.activeDowntime ?? null,
+    pendingTrades: rest.pendingTrades ?? [],
   };
 }
 
@@ -293,6 +301,16 @@ interface CampaignState {
   ) => { ok: boolean; reason?: string };
   confirmDowntime: (hunterId: string) => { ok: boolean; reason?: string };
   cancelDowntime: () => void;
+
+  proposeTrade: (
+    fromHunterId: string,
+    toHunterId: string,
+    offeredMaterialId: string,
+    requestedMaterialId: string,
+  ) => { ok: boolean; reason?: string };
+  acceptTrade: (tradeId: string, hunterId: string) => { ok: boolean; reason?: string };
+  declineTrade: (tradeId: string, hunterId: string) => { ok: boolean; reason?: string };
+  cancelTrade: (tradeId: string, hunterId: string) => { ok: boolean; reason?: string };
 }
 
 function backfillStarterKits(campaign: Campaign): Campaign {
@@ -422,6 +440,7 @@ export const useCampaign = create<CampaignState>()(
             questCompletions: {},
             activeQuest: null,
             dayLog: {},
+            pendingTrades: [],
             createdAt: now,
             updatedAt: now,
           },
@@ -717,17 +736,17 @@ export const useCampaign = create<CampaignState>()(
 
       startQuest: (questId, hunterId) => {
         const s = get();
-        if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
         const quest = questById(questId);
-        if (!quest) return { ok: false, reason: "Quest unbekannt." };
+        if (!quest) return { ok: false, reason: "Unknown quest." };
         if (s.campaign.activeQuest) {
-          return { ok: false, reason: "Es läuft bereits eine Quest." };
+          return { ok: false, reason: "A quest is already in progress." };
         }
         const pending = s.campaign.pendingHandlerQuestId;
         if (pending && pending !== questId) {
           return {
             ok: false,
-            reason: "Zuerst die Handler-Quest abschließen.",
+            reason: "Complete the Handler quest first.",
           };
         }
         const isHandler = pending === questId;
@@ -741,7 +760,7 @@ export const useCampaign = create<CampaignState>()(
             pending,
           )
         ) {
-          return { ok: false, reason: "Quest nicht verfügbar." };
+          return { ok: false, reason: "Quest unavailable." };
         }
         const activeQuest: ActiveQuest = {
           questId,
@@ -975,9 +994,9 @@ export const useCampaign = create<CampaignState>()(
 
       beginDowntime: () => {
         const s = get();
-        if (!s.campaign) return { ok: false, reason: "Keine Kampagne." };
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
         if (s.campaign.activeQuest) {
-          return { ok: false, reason: "Quest läuft – kein Downtime möglich." };
+          return { ok: false, reason: "Cannot start downtime during a quest." };
         }
         if (s.campaign.activeDowntime) {
           return { ok: true };
@@ -994,14 +1013,17 @@ export const useCampaign = create<CampaignState>()(
       setDowntimePicks: (hunterId, picks) => {
         const s = get();
         if (!s.campaign?.activeDowntime) {
-          return { ok: false, reason: "Downtime nicht gestartet." };
+          return { ok: false, reason: "Downtime not started." };
         }
         if (picks.length > MAX_DOWNTIME_PICKS) {
-          return { ok: false, reason: `Maximal ${MAX_DOWNTIME_PICKS} Aktivitäten.` };
+          return {
+            ok: false,
+            reason: `Choose at most ${MAX_DOWNTIME_PICKS} activities.`,
+          };
         }
         const unique = new Set(picks);
         if (unique.size !== picks.length) {
-          return { ok: false, reason: "Jede Aktivität nur einmal wählen." };
+          return { ok: false, reason: "Each activity can only be chosen once." };
         }
         const dt = {
           ...s.campaign.activeDowntime,
@@ -1016,26 +1038,13 @@ export const useCampaign = create<CampaignState>()(
       resolveProvisions: (hunterId, trade) => {
         const s = get();
         if (!s.campaign?.activeDowntime) {
-          return { ok: false, reason: "Downtime nicht gestartet." };
+          return { ok: false, reason: "Downtime not started." };
         }
         const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
-        if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
+        if (!hunter) return { ok: false, reason: "Hunter not found." };
         const potions = s.campaign.items.potion ?? 0;
         const err = canTradeProvisions(hunter, trade, potions);
         if (err) return { ok: false, reason: err };
-
-        const materials = { ...hunter.materials };
-        for (const [id, qty] of Object.entries(trade.offered)) {
-          materials[id] = (materials[id] ?? 0) - qty;
-          if (materials[id] <= 0) delete materials[id];
-        }
-
-        let items = { ...s.campaign.items };
-        if (trade.rewardId === "potion") {
-          items.potion = Math.min(MAX_POTIONS, (items.potion ?? 0) + 1);
-        } else {
-          materials[trade.rewardId] = (materials[trade.rewardId] ?? 0) + 1;
-        }
 
         const dt = {
           ...s.campaign.activeDowntime,
@@ -1048,10 +1057,6 @@ export const useCampaign = create<CampaignState>()(
         set({
           campaign: touch({
             ...s.campaign,
-            items,
-            hunters: s.campaign.hunters.map((h) =>
-              h.id === hunterId ? { ...h, materials } : h,
-            ),
             activeDowntime: dt,
           }),
         });
@@ -1061,19 +1066,12 @@ export const useCampaign = create<CampaignState>()(
       resolveResourceCenter: (hunterId, sum) => {
         const s = get();
         if (!s.campaign?.activeDowntime) {
-          return { ok: false, reason: "Downtime nicht gestartet." };
+          return { ok: false, reason: "Downtime not started." };
         }
         const materialId = resolveResourceRoll(sum);
         if (!materialId) {
-          return { ok: false, reason: "Würfelwert muss 2–12 sein." };
+          return { ok: false, reason: "Dice total must be 2–12." };
         }
-        const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
-        if (!hunter) return { ok: false, reason: "Jäger nicht gefunden." };
-
-        const materials = {
-          ...hunter.materials,
-          [materialId]: (hunter.materials[materialId] ?? 0) + 1,
-        };
 
         const dt = {
           ...s.campaign.activeDowntime,
@@ -1086,9 +1084,6 @@ export const useCampaign = create<CampaignState>()(
         set({
           campaign: touch({
             ...s.campaign,
-            hunters: s.campaign.hunters.map((h) =>
-              h.id === hunterId ? { ...h, materials } : h,
-            ),
             activeDowntime: dt,
           }),
         });
@@ -1098,7 +1093,7 @@ export const useCampaign = create<CampaignState>()(
       resolveChef: (hunterId, element) => {
         const s = get();
         if (!s.campaign?.activeDowntime) {
-          return { ok: false, reason: "Downtime nicht gestartet." };
+          return { ok: false, reason: "Downtime not started." };
         }
         const dt = {
           ...s.campaign.activeDowntime,
@@ -1108,13 +1103,7 @@ export const useCampaign = create<CampaignState>()(
           },
         };
         set({
-          campaign: touch({
-            ...s.campaign,
-            hunters: s.campaign.hunters.map((h) =>
-              h.id === hunterId ? { ...h, elementResistance: element } : h,
-            ),
-            activeDowntime: dt,
-          }),
+          campaign: touch({ ...s.campaign, activeDowntime: dt }),
         });
         return { ok: true };
       },
@@ -1122,7 +1111,7 @@ export const useCampaign = create<CampaignState>()(
       setHandlerQuest: (hunterId, questId) => {
         const s = get();
         if (!s.campaign?.activeDowntime) {
-          return { ok: false, reason: "Downtime nicht gestartet." };
+          return { ok: false, reason: "Downtime not started." };
         }
         const hunterIds = s.campaign.hunters.map((h) => h.id);
         const dt = syncHandlerQuestId(
@@ -1144,12 +1133,12 @@ export const useCampaign = create<CampaignState>()(
       confirmDowntime: (hunterId) => {
         const s = get();
         if (!s.campaign?.activeDowntime) {
-          return { ok: false, reason: "Downtime nicht gestartet." };
+          return { ok: false, reason: "Downtime not started." };
         }
         const dt = s.campaign.activeDowntime;
         const hunterIds = s.campaign.hunters.map((h) => h.id);
         if (!isHunterDowntimeReady(hunterId, dt, hunterIds)) {
-          return { ok: false, reason: "Alle gewählten Aktivitäten abschließen." };
+          return { ok: false, reason: "Complete all chosen activities first." };
         }
         if (dt.confirmedHunterIds.includes(hunterId)) {
           return { ok: true };
@@ -1166,6 +1155,7 @@ export const useCampaign = create<CampaignState>()(
         );
 
         if (allConfirmed) {
+          campaign = touch(applyDowntimeRewards(campaign));
           campaign = touch(recordDowntimeOnCalendar(campaign));
           campaign = touch({
             ...campaign,
@@ -1185,6 +1175,101 @@ export const useCampaign = create<CampaignState>()(
             campaign: touch({ ...s.campaign, activeDowntime: null }),
           };
         }),
+
+      proposeTrade: (fromHunterId, toHunterId, offeredMaterialId, requestedMaterialId) => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
+        const err = validateTradeProposal(
+          s.campaign,
+          fromHunterId,
+          toHunterId,
+          offeredMaterialId,
+          requestedMaterialId,
+        );
+        if (err) return { ok: false, reason: err };
+        const trade: TradeRequest = {
+          id: createTradeId(),
+          fromHunterId,
+          toHunterId,
+          offeredMaterialId,
+          requestedMaterialId,
+          status: "pending",
+        };
+        set({
+          campaign: touch({
+            ...s.campaign,
+            pendingTrades: [...(s.campaign.pendingTrades ?? []), trade],
+          }),
+        });
+        return { ok: true };
+      },
+
+      acceptTrade: (tradeId, hunterId) => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
+        const trades = s.campaign.pendingTrades ?? [];
+        const trade = trades.find((t) => t.id === tradeId);
+        if (!trade || trade.status !== "pending") {
+          return { ok: false, reason: "Trade not found." };
+        }
+        if (trade.toHunterId !== hunterId) {
+          return { ok: false, reason: "Not your trade to accept." };
+        }
+        const from = s.campaign.hunters.find((h) => h.id === trade.fromHunterId);
+        const to = s.campaign.hunters.find((h) => h.id === trade.toHunterId);
+        if (!from || !to) return { ok: false, reason: "Hunter not found." };
+        if ((from.materials[trade.offeredMaterialId] ?? 0) < 1) {
+          return { ok: false, reason: "Sender no longer has that material." };
+        }
+        if ((to.materials[trade.requestedMaterialId] ?? 0) < 1) {
+          return { ok: false, reason: "You no longer have that material." };
+        }
+        const hunters = applyTradeSwap(s.campaign.hunters, trade);
+        set({
+          campaign: touch({
+            ...s.campaign,
+            hunters,
+            pendingTrades: trades.filter((t) => t.id !== tradeId),
+          }),
+        });
+        return { ok: true };
+      },
+
+      declineTrade: (tradeId, hunterId) => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
+        const trade = (s.campaign.pendingTrades ?? []).find((t) => t.id === tradeId);
+        if (!trade || trade.toHunterId !== hunterId) {
+          return { ok: false, reason: "Trade not found." };
+        }
+        set({
+          campaign: touch({
+            ...s.campaign,
+            pendingTrades: (s.campaign.pendingTrades ?? []).map((t) =>
+              t.id === tradeId ? { ...t, status: "declined" as const } : t,
+            ).filter((t) => t.status === "pending"),
+          }),
+        });
+        return { ok: true };
+      },
+
+      cancelTrade: (tradeId, hunterId) => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
+        const trade = (s.campaign.pendingTrades ?? []).find((t) => t.id === tradeId);
+        if (!trade || trade.fromHunterId !== hunterId) {
+          return { ok: false, reason: "Trade not found." };
+        }
+        set({
+          campaign: touch({
+            ...s.campaign,
+            pendingTrades: (s.campaign.pendingTrades ?? []).filter(
+              (t) => t.id !== tradeId,
+            ),
+          }),
+        });
+        return { ok: true };
+      },
     }),
     {
       name: PERSIST_KEY,

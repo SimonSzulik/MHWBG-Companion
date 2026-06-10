@@ -24,14 +24,14 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="flex-1 py-2 text-sm font-semibold"
           >
-            Abbrechen
+            Cancel
           </Button>
           <Button
             rounded="lg"
             onClick={onConfirm}
             className="flex-1 py-2 text-sm font-semibold"
           >
-            Ja
+            Yes
           </Button>
         </div>
       </div>

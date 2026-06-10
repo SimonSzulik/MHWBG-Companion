@@ -33,7 +33,7 @@ export function Hunters() {
 
   return (
     <Screen
-      title="Jäger"
+      title="Hunter"
       hideHeader
       background="/backgrounds/camp.webp"
       backgroundFallback="/backgrounds/camp.svg"
@@ -48,8 +48,8 @@ export function Hunters() {
           setSelectedGear(null);
         }}
         tabs={[
-          { value: "weapons", label: "Waffen" },
-          { value: "armour", label: "Rüstung" },
+          { value: "weapons", label: "Weapons" },
+          { value: "armour", label: "Armor" },
         ]}
       />
 
@@ -57,14 +57,14 @@ export function Hunters() {
         <OwnedGearGrid
           items={weapons}
           isEquipped={(g) => hunter.equipped.weapon === g.id}
-          emptyLabel="Noch keine Waffe geschmiedet."
+          emptyLabel="No weapons forged yet."
           onSelect={setSelectedGear}
         />
       ) : (
         <OwnedGearGrid
           items={armor}
           isEquipped={(g) => hunter.equipped[g.slot] === g.id}
-          emptyLabel="Noch keine Rüstung geschmiedet."
+          emptyLabel="No armor forged yet."
           onSelect={setSelectedGear}
         />
       )}

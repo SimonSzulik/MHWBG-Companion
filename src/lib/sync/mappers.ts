@@ -13,6 +13,7 @@ import type {
   HunterLootProgress,
   MaterialStash,
   QuestStars,
+  TradeRequest,
   WeaponType,
 } from "../../domain/types";
 import { normalizeCalendarDayEntry } from "../../domain/types";
@@ -64,6 +65,24 @@ function parseDayLog(
     }
   }
   return out;
+}
+
+function parsePendingTrades(raw: unknown): TradeRequest[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((t): t is TradeRequest => {
+    if (!t || typeof t !== "object") return false;
+    const o = t as TradeRequest;
+    return (
+      typeof o.id === "string" &&
+      typeof o.fromHunterId === "string" &&
+      typeof o.toHunterId === "string" &&
+      typeof o.offeredMaterialId === "string" &&
+      typeof o.requestedMaterialId === "string" &&
+      (o.status === "pending" ||
+        o.status === "accepted" ||
+        o.status === "declined")
+    );
+  });
 }
 
 function parseActiveDowntime(raw: unknown): ActiveDowntime | null {
@@ -150,6 +169,7 @@ export function rowsToCampaign(
     dayLog: parseDayLog(state?.day_log as Record<string, unknown> | null | undefined),
     pendingHandlerQuestId: state?.pending_handler_quest ?? null,
     activeDowntime: parseActiveDowntime(state?.active_downtime),
+    pendingTrades: parsePendingTrades(state?.pending_trades),
     hunters: migratedHunters,
     joinCode: campaign.join_code,
     createdAt: Date.parse(campaign.created_at) || Date.now(),
@@ -185,6 +205,7 @@ export function campaignToStateUpdate(
     day_log: c.dayLog,
     active_downtime: c.activeDowntime ?? null,
     pending_handler_quest: c.pendingHandlerQuestId ?? null,
+    pending_trades: c.pendingTrades ?? [],
   };
 }
 
