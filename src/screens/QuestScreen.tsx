@@ -30,9 +30,9 @@ const STAR_COUNT: Record<QuestStars, number> = {
 
 /** Quest-type label per star tier (assigned / investigation / tempered). */
 const STAR_TYPE_LABEL: Record<QuestStars, string> = {
-  "one-star": "Aufträge",
-  "two-star": "Untersuchungen",
-  "three-star": "Untersuchungen",
+  "one-star": "Assigned",
+  "two-star": "Investigation",
+  "three-star": "Investigation",
   "four-star": "Tempered",
 };
 
@@ -54,7 +54,7 @@ export function QuestScreen() {
   const handleStart = (quest: QuestDef) => {
     const res = startQuest(quest.id, hunter.id);
     if (!res.ok) {
-      alert(res.reason ?? "Quest konnte nicht gestartet werden.");
+      alert(res.reason ?? "Quest could not be started.");
       return;
     }
     navigate("/campaign/quest");
@@ -67,7 +67,7 @@ export function QuestScreen() {
   return (
     <Screen title="Quests" hideHeader background="/backgrounds/Wald.png">
       <div className="mb-4 text-center">
-        <p className="font-display text-3xl leading-none">Quest-Tafel</p>
+        <p className="font-display text-3xl leading-none">Quest Board</p>
         <p className="mt-0.5 text-xs uppercase tracking-wide text-ink-soft">
           Ancient Forest
         </p>
@@ -75,9 +75,9 @@ export function QuestScreen() {
 
       {pendingQuest && (
         <div className="mb-3 rounded-xl border-[1.5px] border-accent bg-accent-faint px-4 py-3 text-sm">
-          <p className="font-semibold">Handler-Quest</p>
+          <p className="font-semibold">Handler quest</p>
           <p className="mt-1 text-ink-soft">
-            Als Nächstes: {pendingQuest.name} — andere Quests sind gesperrt.
+            Next up: {pendingQuest.name} — other quests are locked.
           </p>
         </div>
       )}
@@ -207,7 +207,7 @@ function QuestRow({
         {isHandlerPick ? " (Handler)" : ""}
       </span>
       {locked ? (
-        <span className="shrink-0 text-base" aria-label="gesperrt">
+        <span className="shrink-0 text-base" aria-label="locked">
           🔒
         </span>
       ) : done ? (
@@ -216,7 +216,7 @@ function QuestRow({
             maxed ? "bg-red-600 text-white" : "bg-ink-soft/15 text-ink-soft"
           }`}
         >
-          Abgeschlossen!
+          Completed!
         </span>
       ) : count >= 1 ? (
         <span className="flex shrink-0 items-center gap-1 text-ink-soft">

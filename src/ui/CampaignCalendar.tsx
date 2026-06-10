@@ -26,8 +26,8 @@ export function CampaignCalendar({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs uppercase tracking-wide text-ink-soft">
-          Kalender · {maxDay} Tage
+        <p className="min-w-0 truncate text-xs uppercase tracking-wide text-ink-soft">
+          Calendar · {maxDay} days
         </p>
         {right}
       </div>
@@ -53,12 +53,12 @@ export function CampaignCalendar({
               key={d}
               title={
                 isDowntime
-                  ? `Tag ${d} · Downtime`
+                  ? `Day ${d} · Downtime`
                   : questEntry
-                    ? `Tag ${d} · ${questEntry.result === "success" ? "Erfolg" : "Fehlschlag"}`
-                    : `Tag ${d}`
+                    ? `Day ${d} · ${questEntry.result === "success" ? "Success" : "Failure"}`
+                    : `Day ${d}`
               }
-              className={`relative flex min-h-[26px] flex-col items-center justify-center rounded-sm border p-0.5 ${
+              className={`relative flex min-h-[26px] items-center justify-center overflow-hidden rounded-sm border p-px ${
                 isCurrent
                   ? "border-accent bg-accent"
                   : isPast
@@ -69,22 +69,14 @@ export function CampaignCalendar({
               {isDowntime ? (
                 <span className="text-sm">🏠</span>
               ) : questEntry ? (
-                <span
-                  className={`flex flex-col items-center gap-0 ${
+                <img
+                  src={iconUrl(questEntry.monsterId)}
+                  alt=""
+                  title={`Day ${d} · ${questEntry.result === "success" ? "Success" : "Failure"}`}
+                  className={`h-full w-full object-contain ${
                     failed ? "opacity-50 grayscale" : ""
                   }`}
-                >
-                  <img
-                    src={iconUrl(questEntry.monsterId)}
-                    alt=""
-                    className="h-3.5 w-3.5 object-contain"
-                  />
-                  <img
-                    src={iconUrl(questEntry.stars)}
-                    alt=""
-                    className="h-2.5 w-2.5 object-contain"
-                  />
-                </span>
+                />
               ) : isCurrent ? (
                 <span className="text-[9px] font-semibold text-white">{d}</span>
               ) : null}

@@ -28,6 +28,7 @@ export function QuestFlowScreen() {
   const wasLooting = useRef(false);
 
   const leaveQuestLobby = useCampaign((s) => s.leaveQuestLobby);
+  const forceStartQuest = useCampaign((s) => s.forceStartQuest);
   const joinQuest = useCampaign((s) => s.joinQuest);
   const completeQuestFailure = useCampaign((s) => s.completeQuestFailure);
   const completeQuestSuccess = useCampaign((s) => s.completeQuestSuccess);
@@ -67,7 +68,7 @@ export function QuestFlowScreen() {
   if (aq!.phase === "lobby") {
     const ready = aq!.readyHunterIds.includes(hunter.id);
     return (
-      <Screen title="Quest starten" subtitle={quest.name} back={false}>
+      <Screen title="Start Quest" subtitle={quest.name} back={false}>
         <div className="flex flex-col items-center gap-6 py-8">
           <img
             src={iconUrl(quest.icon)}
@@ -77,13 +78,13 @@ export function QuestFlowScreen() {
           <div className="text-center">
             <p className="font-display text-2xl">{quest.name}</p>
             <p className="mt-1 text-sm text-ink-soft">
-              Warte auf alle Jäger…
+              Waiting for all hunters…
             </p>
           </div>
 
           <div className="w-full paper-card p-4">
             <p className="mb-3 text-xs uppercase tracking-wide text-accent">
-              Bereit ({aq!.readyHunterIds.length}/{campaign.hunters.length})
+              Ready ({aq!.readyHunterIds.length}/{campaign.hunters.length})
             </p>
             <ul className="flex flex-col gap-2">
               {campaign.hunters.map((h) => {
@@ -95,7 +96,7 @@ export function QuestFlowScreen() {
                   >
                     <span>{h.name}</span>
                     <span className={isReady ? "text-ok" : "text-ink-soft"}>
-                      {isReady ? "✓ Bereit" : "Wartet…"}
+                      {isReady ? "✓ Ready" : "Waiting…"}
                     </span>
                   </li>
                 );
@@ -103,18 +104,26 @@ export function QuestFlowScreen() {
             </ul>
           </div>
 
-          {ready && (
+          <div className="flex w-full flex-col gap-2">
             <Button
-              variant="secondary"
-              onClick={() => {
-                leaveQuestLobby(hunter.id);
-                navigate("/campaign/quests");
-              }}
-              className="w-full bg-paper-2 py-3 text-sm font-semibold"
+              onClick={() => forceStartQuest()}
+              className="w-full py-3 text-sm font-semibold"
             >
-              Verlassen
+              Start now (test)
             </Button>
-          )}
+            {ready && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  leaveQuestLobby(hunter.id);
+                  navigate("/campaign/quests");
+                }}
+                className="w-full bg-paper-2 py-3 text-sm font-semibold"
+              >
+                Leave
+              </Button>
+            )}
+          </div>
         </div>
       </Screen>
     );
@@ -171,8 +180,8 @@ export function QuestFlowScreen() {
     return (
       <Screen title="Loot" subtitle={hunter.name} back={false}>
         <div className="flex flex-col items-center gap-4 py-12 text-center">
-          <p className="font-display text-2xl">Beute gesichert!</p>
-          <p className="text-sm text-ink-soft">Warte auf andere Jäger…</p>
+          <p className="font-display text-2xl">Loot secured!</p>
+          <p className="text-sm text-ink-soft">Waiting for other hunters…</p>
           <ul className="w-full paper-card p-4 text-left text-sm">
             {campaign.hunters.map((h) => (
               <li key={h.id} className="flex justify-between py-1">
@@ -223,11 +232,11 @@ export function QuestFlowScreen() {
 
         <div className="paper-card p-4">
           <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-            Manuell eintragen
+            Enter manually
           </p>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              Würfel 1
+              Die 1
               <input
                 type="number"
                 inputMode="numeric"
@@ -241,7 +250,7 @@ export function QuestFlowScreen() {
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              Würfel 2
+              Die 2
               <input
                 type="number"
                 inputMode="numeric"
@@ -262,18 +271,18 @@ export function QuestFlowScreen() {
           onClick={() => setLootDice(hunter.id, rollDice())}
           className="w-full bg-paper-2 py-2 text-sm font-semibold"
         >
-          Neu würfeln
+          Reroll
         </Button>
 
         <div className="flex flex-col gap-2">
           <LootOption
-            label={`Zeile ${x} + ${y}`}
+            label={`Row ${x} + ${y}`}
             active={progress.choice === "split"}
             onSelect={() => setLootChoice(hunter.id, "split")}
             preview={splitPreview.materials}
           />
           <LootOption
-            label={`Zeile ${sum}`}
+            label={`Row ${sum}`}
             disabled={!canSum}
             active={progress.choice === "sum"}
             onSelect={() => setLootChoice(hunter.id, "sum")}
@@ -284,7 +293,7 @@ export function QuestFlowScreen() {
         {parts.length > 0 && (
           <div className="paper-card p-4">
             <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-              Teil gebrochen
+              Part broken
             </p>
             <div className="flex flex-wrap gap-2">
               {parts.map((part) => (
@@ -308,13 +317,13 @@ export function QuestFlowScreen() {
         {lootPreview && progress.choice && (
           <div className="paper-card p-4">
             <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-              Vorschau
+              Preview
             </p>
 
             {lootPreview.brokenParts.length > 0 && (
               <div className="mb-3">
                 <p className="mb-1 text-[10px] uppercase tracking-wide text-ink-soft">
-                  Teilbruch
+                  Part break
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {lootPreview.brokenParts.map((part) => (
@@ -332,7 +341,7 @@ export function QuestFlowScreen() {
             {Object.keys(lootPreview.partBreakMaterials).length > 0 && (
               <div className="mb-3">
                 <p className="mb-1 text-[10px] uppercase tracking-wide text-ink-soft">
-                  Bonus durch Teilbruch
+                  Part-break bonus
                 </p>
                 <LootMaterialPreviewList
                   quantities={lootPreview.partBreakMaterials}
@@ -353,7 +362,7 @@ export function QuestFlowScreen() {
         {progress.choice && materialIds.length > 0 && (
           <div className="paper-card p-4">
             <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-              Beute (manuell anpassen)
+              Loot (adjust manually)
             </p>
             <ul className="flex flex-col gap-1">
               {materialIds.map((id) => (
@@ -374,7 +383,7 @@ export function QuestFlowScreen() {
           onClick={() => confirmLoot(hunter.id)}
           className="w-full py-3 text-sm font-bold"
         >
-          Beute bestätigen
+          Confirm loot
         </Button>
       </div>
     </Screen>

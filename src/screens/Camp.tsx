@@ -41,11 +41,11 @@ export function Camp() {
         fallback="/backgrounds/camp.svg"
       />
 
-      {/* 1 · status strip — profile + name (tap → settings), armour value */}
+      {/* 1 · status strip — profile + name (tap → settings), defense value */}
       <div className="paper-card flex items-center gap-3 px-3 py-2.5">
         <Link
           to="/settings"
-          aria-label="Einstellungen"
+          aria-label="Settings"
           className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-2xl active:translate-y-px"
         >
           🧍
@@ -56,12 +56,18 @@ export function Camp() {
           </p>
           <p className="truncate text-xs text-ink-soft">{hunter.weaponType}</p>
         </div>
-        <div
-          className="flex shrink-0 items-center gap-1.5"
-          title="Verteidigung"
-        >
-          <span className="text-xl leading-none">🛡️</span>
-          <span className="font-display text-3xl leading-none">{totalDef}</span>
+        <div className="flex shrink-0 items-center" title="Defense">
+          <div
+            className="grid h-11 w-10 place-items-center"
+            style={{
+              background: "var(--color-accent)",
+              clipPath: "polygon(6% 4%, 94% 4%, 94% 58%, 50% 100%, 6% 58%)",
+            }}
+          >
+            <span className="font-display text-lg font-bold leading-none text-white">
+              {totalDef}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -87,22 +93,22 @@ export function Camp() {
         <div className="flex flex-col gap-3">
           <Link
             to="/hunters"
-            aria-label="Ausrüstung im Jäger-Menü bearbeiten"
+            aria-label="Edit gear in the hunter menu"
             className="paper-card block px-3 py-2.5 active:translate-y-px"
           >
             <p className="text-xs uppercase tracking-wide text-ink-soft">
-              Ausrüstung
+              Equipment
             </p>
             <GearSlotIcons hunter={hunter} slots={EQUIP_SLOTS} />
           </Link>
 
           <div className="paper-card flex min-h-0 flex-1 flex-col px-3 py-2.5">
             <p className="text-xs uppercase tracking-wide text-accent">
-              Aktive Fähigkeiten
+              Active Skills
             </p>
             <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
               {skills.length === 0 ? (
-                <p className="text-sm text-ink-soft">Keine aktiven Fähigkeiten.</p>
+                <p className="text-sm text-ink-soft">No active skills.</p>
               ) : (
                 <ul className="flex flex-col gap-1 text-sm">
                   {skills.map((skill, i) => (
@@ -127,8 +133,8 @@ export function Camp() {
                 type="button"
                 disabled={potions <= 0}
                 onClick={() => setConfirmPotion(true)}
-                aria-label="Trank verbrauchen"
-                className="flex items-center gap-1 rounded-full border-[1.5px] border-line-strong bg-card px-2 py-0.5 active:translate-y-px disabled:opacity-50"
+                aria-label="Use potion"
+                className="flex shrink-0 items-center gap-1 rounded-full border-[1.5px] border-line-strong bg-card px-2 py-0.5 active:translate-y-px disabled:opacity-50"
               >
                 <img src="/icons/potion.png" alt="" className="h-5 w-5" />
                 <span className="text-sm font-bold tabular-nums">{potions}</span>
@@ -140,9 +146,9 @@ export function Camp() {
 
       {/* 5 · party */}
       {teammates.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 px-1 text-xs uppercase tracking-wide text-accent">
-            Mitspieler · {teammates.length}
+        <div className="paper-card mt-4 px-3 py-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-accent">
+            Party · {teammates.length}
           </p>
           <div className="flex flex-wrap gap-4">
             {teammates.map((mate) => (
@@ -164,8 +170,8 @@ export function Camp() {
 
       {confirmPotion && (
         <ConfirmDialog
-          title="Trank verbrauchen?"
-          message="Tränke kommen aus dem gemeinsamen Gruppen-Vorrat. Wirklich einen Trank verbrauchen?"
+          title="Use potion?"
+          message="Potions come from the shared party stockpile. Use one potion?"
           onConfirm={usePotion}
           onCancel={() => setConfirmPotion(false)}
         />

@@ -260,6 +260,8 @@ interface CampaignState {
   startQuest: (questId: string, hunterId: string) => { ok: boolean; reason?: string };
   joinQuest: (hunterId: string) => { ok: boolean; reason?: string };
   leaveQuestLobby: (hunterId: string) => void;
+  /** Dev/test: advance the lobby to the active phase regardless of readiness. */
+  forceStartQuest: () => void;
   completeQuestFailure: () => void;
   completeQuestSuccess: () => void;
   setLootDice: (hunterId: string, dice: [number, number]) => void;
@@ -766,11 +768,11 @@ export const useCampaign = create<CampaignState>()(
       joinQuest: (hunterId) => {
         const s = get();
         if (!s.campaign?.activeQuest) {
-          return { ok: false, reason: "Keine aktive Quest." };
+          return { ok: false, reason: "No active quest." };
         }
         const aq = s.campaign.activeQuest;
         if (aq.phase !== "lobby") {
-          return { ok: false, reason: "Quest bereits gestartet." };
+          return { ok: false, reason: "Quest already started." };
         }
         if (aq.readyHunterIds.includes(hunterId)) {
           return { ok: true };
@@ -800,6 +802,19 @@ export const useCampaign = create<CampaignState>()(
             campaign: touch({
               ...s.campaign,
               activeQuest: { ...aq, readyHunterIds },
+            }),
+          };
+        }),
+
+      forceStartQuest: () =>
+        set((s) => {
+          if (!s.campaign?.activeQuest) return s;
+          const aq = s.campaign.activeQuest;
+          if (aq.phase !== "lobby") return s;
+          return {
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: { ...aq, phase: "active" },
             }),
           };
         }),
