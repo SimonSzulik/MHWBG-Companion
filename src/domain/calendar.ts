@@ -3,9 +3,14 @@ import type { Campaign } from "./types";
 
 export type QuestResult = "success" | "failure";
 
-function shouldAdvanceDay(quest: QuestDef, result: QuestResult): boolean {
+function shouldAdvanceDay(
+  quest: QuestDef,
+  result: QuestResult,
+  keepInvestigationLoot?: boolean,
+): boolean {
   if (result === "success") return true;
-  return quest.stars !== "one-star";
+  if (quest.stars === "one-star") return keepInvestigationLoot === true;
+  return true;
 }
 
 /** Record quest on current calendar day and advance day when rules allow. */
@@ -14,8 +19,12 @@ export function recordQuestOnCalendar(
   quest: QuestDef,
   result: QuestResult,
   handler = false,
+  opts?: { keepInvestigationLoot?: boolean },
 ): Campaign {
-  if (result === "failure" && quest.stars === "one-star") return campaign;
+  const keepLoot = opts?.keepInvestigationLoot;
+  if (result === "failure" && quest.stars === "one-star" && !keepLoot) {
+    return campaign;
+  }
 
   const entry = {
     kind: "quest" as const,
@@ -25,7 +34,7 @@ export function recordQuestOnCalendar(
     ...(handler ? { handler: true } : {}),
   };
 
-  const nextDay = shouldAdvanceDay(quest, result)
+  const nextDay = shouldAdvanceDay(quest, result, keepLoot)
     ? Math.min(campaign.day + 1, campaign.maxDay)
     : campaign.day;
 

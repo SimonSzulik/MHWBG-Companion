@@ -259,12 +259,22 @@ export interface HunterLootProgress {
   confirmed: boolean;
 }
 
+export interface QuestOutcome {
+  result: "success" | "failure";
+  /** 1★ failure only: keep investigation loot at the cost of a campaign day. */
+  keepInvestigationLoot?: boolean;
+}
+
 export interface ActiveQuest {
   questId: string;
-  phase: "lobby" | "active" | "looting";
+  phase: "lobby" | "investigation" | "active" | "looting" | "summary";
   readyHunterIds: string[];
   startedByHunterId: string;
   lootProgress: Record<string, HunterLootProgress>;
+  /** Items gathered before the monster fight; edited by quest starter only. */
+  investigationLoot: Record<string, number>;
+  /** Set when entering summary — drives reward apply + calendar. */
+  outcome?: QuestOutcome;
   /** Started via Handler downtime replay. */
   handler?: boolean;
 }

@@ -113,7 +113,12 @@ function parseActiveQuest(raw: unknown): ActiveQuest | null {
       confirmed: p.confirmed ?? false,
     };
   }
-  return { ...o, lootProgress };
+  return {
+    ...o,
+    lootProgress,
+    investigationLoot: o.investigationLoot ?? {},
+    outcome: o.outcome,
+  };
 }
 
 /** Migrate legacy shared stash from campaign_state onto first hunter. */

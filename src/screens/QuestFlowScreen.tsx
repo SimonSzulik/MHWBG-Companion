@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { Button } from "../ui/Button";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { ownHunter } from "../lib/hunter";
@@ -19,17 +20,24 @@ import {
   LootMaterialPreviewList,
   LootMaterialRow,
 } from "../ui/LootMaterialRow";
+import { QuestInvestigationPanel } from "../ui/quest/QuestInvestigationPanel";
+import { QuestSummaryPanel } from "../ui/quest/QuestSummaryPanel";
+import { QuestFailureChoiceDialog } from "../ui/quest/QuestFailureChoiceDialog";
 
-/** Full-screen quest flow: lobby, active hunt, looting. */
+/** Full-screen quest flow: lobby, investigation, active hunt, looting, summary. */
 export function QuestFlowScreen() {
   const campaign = useCampaign((s) => s.campaign);
   const userId = useAuth((s) => s.userId);
   const navigate = useNavigate();
-  const wasLooting = useRef(false);
+  const [showFailureChoice, setShowFailureChoice] = useState(false);
+  const [showHighTierFailureConfirm, setShowHighTierFailureConfirm] =
+    useState(false);
 
   const leaveQuestLobby = useCampaign((s) => s.leaveQuestLobby);
   const forceStartQuest = useCampaign((s) => s.forceStartQuest);
   const joinQuest = useCampaign((s) => s.joinQuest);
+  const setInvestigationLoot = useCampaign((s) => s.setInvestigationLoot);
+  const finishInvestigation = useCampaign((s) => s.finishInvestigation);
   const completeQuestFailure = useCampaign((s) => s.completeQuestFailure);
   const completeQuestSuccess = useCampaign((s) => s.completeQuestSuccess);
   const setLootDice = useCampaign((s) => s.setLootDice);
@@ -37,13 +45,13 @@ export function QuestFlowScreen() {
   const togglePartBreak = useCampaign((s) => s.togglePartBreak);
   const setLootQuantity = useCampaign((s) => s.setLootQuantity);
   const confirmLoot = useCampaign((s) => s.confirmLoot);
+  const confirmQuestSummary = useCampaign((s) => s.confirmQuestSummary);
 
   const aq = campaign?.activeQuest;
-  if (aq?.phase === "looting") wasLooting.current = true;
 
   useEffect(() => {
     if (!campaign?.activeQuest) {
-      navigate(wasLooting.current ? "/" : "/campaign/quests", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [campaign?.activeQuest, navigate]);
 
@@ -64,6 +72,8 @@ export function QuestFlowScreen() {
 
   const monster = catalog.monster(quest.monsterId);
   const table = lootTableForMonster(quest.monsterId);
+  const starter = campaign.hunters.find((h) => h.id === aq!.startedByHunterId);
+  const isStarter = hunter.id === aq!.startedByHunterId;
 
   if (aq!.phase === "lobby") {
     const ready = aq!.readyHunterIds.includes(hunter.id);
@@ -129,6 +139,42 @@ export function QuestFlowScreen() {
     );
   }
 
+  if (aq!.phase === "investigation") {
+    return (
+      <Screen title="Investigation" subtitle={quest.name} back={false}>
+        <QuestInvestigationPanel
+          investigationLoot={aq!.investigationLoot ?? {}}
+          canEdit={isStarter}
+          starterName={starter?.name ?? "Quest starter"}
+          onSetQty={(materialId, qty) => {
+            const res = setInvestigationLoot(hunter.id, materialId, qty);
+            if (!res.ok && res.reason) alert(res.reason);
+          }}
+          onFinish={
+            isStarter
+              ? () => {
+                  const res = finishInvestigation(hunter.id);
+                  if (!res.ok && res.reason) alert(res.reason);
+                }
+              : undefined
+          }
+        />
+      </Screen>
+    );
+  }
+
+  if (aq!.phase === "summary") {
+    return (
+      <Screen title="Quest summary" subtitle={quest.name} back={false}>
+        <QuestSummaryPanel
+          activeQuest={aq!}
+          hunters={campaign.hunters}
+          onConfirm={() => confirmQuestSummary()}
+        />
+      </Screen>
+    );
+  }
+
   if (aq!.phase === "active") {
     return (
       <Screen title="Quest" subtitle={monster?.name ?? quest.name} back={false}>
@@ -146,7 +192,7 @@ export function QuestFlowScreen() {
             />
             <p className="font-display text-3xl leading-tight">{quest.name}</p>
             <p className="mt-2 text-sm text-ink-soft">
-              {monster?.kind ?? "Untersuchung"}
+              {monster?.kind ?? "Investigation"}
             </p>
           </div>
 
@@ -160,8 +206,11 @@ export function QuestFlowScreen() {
             </Button>
             <Button
               onClick={() => {
-                completeQuestFailure();
-                navigate("/", { replace: true });
+                if (quest.stars === "one-star") {
+                  setShowFailureChoice(true);
+                } else {
+                  setShowHighTierFailureConfirm(true);
+                }
               }}
               className="py-4 text-sm font-bold"
             >
@@ -169,9 +218,37 @@ export function QuestFlowScreen() {
             </Button>
           </div>
         </div>
+
+        {showFailureChoice && (
+          <QuestFailureChoiceDialog
+            onKeepLoot={() => {
+              completeQuestFailure(true);
+              setShowFailureChoice(false);
+            }}
+            onDiscardLoot={() => {
+              completeQuestFailure(false);
+              setShowFailureChoice(false);
+            }}
+            onCancel={() => setShowFailureChoice(false)}
+          />
+        )}
+
+        {showHighTierFailureConfirm && (
+          <ConfirmDialog
+            title="Quest failed?"
+            message="All investigation loot and progress are lost. One campaign day will pass."
+            onConfirm={() => {
+              completeQuestFailure(false);
+              setShowHighTierFailureConfirm(false);
+            }}
+            onCancel={() => setShowHighTierFailureConfirm(false)}
+          />
+        )}
       </Screen>
     );
   }
+
+  if (aq!.phase !== "looting") return null;
 
   const progress = aq!.lootProgress[hunter.id];
   if (!progress || !table) return null;
