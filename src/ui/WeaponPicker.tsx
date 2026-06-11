@@ -28,8 +28,8 @@ function weaponState(
 }
 
 const STATE_LABEL: Partial<Record<WeaponState, string>> = {
-  taken: "Belegt",
-  comingSoon: "Bald verfügbar",
+  taken: "Taken",
+  comingSoon: "Coming soon",
 };
 
 /** Shared weapon grid for campaign create/join screens. */
@@ -42,7 +42,7 @@ export function WeaponPicker({
 
   return (
     <div>
-      <p className="mb-2 text-xs uppercase tracking-wide text-ink-soft">Waffe</p>
+      <p className="mb-2 text-xs uppercase tracking-wide text-ink-soft">Weapon</p>
       <div className="grid grid-cols-2 gap-2">
         {ALL_WEAPONS.map((w) => {
           const state = weaponState(w.type, value, taken);

@@ -92,10 +92,10 @@ export function lootTableForMonster(monsterId: string): LootRow[] | undefined {
 }
 
 export const PART_LABELS: Record<MonsterPartId, string> = {
-  head: "Kopf",
-  tail: "Schwanz",
-  claws: "Klauen",
-  body: "Bauch",
-  back: "Rücken",
-  wings: "Flügel",
+  head: "Head",
+  tail: "Tail",
+  claws: "Claws",
+  body: "Body",
+  back: "Back",
+  wings: "Wings",
 };

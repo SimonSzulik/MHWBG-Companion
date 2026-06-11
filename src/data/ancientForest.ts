@@ -108,20 +108,20 @@ export const ancientForest: GameData = {
   ],
 
   items: [
-    { id: "potion", name: "Potion", description: "Stellt Lebenspunkte wieder her." },
-    { id: "mega-potion", name: "Mega Potion", description: "Stellt mehr Lebenspunkte wieder her." },
-    { id: "antidote", name: "Antidote", description: "Heilt Gift." },
-    { id: "small-barrel-bomb", name: "Small Barrel Bomb", description: "Schaden an einem angrenzenden Monster." },
-    { id: "shock-trap", name: "Shock Trap", description: "Hält ein Monster kurz fest." },
-    { id: "pitfall-trap", name: "Pitfall Trap", description: "Fängt ein Monster am Boden." },
+    { id: "potion", name: "Potion", description: "Restores health." },
+    { id: "mega-potion", name: "Mega Potion", description: "Restores more health." },
+    { id: "antidote", name: "Antidote", description: "Cures poison." },
+    { id: "small-barrel-bomb", name: "Small Barrel Bomb", description: "Damage to an adjacent monster." },
+    { id: "shock-trap", name: "Shock Trap", description: "Briefly immobilizes a monster." },
+    { id: "pitfall-trap", name: "Pitfall Trap", description: "Traps a monster on the ground." },
   ],
 
   monsters: [
-    { id: "jagras", name: "Great Jagras", kind: "Fanged Wyvern", notes: "Erste zugewiesene Untersuchung." },
-    { id: "tobi-kadachi", name: "Tobi-Kadachi", kind: "Fanged Wyvern", notes: "Blitz-Element." },
-    { id: "anjanath", name: "Anjanath", kind: "Brute Wyvern", notes: "Feuer-Element." },
-    { id: "rathalos", name: "Rathalos", kind: "Flying Wyvern", notes: "König der Lüfte." },
-    { id: "azure-rathalos", name: "Azure Rathalos", kind: "Flying Wyvern", notes: "Stärkere Rathalos-Variante." },
+    { id: "jagras", name: "Great Jagras", kind: "Fanged Wyvern", notes: "First assigned investigation." },
+    { id: "tobi-kadachi", name: "Tobi-Kadachi", kind: "Fanged Wyvern", notes: "Thunder element." },
+    { id: "anjanath", name: "Anjanath", kind: "Brute Wyvern", notes: "Fire element." },
+    { id: "rathalos", name: "Rathalos", kind: "Flying Wyvern", notes: "King of the Skies." },
+    { id: "azure-rathalos", name: "Azure Rathalos", kind: "Flying Wyvern", notes: "Stronger Rathalos variant." },
   ],
 
   gear: [
@@ -132,7 +132,7 @@ export const ancientForest: GameData = {
       slot: "weapon",
       weaponType: "Switch Axe",
       cost: [],
-      effect: "Start-Switch-Axe.",
+      effect: "Starter Switch Axe.",
     },
     {
       id: "kadachi-axe",
@@ -144,7 +144,7 @@ export const ancientForest: GameData = {
         { materialId: "tobi-kadachi-pelt", qty: 3 },
         { materialId: "monster-bone-small", qty: 1 },
       ],
-      effect: "Blitz-Element.",
+      effect: "Thunder element.",
     },
     {
       id: "rath-axe",
@@ -156,7 +156,7 @@ export const ancientForest: GameData = {
         { materialId: "rathalos-wing", qty: 1 },
         { materialId: "carbalite-ore", qty: 4 },
       ],
-      effect: "Feuer-Element. Hoher Rohschaden.",
+      effect: "Fire element. High raw damage.",
     },
     {
       id: "proto-commission-blade",
@@ -164,7 +164,7 @@ export const ancientForest: GameData = {
       slot: "weapon",
       weaponType: "Charge Blade",
       cost: [],
-      effect: "Start-Charge-Blade.",
+      effect: "Starter Charge Blade.",
     },
     {
       id: "proto-commission-glaive",
@@ -172,7 +172,7 @@ export const ancientForest: GameData = {
       slot: "weapon",
       weaponType: "Insect Glaive",
       cost: [],
-      effect: "Start-Insect-Glaive.",
+      effect: "Starter Insect Glaive.",
     },
     {
       id: "proto-commission-bowgun",
@@ -180,7 +180,7 @@ export const ancientForest: GameData = {
       slot: "weapon",
       weaponType: "Heavy Bowgun",
       cost: [],
-      effect: "Start-Heavy-Bowgun.",
+      effect: "Starter Heavy Bowgun.",
     },
   ],
 };

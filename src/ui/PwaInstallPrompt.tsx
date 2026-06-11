@@ -13,23 +13,22 @@ export function PwaInstallPrompt({ iosMode, onInstall, onClose }: Props) {
       <section className="paper-card pointer-events-auto p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-display text-xl leading-tight">Als App installieren</p>
+            <p className="font-display text-xl leading-tight">Install as app</p>
             {iosMode ? (
               <p className="mt-1 text-sm text-ink-soft">
-                Öffne Teilen und tippe auf „Zum Home-Bildschirm“, um diese App
-                wie eine native App zu starten.
+                Open Share and tap “Add to Home Screen” to launch this app like
+                a native app.
               </p>
             ) : (
               <p className="mt-1 text-sm text-ink-soft">
-                Installiere die App für schnelleren Zugriff und ein
-                Vollbild-Erlebnis.
+                Install the app for faster access and a full-screen experience.
               </p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Installationshinweis schließen"
+            aria-label="Dismiss install prompt"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-sm active:translate-y-px"
           >
             ✕
@@ -42,7 +41,7 @@ export function PwaInstallPrompt({ iosMode, onInstall, onClose }: Props) {
             onClick={onClose}
             className="bg-card px-3 py-2 text-sm font-semibold"
           >
-            Später
+            Later
           </Button>
           {!iosMode && (
             <Button
@@ -50,7 +49,7 @@ export function PwaInstallPrompt({ iosMode, onInstall, onClose }: Props) {
               onClick={onInstall}
               className="px-3 py-2 text-sm font-semibold"
             >
-              Installieren
+              Install
             </Button>
           )}
         </div>
