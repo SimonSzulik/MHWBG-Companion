@@ -275,6 +275,8 @@ export interface ActiveQuest {
   investigationLoot: Record<string, number>;
   /** Set when entering summary — drives reward apply + calendar. */
   outcome?: QuestOutcome;
+  /** Investigation potions already added to party stockpile during looting. */
+  partyPotionsApplied?: boolean;
   /** Started via Handler downtime replay. */
   handler?: boolean;
 }

@@ -33,7 +33,8 @@ import {
 import { recordQuestOnCalendar, recordDowntimeOnCalendar } from "../domain/calendar";
 import {
   applyInvestigationLoot,
-  applyLootProgress,
+  applyInvestigationLootToHunter,
+  applyPartyPotionsOnce,
 } from "../domain/questRewards";
 import {
   MAX_DOWNTIME_PICKS,
@@ -147,6 +148,7 @@ function normalizeActiveQuest(aq: ActiveQuest | null | undefined): ActiveQuest |
     lootProgress,
     investigationLoot: aq.investigationLoot ?? {},
     outcome: aq.outcome,
+    partyPotionsApplied: aq.partyPotionsApplied ?? false,
   };
 }
 
@@ -291,7 +293,7 @@ interface CampaignState {
   setLootChoice: (hunterId: string, choice: "split" | "sum") => void;
   togglePartBreak: (hunterId: string, part: MonsterPartId) => void;
   setLootQuantity: (hunterId: string, materialId: string, qty: number) => void;
-  confirmLoot: (hunterId: string) => void;
+  confirmPersonalLoot: (hunterId: string) => void;
   confirmQuestSummary: () => void;
 
   beginDowntime: () => { ok: boolean; reason?: string };
@@ -1000,42 +1002,86 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      confirmLoot: (hunterId) => {
-        const s = get();
-        if (!s.campaign?.activeQuest) return;
-        const aq = s.campaign.activeQuest;
-        if (aq.phase !== "looting") return;
-        const progress = aq.lootProgress[hunterId];
-        if (!progress?.choice) return;
+      confirmPersonalLoot: (hunterId) =>
+        set((s) => {
+          if (!s.campaign?.activeQuest) return s;
+          const aq = s.campaign.activeQuest;
+          if (aq.phase !== "looting") return s;
+          const progress = aq.lootProgress[hunterId];
+          if (!progress?.choice || progress.confirmed) return s;
 
-        let campaign = touch({
-          ...s.campaign,
-          activeQuest: {
+          let campaign = applyInvestigationLootToHunter(
+            s.campaign,
+            hunterId,
+            aq.investigationLoot ?? {},
+          );
+          campaign = {
+            ...campaign,
+            hunters: campaign.hunters.map((h) =>
+              h.id === hunterId
+                ? {
+                    ...h,
+                    materials: (() => {
+                      const materials = { ...h.materials };
+                      for (const [id, qty] of Object.entries(
+                        progress.lootQuantities,
+                      )) {
+                        if (qty <= 0) continue;
+                        materials[id] = (materials[id] ?? 0) + qty;
+                      }
+                      return materials;
+                    })(),
+                  }
+                : h,
+            ),
+          };
+
+          const potionResult = applyPartyPotionsOnce(
+            campaign,
+            aq.investigationLoot ?? {},
+            aq.partyPotionsApplied ?? false,
+          );
+          campaign = potionResult.campaign;
+
+          const nextAq: ActiveQuest = {
             ...aq,
+            partyPotionsApplied:
+              aq.partyPotionsApplied || potionResult.applied,
             lootProgress: {
               ...aq.lootProgress,
               [hunterId]: { ...progress, confirmed: true },
             },
-          },
-        });
+          };
+          campaign = touch({ ...campaign, activeQuest: nextAq });
 
-        const allConfirmed = campaign.hunters.every(
-          (h) => campaign.activeQuest?.lootProgress[h.id]?.confirmed,
-        );
+          const allConfirmed = campaign.hunters.every(
+            (h) => campaign.activeQuest?.lootProgress[h.id]?.confirmed,
+          );
 
-        if (allConfirmed) {
-          campaign = touch({
-            ...campaign,
-            activeQuest: {
-              ...campaign.activeQuest!,
-              phase: "summary",
-              outcome: { result: "success" },
-            },
-          });
-        }
+          if (allConfirmed) {
+            const quest = questById(aq.questId);
+            if (quest) {
+              const cur = campaign.questCompletions[aq.questId] ?? 0;
+              campaign = clearElementResistances(
+                touch({
+                  ...campaign,
+                  questCompletions: canIncrementQuestCompletion(quest, cur)
+                    ? {
+                        ...campaign.questCompletions,
+                        [aq.questId]: cur + 1,
+                      }
+                    : campaign.questCompletions,
+                  activeQuest: null,
+                }),
+              );
+              campaign = touch(
+                recordQuestOnCalendar(campaign, quest, "success", aq.handler),
+              );
+            }
+          }
 
-        set({ campaign });
-      },
+          return { campaign };
+        }),
 
       confirmQuestSummary: () =>
         set((s) => {
@@ -1043,17 +1089,13 @@ export const useCampaign = create<CampaignState>()(
           const aq = s.campaign.activeQuest;
           const outcome = aq.outcome;
           const quest = questById(aq.questId);
-          if (!quest || !outcome) return s;
+          if (!quest || !outcome || outcome.result !== "failure") return s;
 
-          const { result, keepInvestigationLoot } = outcome;
+          const { keepInvestigationLoot } = outcome;
           let campaign = s.campaign;
 
-          const applyInvestigation =
-            result === "success" ||
-            (result === "failure" && keepInvestigationLoot === true);
-
           if (
-            applyInvestigation &&
+            keepInvestigationLoot === true &&
             Object.keys(aq.investigationLoot ?? {}).length > 0
           ) {
             campaign = touch(
@@ -1061,20 +1103,8 @@ export const useCampaign = create<CampaignState>()(
             );
           }
 
-          if (result === "success") {
-            campaign = touch(applyLootProgress(campaign, aq.lootProgress));
-          }
-
           let questCompletions = campaign.questCompletions;
-          if (result === "success") {
-            const cur = questCompletions[aq.questId] ?? 0;
-            if (canIncrementQuestCompletion(quest, cur)) {
-              questCompletions = {
-                ...questCompletions,
-                [aq.questId]: cur + 1,
-              };
-            }
-          } else if (shouldIncrementOnFailure(quest)) {
+          if (shouldIncrementOnFailure(quest)) {
             const cur = questCompletions[aq.questId] ?? 0;
             if (canIncrementQuestCompletion(quest, cur)) {
               questCompletions = {
@@ -1093,7 +1123,7 @@ export const useCampaign = create<CampaignState>()(
           );
 
           campaign = touch(
-            recordQuestOnCalendar(campaign, quest, result, aq.handler, {
+            recordQuestOnCalendar(campaign, quest, "failure", aq.handler, {
               keepInvestigationLoot,
             }),
           );

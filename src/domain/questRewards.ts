@@ -13,6 +13,79 @@ function applyMaterialsToHunter(
   return { ...hunter, materials };
 }
 
+/** Apply investigation materials to a single hunter (excludes potions). */
+export function applyInvestigationLootToHunter(
+  campaign: Campaign,
+  hunterId: string,
+  loot: Record<string, number>,
+): Campaign {
+  const materialLoot: Record<string, number> = {};
+  for (const [id, qty] of Object.entries(loot)) {
+    if (qty <= 0 || id === "potion") continue;
+    materialLoot[id] = qty;
+  }
+  if (Object.keys(materialLoot).length === 0) return campaign;
+  return {
+    ...campaign,
+    hunters: campaign.hunters.map((h) =>
+      h.id === hunterId ? applyMaterialsToHunter(h, materialLoot) : h,
+    ),
+  };
+}
+
+/** Add investigation potions to party stockpile once per quest. */
+export function applyPartyPotionsOnce(
+  campaign: Campaign,
+  loot: Record<string, number>,
+  alreadyApplied: boolean,
+): { campaign: Campaign; applied: boolean } {
+  if (alreadyApplied) return { campaign, applied: false };
+  const potionQty = loot.potion ?? 0;
+  if (potionQty <= 0) return { campaign, applied: false };
+  return {
+    campaign: {
+      ...campaign,
+      items: {
+        ...campaign.items,
+        potion: Math.min(MAX_POTIONS, (campaign.items.potion ?? 0) + potionQty),
+      },
+    },
+    applied: true,
+  };
+}
+
+export type PersonalLootSummary = {
+  materials: Record<string, number>;
+  potionsToParty: number;
+};
+
+/** Merged investigation + rolled loot for one hunter's reward popup. */
+export function buildPersonalLootSummary(
+  activeQuest: ActiveQuest,
+  hunterId: string,
+): PersonalLootSummary {
+  const investigation = activeQuest.investigationLoot ?? {};
+  const rolled =
+    activeQuest.lootProgress[hunterId]?.lootQuantities ?? {};
+
+  const materials: Record<string, number> = {};
+  for (const [id, qty] of Object.entries(investigation)) {
+    if (id === "potion" || qty <= 0) continue;
+    materials[id] = (materials[id] ?? 0) + qty;
+  }
+  for (const [id, qty] of Object.entries(rolled)) {
+    if (qty <= 0) continue;
+    materials[id] = (materials[id] ?? 0) + qty;
+  }
+
+  const potionsToParty =
+    !activeQuest.partyPotionsApplied && (investigation.potion ?? 0) > 0
+      ? (investigation.potion ?? 0)
+      : 0;
+
+  return { materials, potionsToParty };
+}
+
 /** Duplicate investigation materials to every hunter; potions go to party stockpile. */
 export function applyInvestigationLoot(
   campaign: Campaign,

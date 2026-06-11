@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { gameData } from "../../data/gameData";
+import { catalog } from "../../domain/catalog";
 import { MAX_POTIONS } from "../../domain/downtime";
 import { iconUrl } from "../../domain/icons";
 import type { Material } from "../../domain/types";
@@ -8,9 +9,13 @@ import { Button } from "../Button";
 import { SegmentedTabs } from "../SegmentedTabs";
 import { LootMaterialPreviewList } from "../LootMaterialRow";
 
-type Tab = "material" | "other";
+type Tab = "material" | "other" | "monster";
 
-function tileLabel(material: Material): string {
+function tileLabel(material: Material, useShortName?: boolean): string {
+  if (useShortName && material.shortName) return material.shortName;
+  if (material.group === "monster" && material.monsterId) {
+    return catalog.monster(material.monsterId)?.name ?? material.monsterId;
+  }
   return material.shortName ?? material.name;
 }
 
@@ -34,7 +39,9 @@ export function QuestInvestigationPanel({
 
   const materials = gameData.materials.filter((m) => m.group === "material");
   const others = gameData.materials.filter((m) => m.group === "other");
-  const items = tab === "material" ? materials : others;
+  const monsterItems = gameData.materials.filter((m) => m.group === "monster");
+  const items =
+    tab === "material" ? materials : tab === "other" ? others : monsterItems;
 
   const qtyOf = (id: string) => investigationLoot[id] ?? 0;
   const potionQty = investigationLoot.potion ?? 0;
@@ -105,6 +112,7 @@ export function QuestInvestigationPanel({
           tabs={[
             { value: "material", label: "Material" },
             { value: "other", label: "Other" },
+            { value: "monster", label: "Monster" },
           ]}
         />
       )}
@@ -117,6 +125,8 @@ export function QuestInvestigationPanel({
           onToggleEmpty={() => setShowEmpty((v) => !v)}
           selectedId={selected?.id ?? null}
           onSelect={setSelected}
+          showMonsterBadge={tab === "monster"}
+          useShortName={tab === "monster"}
         />
       ) : loggedIds.length > 0 ? (
         <div className="paper-card p-4">
@@ -166,6 +176,8 @@ function InvestigationGrid({
   onToggleEmpty,
   selectedId,
   onSelect,
+  showMonsterBadge,
+  useShortName,
 }: {
   items: Material[];
   qtyOf: (id: string) => number;
@@ -173,6 +185,8 @@ function InvestigationGrid({
   onToggleEmpty: () => void;
   selectedId: string | null;
   onSelect: (material: Material | null) => void;
+  showMonsterBadge?: boolean;
+  useShortName?: boolean;
 }) {
   const owned = items.filter((m) => qtyOf(m.id) > 0);
   const empty = items.filter((m) => qtyOf(m.id) <= 0);
@@ -197,6 +211,15 @@ function InvestigationGrid({
                     : "border-line-strong bg-card"
               }`}
             >
+              {showMonsterBadge && m.monsterId && (
+                <img
+                  src={iconUrl(m.monsterId)}
+                  alt=""
+                  className={`absolute left-0.5 top-0.5 h-4 w-4 object-contain ${
+                    isEmpty ? "opacity-40" : ""
+                  }`}
+                />
+              )}
               {qty > 0 && (
                 <span className="absolute right-1 top-1 rounded-full bg-accent px-1.5 py-px text-[10px] font-bold leading-none text-white">
                   {qty}
@@ -205,10 +228,10 @@ function InvestigationGrid({
               <img
                 src={iconUrl(m.iconType)}
                 alt=""
-                className="h-10 w-10 object-contain"
+                className={`h-10 w-10 object-contain ${isEmpty ? "opacity-40" : ""}`}
               />
               <span className="mt-1 w-full truncate px-0.5 text-center text-[9px] font-medium leading-tight">
-                {tileLabel(m)}
+                {tileLabel(m, useShortName)}
               </span>
             </button>
           );
@@ -246,11 +269,20 @@ function InvestigationItemSheet({
     <BottomSheet onClose={onClose} className="bg-[#2a231c] text-white">
       <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/30" />
       <div className="flex items-center gap-3">
-        <img
-          src={iconUrl(material.iconType)}
-          alt=""
-          className="h-12 w-12 object-contain"
-        />
+        <div className="flex shrink-0 items-center gap-1">
+          <img
+            src={iconUrl(material.iconType)}
+            alt=""
+            className="h-12 w-12 object-contain"
+          />
+          {material.group === "monster" && material.monsterId && (
+            <img
+              src={iconUrl(material.monsterId)}
+              alt=""
+              className="h-10 w-10 object-contain"
+            />
+          )}
+        </div>
         <div>
           <p className="font-display text-xl">{material.name}</p>
           <p className="text-xs text-white/60">Gathered this quest</p>

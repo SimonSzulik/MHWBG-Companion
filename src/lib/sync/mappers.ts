@@ -118,6 +118,7 @@ function parseActiveQuest(raw: unknown): ActiveQuest | null {
     lootProgress,
     investigationLoot: o.investigationLoot ?? {},
     outcome: o.outcome,
+    partyPotionsApplied: o.partyPotionsApplied ?? false,
   };
 }
 

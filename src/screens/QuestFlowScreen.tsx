@@ -1,28 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Screen } from "../ui/Screen";
 import { Button } from "../ui/Button";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { ownHunter } from "../lib/hunter";
 import { questById } from "../domain/quests";
-import { buildLootPreview, rollDice } from "../domain/loot";
-import {
-  BREAKABLE_PARTS,
-  PART_LABELS,
-  lootTableForMonster,
-} from "../data/lootTables";
+import { rollDice } from "../domain/loot";
+import { lootTableForMonster } from "../data/lootTables";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
 import { clamp } from "../lib/math";
-import {
-  LootMaterialPreviewList,
-  LootMaterialRow,
-} from "../ui/LootMaterialRow";
+import { buildPersonalLootSummary } from "../domain/questRewards";
 import { QuestInvestigationPanel } from "../ui/quest/QuestInvestigationPanel";
 import { QuestSummaryPanel } from "../ui/quest/QuestSummaryPanel";
 import { QuestFailureChoiceDialog } from "../ui/quest/QuestFailureChoiceDialog";
+import { QuestPhaseScreen } from "../ui/quest/QuestPhaseScreen";
+import { LootSack } from "../ui/quest/LootSack";
+import { QuestPersonalLootDialog } from "../ui/quest/QuestPersonalLootDialog";
 
 /** Full-screen quest flow: lobby, investigation, active hunt, looting, summary. */
 export function QuestFlowScreen() {
@@ -32,6 +27,7 @@ export function QuestFlowScreen() {
   const [showFailureChoice, setShowFailureChoice] = useState(false);
   const [showHighTierFailureConfirm, setShowHighTierFailureConfirm] =
     useState(false);
+  const [showPersonalLoot, setShowPersonalLoot] = useState(false);
 
   const leaveQuestLobby = useCampaign((s) => s.leaveQuestLobby);
   const forceStartQuest = useCampaign((s) => s.forceStartQuest);
@@ -42,9 +38,8 @@ export function QuestFlowScreen() {
   const completeQuestSuccess = useCampaign((s) => s.completeQuestSuccess);
   const setLootDice = useCampaign((s) => s.setLootDice);
   const setLootChoice = useCampaign((s) => s.setLootChoice);
-  const togglePartBreak = useCampaign((s) => s.togglePartBreak);
   const setLootQuantity = useCampaign((s) => s.setLootQuantity);
-  const confirmLoot = useCampaign((s) => s.confirmLoot);
+  const confirmPersonalLoot = useCampaign((s) => s.confirmPersonalLoot);
   const confirmQuestSummary = useCampaign((s) => s.confirmQuestSummary);
 
   const aq = campaign?.activeQuest;
@@ -62,6 +57,15 @@ export function QuestFlowScreen() {
     joinQuest(h.id);
   }, [campaign, userId, joinQuest]);
 
+  useEffect(() => {
+    if (!campaign?.activeQuest || campaign.activeQuest.phase !== "looting") return;
+    const h = ownHunter(campaign, userId);
+    if (!h) return;
+    if (campaign.activeQuest.lootProgress[h.id]?.confirmed) {
+      navigate("/", { replace: true });
+    }
+  }, [campaign, userId, navigate]);
+
   if (!campaign?.activeQuest) return null;
 
   const hunter = ownHunter(campaign, userId);
@@ -78,7 +82,7 @@ export function QuestFlowScreen() {
   if (aq!.phase === "lobby") {
     const ready = aq!.readyHunterIds.includes(hunter.id);
     return (
-      <Screen title="Start Quest" subtitle={quest.name} back={false}>
+      <QuestPhaseScreen title="Start Quest" subtitle={quest.name}>
         <div className="flex flex-col items-center gap-6 py-8">
           <img
             src={iconUrl(quest.icon)}
@@ -135,13 +139,13 @@ export function QuestFlowScreen() {
             )}
           </div>
         </div>
-      </Screen>
+      </QuestPhaseScreen>
     );
   }
 
   if (aq!.phase === "investigation") {
     return (
-      <Screen title="Investigation" subtitle={quest.name} back={false}>
+      <QuestPhaseScreen title="Investigation" subtitle={quest.name}>
         <QuestInvestigationPanel
           investigationLoot={aq!.investigationLoot ?? {}}
           canEdit={isStarter}
@@ -159,25 +163,25 @@ export function QuestFlowScreen() {
               : undefined
           }
         />
-      </Screen>
+      </QuestPhaseScreen>
     );
   }
 
   if (aq!.phase === "summary") {
     return (
-      <Screen title="Quest summary" subtitle={quest.name} back={false}>
+      <QuestPhaseScreen title="Quest summary" subtitle={quest.name}>
         <QuestSummaryPanel
           activeQuest={aq!}
           hunters={campaign.hunters}
           onConfirm={() => confirmQuestSummary()}
         />
-      </Screen>
+      </QuestPhaseScreen>
     );
   }
 
   if (aq!.phase === "active") {
     return (
-      <Screen title="Quest" subtitle={monster?.name ?? quest.name} back={false}>
+      <QuestPhaseScreen title="Quest" subtitle={monster?.name ?? quest.name}>
         <div className="flex flex-col items-center gap-6 py-6">
           <img
             src={iconUrl(quest.icon)}
@@ -244,7 +248,7 @@ export function QuestFlowScreen() {
             onCancel={() => setShowHighTierFailureConfirm(false)}
           />
         )}
-      </Screen>
+      </QuestPhaseScreen>
     );
   }
 
@@ -253,45 +257,12 @@ export function QuestFlowScreen() {
   const progress = aq!.lootProgress[hunter.id];
   if (!progress || !table) return null;
 
-  if (progress.confirmed) {
-    return (
-      <Screen title="Loot" subtitle={hunter.name} back={false}>
-        <div className="flex flex-col items-center gap-4 py-12 text-center">
-          <p className="font-display text-2xl">Loot secured!</p>
-          <p className="text-sm text-ink-soft">Waiting for other hunters…</p>
-          <ul className="w-full paper-card p-4 text-left text-sm">
-            {campaign.hunters.map((h) => (
-              <li key={h.id} className="flex justify-between py-1">
-                <span>{h.name}</span>
-                <span>{aq!.lootProgress[h.id]?.confirmed ? "✓" : "…"}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Screen>
-    );
-  }
+  if (progress.confirmed) return null;
 
   const [x, y] = progress.dice;
   const sum = x + y;
   const canSum = sum <= 12;
-  const parts = BREAKABLE_PARTS[quest.monsterId] ?? [];
 
-  const splitPreview = buildLootPreview(
-    table,
-    progress.dice,
-    "split",
-    progress.brokenParts,
-  );
-  const sumPreview = canSum
-    ? buildLootPreview(table, progress.dice, "sum", progress.brokenParts)
-    : null;
-
-  const lootPreview = progress.choice
-    ? buildLootPreview(table, progress.dice, progress.choice, progress.brokenParts)
-    : null;
-
-  const materialIds = Object.keys(progress.lootQuantities).sort();
   const setDieFace = (index: 0 | 1, raw: string) => {
     const parsed = Number.parseInt(raw, 10);
     const nextFace = Number.isNaN(parsed) ? 1 : clamp(parsed, 1, 6);
@@ -299,19 +270,42 @@ export function QuestFlowScreen() {
     setLootDice(hunter.id, nextDice);
   };
 
-  return (
-    <Screen title="Loot" subtitle={hunter.name} back={false}>
-      <div className="flex flex-col gap-4">
-        <div className="paper-card flex items-center justify-center gap-6 p-6">
-          <Die face={x} />
-          <Die face={y} />
-        </div>
+  const personalSummary = buildPersonalLootSummary(aq!, hunter.id);
 
+  return (
+    <QuestPhaseScreen title="Loot" subtitle={hunter.name}>
+      <div className="flex flex-col gap-4">
         <div className="paper-card p-4">
-          <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-            Enter manually
-          </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <CompactDie face={x} />
+              <CompactDie face={y} />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setLootDice(hunter.id, rollDice())}
+              className="shrink-0 bg-paper-2 px-3 py-2 text-sm font-semibold"
+            >
+              Reroll
+            </Button>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <LootChoiceButton
+              label="Both dice"
+              active={progress.choice === "split"}
+              onSelect={() => setLootChoice(hunter.id, "split")}
+            />
+            {canSum && (
+              <LootChoiceButton
+                label={`Sum (${sum})`}
+                active={progress.choice === "sum"}
+                onSelect={() => setLootChoice(hunter.id, "sum")}
+              />
+            )}
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3">
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
               Die 1
               <input
@@ -343,168 +337,65 @@ export function QuestFlowScreen() {
           </div>
         </div>
 
-        <Button
-          variant="secondary"
-          onClick={() => setLootDice(hunter.id, rollDice())}
-          className="w-full bg-paper-2 py-2 text-sm font-semibold"
-        >
-          Reroll
-        </Button>
-
-        <div className="flex flex-col gap-2">
-          <LootOption
-            label={`Row ${x} + ${y}`}
-            active={progress.choice === "split"}
-            onSelect={() => setLootChoice(hunter.id, "split")}
-            preview={splitPreview.materials}
+        {progress.choice && (
+          <LootSack
+            quantities={progress.lootQuantities}
+            onSetQty={(id, next) => setLootQuantity(hunter.id, id, next)}
           />
-          <LootOption
-            label={`Row ${sum}`}
-            disabled={!canSum}
-            active={progress.choice === "sum"}
-            onSelect={() => setLootChoice(hunter.id, "sum")}
-            preview={sumPreview?.materials}
-          />
-        </div>
-
-        {parts.length > 0 && (
-          <div className="paper-card p-4">
-            <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-              Part broken
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {parts.map((part) => (
-                <button
-                  key={part}
-                  type="button"
-                  onClick={() => togglePartBreak(hunter.id, part)}
-                  className={`rounded-lg border-[1.5px] px-3 py-1.5 text-sm font-semibold active:translate-y-px ${
-                    progress.brokenParts.includes(part)
-                      ? "border-ok bg-ok-soft text-ok"
-                      : "border-line-strong bg-paper-2"
-                  }`}
-                >
-                  {PART_LABELS[part]}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {lootPreview && progress.choice && (
-          <div className="paper-card p-4">
-            <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-              Preview
-            </p>
-
-            {lootPreview.brokenParts.length > 0 && (
-              <div className="mb-3">
-                <p className="mb-1 text-[10px] uppercase tracking-wide text-ink-soft">
-                  Part break
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {lootPreview.brokenParts.map((part) => (
-                    <span
-                      key={part}
-                      className="rounded-md border border-ok bg-ok-soft px-2 py-0.5 text-xs font-semibold text-ok"
-                    >
-                      {PART_LABELS[part]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {Object.keys(lootPreview.partBreakMaterials).length > 0 && (
-              <div className="mb-3">
-                <p className="mb-1 text-[10px] uppercase tracking-wide text-ink-soft">
-                  Part-break bonus
-                </p>
-                <LootMaterialPreviewList
-                  quantities={lootPreview.partBreakMaterials}
-                  readOnly
-                  compact
-                />
-              </div>
-            )}
-
-            <LootMaterialPreviewList
-              quantities={lootPreview.materials}
-              readOnly
-              compact
-            />
-          </div>
-        )}
-
-        {progress.choice && materialIds.length > 0 && (
-          <div className="paper-card p-4">
-            <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-              Loot (adjust manually)
-            </p>
-            <ul className="flex flex-col gap-1">
-              {materialIds.map((id) => (
-                <li key={id}>
-                  <LootMaterialRow
-                    materialId={id}
-                    qty={progress.lootQuantities[id] ?? 0}
-                    onSet={(next) => setLootQuantity(hunter.id, id, next)}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
         )}
 
         <Button
           disabled={!progress.choice}
-          onClick={() => confirmLoot(hunter.id)}
+          onClick={() => setShowPersonalLoot(true)}
           className="w-full py-3 text-sm font-bold"
         >
           Confirm loot
         </Button>
       </div>
-    </Screen>
+
+      {showPersonalLoot && progress.choice && (
+        <QuestPersonalLootDialog
+          hunterName={hunter.name}
+          summary={personalSummary}
+          onConfirm={() => {
+            confirmPersonalLoot(hunter.id);
+            setShowPersonalLoot(false);
+            navigate("/", { replace: true });
+          }}
+        />
+      )}
+    </QuestPhaseScreen>
   );
 }
 
-function Die({ face }: { face: number }) {
+function CompactDie({ face }: { face: number }) {
   return (
-    <div className="grid h-16 w-16 place-items-center rounded-xl border-[3px] border-line-strong bg-card font-display text-3xl shadow-sm">
+    <div className="grid h-10 w-10 place-items-center rounded-lg border-2 border-line-strong bg-card font-display text-xl shadow-sm">
       {face}
     </div>
   );
 }
 
-function LootOption({
+function LootChoiceButton({
   label,
   active,
-  disabled,
   onSelect,
-  preview,
 }: {
   label: string;
   active: boolean;
-  disabled?: boolean;
   onSelect: () => void;
-  preview?: Record<string, number>;
 }) {
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={onSelect}
-      className={`rounded-xl border-[1.5px] p-3 text-left active:translate-y-px disabled:opacity-40 ${
+      className={`flex-1 rounded-lg border-[1.5px] px-3 py-2 text-sm font-semibold active:translate-y-px ${
         active
-          ? "border-accent bg-accent-faint ring-1 ring-accent"
-          : "border-line-strong bg-card"
+          ? "border-accent bg-accent-faint text-accent ring-1 ring-accent"
+          : "border-line-strong bg-paper-2"
       }`}
     >
-      <p className="font-semibold">{label}</p>
-      {preview && Object.keys(preview).length > 0 && (
-        <div className="mt-2">
-          <LootMaterialPreviewList quantities={preview} readOnly compact />
-        </div>
-      )}
+      {label}
     </button>
   );
 }
