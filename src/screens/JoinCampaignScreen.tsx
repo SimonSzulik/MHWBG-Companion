@@ -108,10 +108,10 @@ export function JoinCampaignScreen() {
       {step === "code" && (
         <div className="flex flex-col gap-4">
           <Field
-            label="Join-Code"
+            label="Join code"
             value={joinCode}
             onChange={(e) => setJoinCode(normalizeJoinCode(e.target.value))}
-            placeholder="z. B. A1B2C3D4"
+            placeholder="e.g. A1B2C3D4"
             maxLength={8}
             className="font-display tracking-widest uppercase"
           />
@@ -133,7 +133,7 @@ export function JoinCampaignScreen() {
             onClick={() => void validateCode()}
             className="py-2.5 font-semibold"
           >
-            {busy ? "Prüfe…" : "Weiter"}
+            {busy ? "Checking…" : "Next"}
           </Button>
         </div>
       )}
@@ -166,7 +166,7 @@ export function JoinCampaignScreen() {
             onClick={() => void confirm()}
             className="py-2.5 font-semibold"
           >
-            {busy ? "Beitreten…" : "Beitreten"}
+            {busy ? "Joining…" : "Join"}
           </Button>
 
           <button
@@ -179,7 +179,7 @@ export function JoinCampaignScreen() {
             }}
             className="text-sm text-ink-soft underline"
           >
-            ← Anderen Code eingeben
+            ← Enter a different code
           </button>
         </div>
       )}

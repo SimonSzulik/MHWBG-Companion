@@ -72,9 +72,9 @@ export function CreateCampaignScreen() {
 
   if (createdJoinCode) {
     return (
-      <Screen title="Kampagne erstellt" back={false}>
+      <Screen title="Campaign created" back={false}>
         <div className="paper-card p-6 text-center">
-          <p className="text-sm text-ink-soft">Teile diesen Join-Code:</p>
+          <p className="text-sm text-ink-soft">Share this join code:</p>
           <p className="mt-2 font-display text-3xl tracking-widest">
             {createdJoinCode}
           </p>
@@ -85,14 +85,14 @@ export function CreateCampaignScreen() {
             }}
             className="mt-4 text-sm text-accent underline"
           >
-            Code kopieren
+            Copy code
           </button>
           <Button
             rounded="lg"
             onClick={() => nav("/", { replace: true })}
             className="mt-6 w-full py-2.5 font-semibold"
           >
-            Ins Camp
+            To Camp
           </Button>
         </div>
       </Screen>
@@ -100,7 +100,7 @@ export function CreateCampaignScreen() {
   }
 
   return (
-    <Screen title="Neue Kampagne" subtitle="Setup">
+    <Screen title="New Campaign" subtitle="Setup">
       <div className="flex flex-col gap-4">
         <Field
           label="Campaign name"
@@ -115,13 +115,13 @@ export function CreateCampaignScreen() {
         />
 
         <Field
-          label="Join-Code"
+          label="Join code"
           value={chosenJoinCode}
           onChange={(e) => setChosenJoinCode(normalizeJoinCode(e.target.value))}
-          placeholder="z. B. A1B2C3D4"
+          placeholder="e.g. A1B2C3D4"
           maxLength={8}
           className="font-display tracking-widest uppercase"
-          hint="8 Zeichen (Buchstaben & Zahlen) — wird von anderen zum Beitreten eingegeben."
+          hint="8 characters (letters & numbers) — entered by others to join."
         />
 
         <label className="flex items-center gap-2 text-sm">
@@ -159,7 +159,7 @@ export function CreateCampaignScreen() {
           onClick={() => void finish()}
           className="py-3 font-semibold"
         >
-          {busy ? "Wird erstellt…" : "Auf in die Jagd"}
+          {busy ? "Creating…" : "Off to the hunt!"}
         </Button>
       </div>
     </Screen>
