@@ -43,8 +43,15 @@ export function Settings() {
   };
 
   return (
-    <Screen title="Settings" subtitle={campaign?.name}>
+    <Screen title="Settings" subtitle={campaign?.name} back>
       <Section title="Campaign">
+        <button
+          type="button"
+          onClick={() => nav("/")}
+          className="rounded-lg border-[1.5px] border-line-strong bg-paper-2 py-2 text-sm font-semibold active:translate-y-px"
+        >
+          Back to Camp
+        </button>
         {campaign?.joinCode ? (
           <div className="rounded-lg border border-dashed border-accent/70 bg-accent-faint/50 px-3 py-2 text-center">
             <p className="text-xs text-ink-soft">
@@ -69,10 +76,14 @@ export function Settings() {
         <button
           type="button"
           onClick={() => void switchCampaign()}
-          className="rounded-lg border-[1.5px] border-line-strong bg-card py-2 text-sm font-semibold active:translate-y-px"
+          className="rounded-lg border-[1.5px] border-accent bg-accent-faint py-2 text-sm font-semibold text-accent active:translate-y-px"
         >
-          Switch campaign
+          Campaigns
         </button>
+        <p className="text-xs text-ink-soft">
+          Return to the campaign list to join or switch campaigns — you stay
+          signed in.
+        </p>
       </Section>
 
       <Section title="Sync">

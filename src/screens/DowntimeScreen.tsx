@@ -12,7 +12,6 @@ import {
   PROVISIONS_TRADE_COST,
   RESOURCE_CENTER_TABLE,
   handlerQuestPool,
-  roll2d6,
 } from "../domain/downtime";
 import type {
   ActiveDowntime,
@@ -20,7 +19,9 @@ import type {
   ElementType,
   ProvisionsTrade,
 } from "../domain/types";
+import { rollDice } from "../domain/loot";
 import { questById } from "../domain/quests";
+import { DiceRollCard } from "../ui/DiceRollCard";
 import type { QuestDef } from "../data/quests";
 import { iconUrl } from "../domain/icons";
 import { useCampaign } from "../store/campaign";
@@ -457,51 +458,42 @@ function ResourceCenterPanel({
   savedRoll?: number;
   onRoll: (sum: number) => void;
 }) {
-  const [manual, setManual] = useState("");
+  const [dice, setDice] = useState<[number, number]>([1, 1]);
 
   const tableRows = Object.entries(RESOURCE_CENTER_TABLE).map(([roll, matId]) => {
     const mat = gameData.materials.find((m) => m.id === matId);
     return { roll: Number(roll), name: mat?.name ?? matId };
   });
 
+  const applyRoll = (sum: number) => {
+    if (sum >= 2 && sum <= 12) onRoll(sum);
+  };
+
   return (
-    <div className="paper-card p-4">
-      <p className="font-semibold">Resource Center</p>
-      <p className="mt-1 text-xs text-ink-soft">Roll 2 dice (sum 2–12)</p>
+    <div>
+      <p className="mb-2 font-semibold">Resource Center</p>
+      <p className="mb-3 text-xs text-ink-soft">Roll 2 dice (sum 2–12)</p>
       {savedRoll != null ? (
-        <p className="mt-3 text-sm">
+        <div className="paper-card p-4 text-sm">
           Rolled: <strong>{savedRoll}</strong> →{" "}
           {gameData.materials.find((m) => m.id === RESOURCE_CENTER_TABLE[savedRoll])
             ?.name ?? "?"}{" "}
           ✓
-        </p>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          <Button onClick={() => onRoll(roll2d6())} className="py-2 text-sm font-semibold">
-            Roll dice
-          </Button>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={2}
-              max={12}
-              placeholder="2–12"
-              value={manual}
-              onChange={(e) => setManual(e.target.value)}
-              className="flex-1 rounded-lg border border-line-strong bg-paper px-3 py-2 text-sm"
-            />
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const n = parseInt(manual, 10);
-                if (n >= 2 && n <= 12) onRoll(n);
-              }}
-              className="px-4 py-2 text-sm font-semibold"
-            >
-              OK
-            </Button>
-          </div>
         </div>
+      ) : (
+        <DiceRollCard
+          dice={dice}
+          onDiceChange={setDice}
+          onReroll={() => setDice(rollDice())}
+          footer={
+            <Button
+              onClick={() => applyRoll(dice[0] + dice[1])}
+              className="mt-3 w-full py-2 text-sm font-semibold"
+            >
+              Confirm roll ({dice[0] + dice[1]})
+            </Button>
+          }
+        />
       )}
       <details className="mt-3">
         <summary className="cursor-pointer text-xs text-ink-soft">Table</summary>

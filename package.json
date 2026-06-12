@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "tsc -b --noEmit"
+    "lint": "tsc -b --noEmit",
+    "test:calendar": "npx tsx src/domain/calendar.test.ts",
+    "test:domain": "npx tsx src/domain/calendar.test.ts && npx tsx src/domain/trade.test.ts && npx tsx src/domain/quests.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

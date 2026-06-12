@@ -12,6 +12,7 @@ import { CampaignCalendar } from "../ui/CampaignCalendar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { GearSlotIcons } from "../ui/GearSlotIcons";
 import { TradeSheet } from "../ui/camp/TradeSheet";
+import { HunterEquipSheet } from "../ui/hunter/HunterEquipSheet";
 import type { GearSlot } from "../domain/types";
 
 const EQUIP_SLOTS: GearSlot[] = ["weapon", "head", "chest", "legs"];
@@ -27,6 +28,7 @@ export function Camp() {
   const userId = useAuth((s) => s.userId);
   const [confirmPotion, setConfirmPotion] = useState(false);
   const [tradePartner, setTradePartner] = useState<Hunter | null>(null);
+  const [showEquip, setShowEquip] = useState(false);
 
   if (!campaign || !hunter) return null;
 
@@ -71,15 +73,14 @@ export function Camp() {
         fallback="/backgrounds/camp.svg"
       />
 
-      {/* 1 · status strip — profile + name (tap → settings), defense value */}
+      {/* 1 · status strip — hunter profile + defense */}
       <div className="paper-card flex items-center gap-3 px-3 py-2.5">
-        <Link
-          to="/settings"
-          aria-label="Settings"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-2xl active:translate-y-px"
+        <span
+          aria-hidden
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-paper-2 text-2xl"
         >
           🧍
-        </Link>
+        </span>
         <div className="min-w-0 flex-1">
           <p className="font-display truncate text-2xl leading-none">
             {hunter.name}
@@ -121,16 +122,17 @@ export function Camp() {
       {/* 3 + 4 · equipment & skills (left) | calendar (right, equal height) */}
       <div className="mt-3 grid min-h-[15rem] grid-cols-2 gap-3">
         <div className="flex flex-col gap-3">
-          <Link
-            to="/hunters"
+          <button
+            type="button"
             aria-label="Edit gear in the hunter menu"
-            className="paper-card block px-3 py-2.5 active:translate-y-px"
+            onClick={() => setShowEquip(true)}
+            className="paper-card block w-full px-3 py-2.5 text-left active:translate-y-px"
           >
             <p className="text-xs uppercase tracking-wide text-ink-soft">
               Equipment
             </p>
             <GearSlotIcons hunter={hunter} slots={EQUIP_SLOTS} />
-          </Link>
+          </button>
 
           <div className="paper-card flex min-h-0 flex-1 flex-col px-3 py-2.5">
             <p className="text-xs uppercase tracking-wide text-accent">
@@ -254,6 +256,10 @@ export function Camp() {
           }}
           onClose={() => setTradePartner(null)}
         />
+      )}
+
+      {showEquip && (
+        <HunterEquipSheet hunter={hunter} onClose={() => setShowEquip(false)} />
       )}
 
       {confirmPotion && (

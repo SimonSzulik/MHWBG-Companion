@@ -14,6 +14,7 @@ export function QuestInvitePopup() {
   const location = useLocation();
 
   if (!campaign?.activeQuest) return null;
+  if (campaign.activeDowntime) return null;
   if (campaign.activeQuest.phase !== "lobby") return null;
   if (location.pathname === "/campaign/quest") return null;
 
@@ -25,7 +26,11 @@ export function QuestInvitePopup() {
   if (!quest) return null;
 
   const handleJoin = () => {
-    joinQuest(hunter.id);
+    const res = joinQuest(hunter.id);
+    if (!res.ok) {
+      alert(res.reason ?? "Could not join quest.");
+      return;
+    }
     navigate("/campaign/quest");
   };
 

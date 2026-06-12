@@ -50,6 +50,7 @@ export function QuestScreen() {
   if (!campaign || !hunter) return null;
 
   const hasActiveQuest = campaign.activeQuest != null;
+  const hasActiveDowntime = campaign.activeDowntime != null;
   const completions = campaign.questCompletions;
   const allQuests = QUEST_MONSTERS.flatMap((m) => questsForMonster(m.id));
 
@@ -74,6 +75,15 @@ export function QuestScreen() {
           Ancient Forest
         </p>
       </div>
+
+      {hasActiveDowntime && (
+        <div className="mb-3 rounded-xl border-[1.5px] border-warn bg-paper-2 px-4 py-3">
+          <p className="text-sm font-semibold">Downtime in progress</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            All hunters must finish downtime before a new quest can start.
+          </p>
+        </div>
+      )}
 
       {campaign.activeQuest?.phase === "lobby" && (
         <div className="mb-3 rounded-xl border-[1.5px] border-warn bg-paper-2 px-4 py-3">
@@ -171,6 +181,7 @@ export function QuestScreen() {
                               hasActiveQuest,
                               monsterQuests,
                               campaign.pendingHandlerQuestId,
+                              hasActiveDowntime,
                             )
                           }
                           onStart={() => handleStart(q)}

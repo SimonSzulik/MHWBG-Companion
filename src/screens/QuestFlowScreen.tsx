@@ -10,7 +10,7 @@ import { rollDice } from "../domain/loot";
 import { lootTableForMonster } from "../data/lootTables";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import { clamp } from "../lib/math";
+import { DiceRollCard } from "../ui/DiceRollCard";
 import { buildPersonalLootSummary } from "../domain/questRewards";
 import { QuestInvestigationPanel } from "../ui/quest/QuestInvestigationPanel";
 import { QuestSummaryPanel } from "../ui/quest/QuestSummaryPanel";
@@ -52,6 +52,7 @@ export function QuestFlowScreen() {
 
   useEffect(() => {
     if (!campaign?.activeQuest || campaign.activeQuest.phase !== "lobby") return;
+    if (campaign.activeDowntime) return;
     const h = ownHunter(campaign, userId);
     if (!h || campaign.activeQuest.readyHunterIds.includes(h.id)) return;
     joinQuest(h.id);
@@ -173,7 +174,10 @@ export function QuestFlowScreen() {
         <QuestSummaryPanel
           activeQuest={aq!}
           hunters={campaign.hunters}
-          onConfirm={() => confirmQuestSummary()}
+          onConfirm={() => {
+            confirmQuestSummary();
+            navigate("/", { replace: true });
+          }}
         />
       </QuestPhaseScreen>
     );
@@ -263,79 +267,32 @@ export function QuestFlowScreen() {
   const sum = x + y;
   const canSum = sum <= 12;
 
-  const setDieFace = (index: 0 | 1, raw: string) => {
-    const parsed = Number.parseInt(raw, 10);
-    const nextFace = Number.isNaN(parsed) ? 1 : clamp(parsed, 1, 6);
-    const nextDice: [number, number] = index === 0 ? [nextFace, y] : [x, nextFace];
-    setLootDice(hunter.id, nextDice);
-  };
-
   const personalSummary = buildPersonalLootSummary(aq!, hunter.id);
 
   return (
     <QuestPhaseScreen title="Loot" subtitle={hunter.name}>
       <div className="flex flex-col gap-4">
-        <div className="paper-card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <CompactDie face={x} />
-              <CompactDie face={y} />
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => setLootDice(hunter.id, rollDice())}
-              className="shrink-0 bg-paper-2 px-3 py-2 text-sm font-semibold"
-            >
-              Reroll
-            </Button>
-          </div>
-
-          <div className="mt-3 flex gap-2">
-            <LootChoiceButton
-              label="Both dice"
-              active={progress.choice === "split"}
-              onSelect={() => setLootChoice(hunter.id, "split")}
-            />
-            {canSum && (
+        <DiceRollCard
+          dice={progress.dice}
+          onDiceChange={(d) => setLootDice(hunter.id, d)}
+          onReroll={() => setLootDice(hunter.id, rollDice())}
+          footer={
+            <div className="mt-3 flex gap-2">
               <LootChoiceButton
-                label={`Sum (${sum})`}
-                active={progress.choice === "sum"}
-                onSelect={() => setLootChoice(hunter.id, "sum")}
+                label="Both dice"
+                active={progress.choice === "split"}
+                onSelect={() => setLootChoice(hunter.id, "split")}
               />
-            )}
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3">
-            <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              Die 1
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={6}
-                step={1}
-                value={x}
-                onChange={(e) => setDieFace(0, e.target.value)}
-                onBlur={(e) => setDieFace(0, e.target.value)}
-                className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-base font-semibold text-ink"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              Die 2
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={6}
-                step={1}
-                value={y}
-                onChange={(e) => setDieFace(1, e.target.value)}
-                onBlur={(e) => setDieFace(1, e.target.value)}
-                className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-base font-semibold text-ink"
-              />
-            </label>
-          </div>
-        </div>
+              {canSum && (
+                <LootChoiceButton
+                  label={`Sum (${sum})`}
+                  active={progress.choice === "sum"}
+                  onSelect={() => setLootChoice(hunter.id, "sum")}
+                />
+              )}
+            </div>
+          }
+        />
 
         {progress.choice && (
           <LootSack
@@ -365,14 +322,6 @@ export function QuestFlowScreen() {
         />
       )}
     </QuestPhaseScreen>
-  );
-}
-
-function CompactDie({ face }: { face: number }) {
-  return (
-    <div className="grid h-10 w-10 place-items-center rounded-lg border-2 border-line-strong bg-card font-display text-xl shadow-sm">
-      {face}
-    </div>
   );
 }
 

@@ -162,8 +162,10 @@ export function canStartQuest(
   hasActiveQuest: boolean,
   monsterQuests: QuestDef[],
   pendingHandlerQuestId?: string | null,
+  hasActiveDowntime = false,
 ): boolean {
   if (hasActiveQuest) return false;
+  if (hasActiveDowntime) return false;
   if (pendingHandlerQuestId && pendingHandlerQuestId !== quest.id) {
     return false;
   }

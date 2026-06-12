@@ -1,24 +1,20 @@
 import { useState } from "react";
-import { Screen } from "../ui/Screen";
-import { SegmentedTabs } from "../ui/SegmentedTabs";
-import { useCampaign } from "../store/campaign";
-import { useOwnHunter } from "../store/hooks";
-import { gameData } from "../data/gameData";
-import { equippableArmor, equippableWeapons } from "../domain/loadout";
-import { EquipLoadoutBar } from "../ui/hunter/EquipLoadoutBar";
-import { EquipGearSheet } from "../ui/hunter/EquipGearSheet";
-import { OwnedGearGrid } from "../ui/hunter/OwnedGearGrid";
-import type { GearDef, GearSlot } from "../domain/types";
+import { useCampaign } from "../../store/campaign";
+import { gameData } from "../../data/gameData";
+import { equippableArmor, equippableWeapons } from "../../domain/loadout";
+import type { GearDef, GearSlot, Hunter } from "../../domain/types";
+import { SegmentedTabs } from "../SegmentedTabs";
+import { EquipLoadoutBar } from "./EquipLoadoutBar";
+import { EquipGearSheet } from "./EquipGearSheet";
+import { OwnedGearGrid } from "./OwnedGearGrid";
 
 type Tab = "weapons" | "armour";
 
-/** Hunter loadout editor: equip bar + owned gear grid (Box/Forge style). */
-export function Hunters() {
+/** Hunter loadout editor: equip bar + owned gear grid. */
+export function HunterEquipPanel({ hunter }: { hunter: Hunter }) {
   const [tab, setTab] = useState<Tab>("weapons");
   const [selectedGear, setSelectedGear] = useState<GearDef | null>(null);
-  const { campaign, hunter } = useOwnHunter();
   const equipGear = useCampaign((s) => s.equipGear);
-  if (!campaign || !hunter) return null;
 
   const weapons = equippableWeapons(hunter, gameData.gear);
   const armor = equippableArmor(hunter, gameData.gear);
@@ -32,12 +28,7 @@ export function Hunters() {
   };
 
   return (
-    <Screen
-      title="Hunter"
-      hideHeader
-      background="/backgrounds/camp.webp"
-      backgroundFallback="/backgrounds/camp.svg"
-    >
+    <>
       <EquipLoadoutBar hunter={hunter} tab={tab} onUnequip={onUnequip} />
 
       <SegmentedTabs<Tab>
@@ -78,6 +69,6 @@ export function Hunters() {
           onClose={() => setSelectedGear(null)}
         />
       )}
-    </Screen>
+    </>
   );
 }

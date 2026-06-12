@@ -12,7 +12,6 @@ import { OnboardingHub } from "./screens/OnboardingHub";
 import { CreateCampaignScreen } from "./screens/CreateCampaignScreen";
 import { JoinCampaignScreen } from "./screens/JoinCampaignScreen";
 import { Camp } from "./screens/Camp";
-import { Hunters } from "./screens/Hunters";
 import { Inventory } from "./screens/Inventory";
 import { Forge } from "./screens/Forge";
 import { QuestScreen } from "./screens/QuestScreen";
@@ -79,7 +78,6 @@ export default function App() {
           }
         >
           <Route path="/" element={<Camp />} />
-          <Route path="/hunters" element={<Hunters />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/forge" element={<Forge />} />
           <Route path="/campaign" element={<Navigate to="/" replace />} />

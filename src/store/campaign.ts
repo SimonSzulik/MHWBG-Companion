@@ -755,6 +755,12 @@ export const useCampaign = create<CampaignState>()(
         if (s.campaign.activeQuest) {
           return { ok: false, reason: "A quest is already in progress." };
         }
+        if (s.campaign.activeDowntime) {
+          return {
+            ok: false,
+            reason: "Finish downtime before starting a quest.",
+          };
+        }
         const pending = s.campaign.pendingHandlerQuestId;
         if (pending && pending !== questId) {
           return {
@@ -802,6 +808,12 @@ export const useCampaign = create<CampaignState>()(
         const s = get();
         if (!s.campaign?.activeQuest) {
           return { ok: false, reason: "No active quest." };
+        }
+        if (s.campaign.activeDowntime) {
+          return {
+            ok: false,
+            reason: "Finish downtime before joining a quest.",
+          };
         }
         const aq = s.campaign.activeQuest;
         if (aq.phase !== "lobby") {
@@ -1362,6 +1374,9 @@ export const useCampaign = create<CampaignState>()(
         }
         if ((to.materials[trade.requestedMaterialId] ?? 0) < 1) {
           return { ok: false, reason: "You no longer have that material." };
+        }
+        if (trade.offeredMaterialId === trade.requestedMaterialId) {
+          return { ok: false, reason: "Invalid trade." };
         }
         const hunters = applyTradeSwap(s.campaign.hunters, trade);
         set({

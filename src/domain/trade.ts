@@ -18,6 +18,18 @@ export function pendingTradeBetween(
   );
 }
 
+/** Pending trade in either direction between two hunters. */
+export function pendingTradeWith(
+  trades: TradeRequest[],
+  hunterA: string,
+  hunterB: string,
+): TradeRequest | undefined {
+  return (
+    pendingTradeBetween(trades, hunterA, hunterB) ??
+    pendingTradeBetween(trades, hunterB, hunterA)
+  );
+}
+
 export function validateTradeProposal(
   campaign: Campaign,
   fromHunterId: string,
@@ -31,6 +43,9 @@ export function validateTradeProposal(
   if (!from || !to) return "Hunter not found.";
   if (!catalog.material(offeredMaterialId)) return "Invalid offered material.";
   if (!catalog.material(requestedMaterialId)) return "Invalid requested material.";
+  if (offeredMaterialId === requestedMaterialId) {
+    return "Offer a different material than you request.";
+  }
   if ((from.materials[offeredMaterialId] ?? 0) < 1) {
     return "You do not have that material.";
   }
@@ -38,7 +53,7 @@ export function validateTradeProposal(
     return "Partner does not have that material.";
   }
   if (
-    pendingTradeBetween(
+    pendingTradeWith(
       campaign.pendingTrades ?? [],
       fromHunterId,
       toHunterId,
