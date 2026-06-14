@@ -1,17 +1,14 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Screen } from "../ui/Screen";
 import { gameData } from "../data/gameData";
-import { armorSets } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
-import type { GearDef } from "../domain/types";
 
 /**
  * Info tab — a searchable hunter's handbook.
  *
  * Goes beyond the printed player reference: alongside the turn flow, symbols,
- * terrain and ailments it adds a keyword glossary and a live armour browser
- * (sets, defence and granted abilities) generated from the catalog. Downtime is
- * intentionally omitted — it has its own menu.
+ * terrain and ailments it adds a keyword glossary and the full armor-skill
+ * (ability) list. Downtime is intentionally omitted — it has its own menu.
  */
 
 type Category =
@@ -21,8 +18,7 @@ type Category =
   | "terrain"
   | "ailments"
   | "keywords"
-  | "skills"
-  | "armor";
+  | "skills";
 
 type Entry = { group: string; name: string; text: string; icon?: string };
 
@@ -41,14 +37,14 @@ const CHIPS: { id: Category; label: string }[] = [
   { id: "ailments", label: "Ailments" },
   { id: "keywords", label: "Keywords" },
   { id: "skills", label: "Skills" },
-  { id: "armor", label: "Armor" },
 ];
 
 export function Reference() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category>("all");
 
-  const { groups, entries } = useMemo(buildHandbook, []);
+  const groups = STATIC_GROUPS;
+  const entries = STATIC_ENTRIES;
 
   const q = query.trim().toLowerCase();
   const matches = (e: Entry, g: Group) =>
@@ -156,69 +152,6 @@ function IconBubble({ icon, compact }: { icon?: string; compact?: boolean }) {
       )}
     </span>
   );
-}
-
-/** Assemble the static guide groups + the catalog-driven armour groups. */
-function buildHandbook(): { groups: Group[]; entries: Entry[] } {
-  const groups: Group[] = [...STATIC_GROUPS];
-  const entries: Entry[] = [...STATIC_ENTRIES];
-
-  // Armour sets, pieces, defence and abilities — straight from the catalog so
-  // it always matches what the forge actually offers.
-  for (const set of armorSets()) {
-    const groupId = `set-${set.id}`;
-    groups.push({
-      id: groupId,
-      label: `${set.label} Set`,
-      category: "armor",
-      icon: set.icon,
-    });
-    for (const id of set.gearIds) {
-      const piece = gameData.gear.find((g) => g.id === id);
-      if (!piece) continue;
-      entries.push({
-        group: groupId,
-        name: piece.name,
-        text: armorPieceText(piece),
-        icon: piece.tierIcon ?? set.icon,
-      });
-    }
-  }
-
-  // Starter armour (granted on campaign start, not forgeable).
-  const starters = gameData.gear.filter((g) => g.isStarter);
-  if (starters.length > 0) {
-    groups.push({
-      id: "starter-armor",
-      label: "Starter Armor",
-      category: "armor",
-      icon: "white-mail",
-    });
-    for (const piece of starters) {
-      entries.push({
-        group: "starter-armor",
-        name: piece.name,
-        text: armorPieceText(piece),
-        icon: piece.tierIcon ?? "white-mail",
-      });
-    }
-  }
-
-  return { groups, entries };
-}
-
-function armorPieceText(piece: GearDef): string {
-  const slot =
-    piece.slot === "head"
-      ? "Helm"
-      : piece.slot === "chest"
-        ? "Mail"
-        : piece.slot === "legs"
-          ? "Greaves"
-          : piece.slot;
-  const parts = [`${slot} · Defense +${piece.defense ?? 0}`];
-  if (piece.effect) parts.push(`Ability: ${piece.effect}`);
-  return parts.join(" — ");
 }
 
 const STATIC_GROUPS: Group[] = [
