@@ -24,9 +24,11 @@ function QuestSummaryContent({
   summary: QuestSummaryView;
   onConfirm: () => void;
 }) {
-  const hasInvestigation =
-    Object.keys(summary.investigationLoot).length > 0 ||
-    summary.investigationPotions > 0;
+  const hasInvestigation = summary.perHunterInvestigation.some(
+    (h) =>
+      Object.keys(h.materials).length > 0 ||
+      h.potions > 0,
+  );
   const hasRolledLoot = summary.perHunterLoot.some(
     (h) => Object.keys(h.quantities).some((id) => (h.quantities[id] ?? 0) > 0),
   );
@@ -50,21 +52,33 @@ function QuestSummaryContent({
             Investigation loot
           </p>
           <p className="mb-3 text-[11px] text-ink-soft">
-            Each hunter receives these materials.
+            Each hunter receives their gathered materials.
           </p>
-          {Object.keys(summary.investigationLoot).length > 0 && (
-            <LootMaterialPreviewList
-              quantities={summary.investigationLoot}
-              readOnly
-              compact
-            />
-          )}
-          {summary.investigationPotions > 0 && (
-            <p className="mt-2 text-sm">
-              +{summary.investigationPotions} potion
-              {summary.investigationPotions > 1 ? "s" : ""} → party stockpile
-            </p>
-          )}
+          <div className="flex flex-col gap-3">
+            {summary.perHunterInvestigation.map((h) => {
+              const hasItems =
+                Object.keys(h.materials).length > 0 || h.potions > 0;
+              if (!hasItems) return null;
+              return (
+                <div key={h.hunterId}>
+                  <p className="mb-1 text-sm font-semibold">{h.name}</p>
+                  {Object.keys(h.materials).length > 0 && (
+                    <LootMaterialPreviewList
+                      quantities={h.materials}
+                      readOnly
+                      compact
+                    />
+                  )}
+                  {h.potions > 0 && (
+                    <p className="mt-1 text-sm">
+                      +{h.potions} potion{h.potions > 1 ? "s" : ""} → party
+                      stockpile
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -1,10 +1,14 @@
 import { useState } from "react";
 import type { Hunter, Material, TradeRequest } from "../../domain/types";
 import { gameData } from "../../data/gameData";
+import { catalog } from "../../domain/catalog";
 import { iconUrl } from "../../domain/icons";
 import { CraftButton } from "../forge/ForgeDetails";
 import { Button } from "../Button";
 import { BottomSheet } from "../BottomSheet";
+import { SegmentedTabs } from "../SegmentedTabs";
+
+type TradeTab = "material" | "monster";
 
 function MaterialPicker({
   label,
@@ -48,6 +52,11 @@ function MaterialPicker({
               <span className="mt-0.5 max-w-full truncate text-[9px] font-medium">
                 {m.shortName ?? m.name}
               </span>
+              {m.group === "monster" && m.monsterId && (
+                <span className="max-w-full truncate text-[8px] text-ink-soft">
+                  {catalog.monster(m.monsterId)?.name ?? m.monsterId}
+                </span>
+              )}
               <span className="text-[9px] text-ink-soft">×{qtyOf(m.id)}</span>
             </button>
           ))}
@@ -79,9 +88,13 @@ export function TradeSheet({
   onCancel: () => void;
   onClose: () => void;
 }) {
-  const materials = gameData.materials.filter((m) => m.group === "material");
+  const [tab, setTab] = useState<TradeTab>("material");
   const [offeredId, setOfferedId] = useState("");
   const [requestedId, setRequestedId] = useState("");
+
+  const materials = gameData.materials.filter((m) => m.group === "material");
+  const monsterItems = gameData.materials.filter((m) => m.group === "monster");
+  const pickerItems = tab === "material" ? materials : monsterItems;
 
   const readOnly = Boolean(incoming);
 
@@ -89,12 +102,22 @@ export function TradeSheet({
     <BottomSheet onClose={onClose} className="max-h-[85vh] overflow-y-auto bg-paper">
       <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong" />
       <p className="font-display text-xl leading-tight">Trade with {partner.name}</p>
-      <p className="mt-1 text-xs text-ink-soft">1 material for 1 material</p>
+      <p className="mt-1 text-xs text-ink-soft">1 item for 1 item</p>
+
+      <SegmentedTabs<TradeTab>
+        className="mt-4"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: "material", label: "Material" },
+          { value: "monster", label: "Monster" },
+        ]}
+      />
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <MaterialPicker
           label={readOnly ? "They offer" : "You offer"}
-          materials={materials}
+          materials={pickerItems}
           qtyOf={(id) =>
             readOnly && incoming
               ? incoming.offeredMaterialId === id
@@ -107,7 +130,7 @@ export function TradeSheet({
         />
         <MaterialPicker
           label={readOnly ? "They want" : "You want"}
-          materials={materials}
+          materials={pickerItems}
           qtyOf={(id) =>
             readOnly && incoming
               ? incoming.requestedMaterialId === id

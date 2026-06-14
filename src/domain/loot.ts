@@ -6,7 +6,7 @@ export function rollDice(): [number, number] {
   return [d(), d()];
 }
 
-export type LootChoice = "split" | "sum";
+export type LootChoice = "die1" | "die2" | "sum";
 
 /** Resolve loot rewards for a dice roll and player choice. */
 export function resolveLootChoice(
@@ -16,7 +16,8 @@ export function resolveLootChoice(
   brokenParts: MonsterPartId[],
 ): Record<string, number> {
   const [x, y] = dice;
-  const rolls = choice === "split" ? [x, y] : [x + y];
+  const rolls =
+    choice === "die1" ? [x] : choice === "die2" ? [y] : [x + y];
   const rewards: Record<string, number> = {};
 
   for (const roll of rolls) {

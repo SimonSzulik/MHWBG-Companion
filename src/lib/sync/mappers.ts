@@ -17,6 +17,7 @@ import type {
   WeaponType,
 } from "../../domain/types";
 import { normalizeCalendarDayEntry } from "../../domain/types";
+import { migrateInvestigationLoot } from "../../domain/questRewards";
 import type { Database } from "../database.types";
 
 type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
@@ -107,6 +108,14 @@ function parseActiveDowntime(raw: unknown): ActiveDowntime | null {
   };
 }
 
+function normalizeLootChoice(
+  choice: HunterLootProgress["choice"] | "split" | undefined,
+): HunterLootProgress["choice"] | undefined {
+  if (choice === "split") return "die1";
+  if (choice === "die1" || choice === "die2" || choice === "sum") return choice;
+  return undefined;
+}
+
 function parseActiveQuest(raw: unknown): ActiveQuest | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as ActiveQuest;
@@ -115,6 +124,7 @@ function parseActiveQuest(raw: unknown): ActiveQuest | null {
   for (const [id, p] of Object.entries(o.lootProgress ?? {})) {
     lootProgress[id] = {
       ...p,
+      choice: normalizeLootChoice(p.choice),
       brokenParts: p.brokenParts ?? [],
       lootQuantities: p.lootQuantities ?? {},
       confirmed: p.confirmed ?? false,
@@ -123,7 +133,10 @@ function parseActiveQuest(raw: unknown): ActiveQuest | null {
   return {
     ...o,
     lootProgress,
-    investigationLoot: o.investigationLoot ?? {},
+    investigationLoot: migrateInvestigationLoot(
+      o.investigationLoot,
+      o.startedByHunterId,
+    ),
     outcome: o.outcome,
     partyPotionsApplied: o.partyPotionsApplied ?? false,
   };

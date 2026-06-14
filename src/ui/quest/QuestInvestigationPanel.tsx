@@ -3,7 +3,7 @@ import { gameData } from "../../data/gameData";
 import { catalog } from "../../domain/catalog";
 import { MAX_POTIONS } from "../../domain/downtime";
 import { iconUrl } from "../../domain/icons";
-import type { Material } from "../../domain/types";
+import type { InvestigationLootByHunter, Material } from "../../domain/types";
 import { BottomSheet } from "../BottomSheet";
 import { Button } from "../Button";
 import { SegmentedTabs } from "../SegmentedTabs";
@@ -19,15 +19,21 @@ function tileLabel(material: Material, useShortName?: boolean): string {
   return material.shortName ?? material.name;
 }
 
-/** Log items gathered during investigation; starter edits, party read-only. */
+/** Log items gathered during investigation; each hunter edits their own bucket. */
 export function QuestInvestigationPanel({
-  investigationLoot,
+  myLoot,
+  allHunterLoot,
+  hunterName,
+  teammates,
   canEdit,
   starterName,
   onSetQty,
   onFinish,
 }: {
-  investigationLoot: Record<string, number>;
+  myLoot: Record<string, number>;
+  allHunterLoot: InvestigationLootByHunter;
+  hunterName: string;
+  teammates: { id: string; name: string }[];
   canEdit: boolean;
   starterName: string;
   onSetQty: (materialId: string, qty: number) => void;
@@ -43,28 +49,27 @@ export function QuestInvestigationPanel({
   const items =
     tab === "material" ? materials : tab === "other" ? others : monsterItems;
 
-  const qtyOf = (id: string) => investigationLoot[id] ?? 0;
-  const potionQty = investigationLoot.potion ?? 0;
+  const qtyOf = (id: string) => myLoot[id] ?? 0;
+  const potionQty = myLoot.potion ?? 0;
 
-  const loggedIds = Object.entries(investigationLoot).filter(
-    ([, q]) => q > 0,
-  );
+  const partyEntries = [
+    { id: "self", name: hunterName, loot: myLoot },
+    ...teammates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      loot: allHunterLoot[t.id] ?? {},
+    })),
+  ].filter((entry) => Object.values(entry.loot).some((q) => q > 0));
 
   return (
     <div className="flex flex-col gap-4">
-      {!canEdit && (
-        <p className="text-center text-sm text-ink-soft">
-          Only <strong>{starterName}</strong> can edit items.
-        </p>
-      )}
-
       {(canEdit || potionQty > 0) && (
         <div className="paper-card flex items-center justify-between gap-3 p-3">
           <div className="flex items-center gap-2">
             <img src="/icons/potion.png" alt="" className="h-8 w-8 object-contain" />
             <div>
               <p className="text-sm font-semibold">Potions</p>
-              <p className="text-[10px] text-ink-soft">Party stockpile</p>
+              <p className="text-[10px] text-ink-soft">Your gathered potions</p>
             </div>
           </div>
           {canEdit ? (
@@ -97,43 +102,46 @@ export function QuestInvestigationPanel({
         </div>
       )}
 
-      {canEdit && (
-        <SegmentedTabs<Tab>
-          value={tab}
-          onChange={(next) => {
-            setTab(next);
-            setSelected(null);
-            setShowEmpty(false);
-          }}
-          tabs={[
-            { value: "material", label: "Material" },
-            { value: "other", label: "Other" },
-            { value: "monster", label: "Monster" },
-          ]}
-        />
-      )}
-
       {canEdit ? (
-        <InvestigationGrid
-          items={items}
-          qtyOf={qtyOf}
-          showEmpty={showEmpty}
-          onToggleEmpty={() => setShowEmpty((v) => !v)}
-          selectedId={selected?.id ?? null}
-          onSelect={setSelected}
-          showMonsterBadge={tab === "monster"}
-          useShortName={tab === "monster"}
-        />
-      ) : loggedIds.length > 0 ? (
-        <div className="paper-card p-4">
-          <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-            Gathered items
-          </p>
-          <LootMaterialPreviewList
-            quantities={investigationLoot}
-            readOnly
-            compact
+        <>
+          <SegmentedTabs<Tab>
+            value={tab}
+            onChange={(next) => {
+              setTab(next);
+              setSelected(null);
+              setShowEmpty(false);
+            }}
+            tabs={[
+              { value: "material", label: "Material" },
+              { value: "other", label: "Other" },
+              { value: "monster", label: "Monster" },
+            ]}
           />
+          <InvestigationGrid
+            items={items}
+            qtyOf={qtyOf}
+            showEmpty={showEmpty}
+            onToggleEmpty={() => setShowEmpty((v) => !v)}
+            selectedId={selected?.id ?? null}
+            onSelect={setSelected}
+            showMonsterBadge={tab === "monster"}
+            useShortName={tab === "monster"}
+          />
+        </>
+      ) : partyEntries.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {partyEntries.map((entry) => (
+            <div key={entry.id} className="paper-card p-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-accent">
+                {entry.name}
+              </p>
+              <LootMaterialPreviewList
+                quantities={entry.loot}
+                readOnly
+                compact
+              />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="paper-card p-4 text-center text-sm text-ink-soft">

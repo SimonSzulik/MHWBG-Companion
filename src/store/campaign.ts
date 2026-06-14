@@ -35,6 +35,9 @@ import {
   applyInvestigationLoot,
   applyInvestigationLootToHunter,
   applyPartyPotionsOnce,
+  hasAnyInvestigationLoot,
+  hunterInvestigationLoot,
+  migrateInvestigationLoot,
 } from "../domain/questRewards";
 import {
   MAX_DOWNTIME_PICKS,
@@ -133,12 +136,21 @@ function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | un
   };
 }
 
+function normalizeLootChoice(
+  choice: HunterLootProgress["choice"] | "split" | undefined,
+): HunterLootProgress["choice"] | undefined {
+  if (choice === "split") return "die1";
+  if (choice === "die1" || choice === "die2" || choice === "sum") return choice;
+  return undefined;
+}
+
 function normalizeActiveQuest(aq: ActiveQuest | null | undefined): ActiveQuest | null {
   if (!aq) return null;
   const lootProgress: Record<string, HunterLootProgress> = {};
   for (const [id, p] of Object.entries(aq.lootProgress ?? {})) {
     lootProgress[id] = {
       ...p,
+      choice: normalizeLootChoice(p.choice),
       brokenParts: p.brokenParts ?? [],
       lootQuantities: p.lootQuantities ?? {},
       confirmed: p.confirmed ?? false,
@@ -147,7 +159,10 @@ function normalizeActiveQuest(aq: ActiveQuest | null | undefined): ActiveQuest |
   return {
     ...aq,
     lootProgress,
-    investigationLoot: aq.investigationLoot ?? {},
+    investigationLoot: migrateInvestigationLoot(
+      aq.investigationLoot,
+      aq.startedByHunterId,
+    ),
     outcome: aq.outcome,
     partyPotionsApplied: aq.partyPotionsApplied ?? false,
   };
@@ -291,10 +306,14 @@ interface CampaignState {
     qty: number,
   ) => { ok: boolean; reason?: string };
   finishInvestigation: (hunterId: string) => { ok: boolean; reason?: string };
+  useQuestPotion: (hunterId: string) => { ok: boolean; reason?: string };
   completeQuestFailure: (keepInvestigationLoot?: boolean) => void;
   completeQuestSuccess: () => void;
   setLootDice: (hunterId: string, dice: [number, number]) => void;
-  setLootChoice: (hunterId: string, choice: "split" | "sum") => void;
+  setLootChoice: (
+    hunterId: string,
+    choice: HunterLootProgress["choice"],
+  ) => void;
   togglePartBreak: (hunterId: string, part: MonsterPartId) => void;
   setLootQuantity: (hunterId: string, materialId: string, qty: number) => void;
   confirmPersonalLoot: (hunterId: string) => void;
@@ -936,16 +955,61 @@ export const useCampaign = create<CampaignState>()(
         if (aq.phase !== "investigation") {
           return { ok: false, reason: "Not in investigation phase." };
         }
-        if (hunterId !== aq.startedByHunterId) {
-          return { ok: false, reason: "Only the quest starter can log items." };
+        if (!s.campaign.hunters.some((h) => h.id === hunterId)) {
+          return { ok: false, reason: "Hunter not found." };
         }
-        const investigationLoot = { ...aq.investigationLoot };
-        if (qty <= 0) delete investigationLoot[materialId];
-        else investigationLoot[materialId] = qty;
+        const perHunter = { ...aq.investigationLoot };
+        const mine = { ...(perHunter[hunterId] ?? {}) };
+        if (qty <= 0) delete mine[materialId];
+        else mine[materialId] = qty;
+        if (Object.keys(mine).length === 0) delete perHunter[hunterId];
+        else perHunter[hunterId] = mine;
         set({
           campaign: touch({
             ...s.campaign,
-            activeQuest: { ...aq, investigationLoot },
+            activeQuest: { ...aq, investigationLoot: perHunter },
+          }),
+        });
+        return { ok: true };
+      },
+
+      useQuestPotion: (hunterId) => {
+        const s = get();
+        if (!s.campaign?.activeQuest) {
+          return { ok: false, reason: "No active quest." };
+        }
+        const aq = s.campaign.activeQuest;
+        if (aq.phase !== "active") {
+          return { ok: false, reason: "Potions can only be used during the hunt." };
+        }
+        const invQty =
+          hunterInvestigationLoot(aq.investigationLoot, hunterId).potion ?? 0;
+        if (invQty > 0) {
+          const perHunter = { ...aq.investigationLoot };
+          const mine = { ...(perHunter[hunterId] ?? {}) };
+          if (invQty <= 1) delete mine.potion;
+          else mine.potion = invQty - 1;
+          if (Object.keys(mine).length === 0) delete perHunter[hunterId];
+          else perHunter[hunterId] = mine;
+          set({
+            campaign: touch({
+              ...s.campaign,
+              activeQuest: { ...aq, investigationLoot: perHunter },
+            }),
+          });
+          return { ok: true };
+        }
+        const partyPotions = s.campaign.items.potion ?? 0;
+        if (partyPotions <= 0) {
+          return { ok: false, reason: "No potions available." };
+        }
+        set({
+          campaign: touch({
+            ...s.campaign,
+            items: {
+              ...s.campaign.items,
+              potion: partyPotions - 1,
+            },
           }),
         });
         return { ok: true };
@@ -1084,7 +1148,7 @@ export const useCampaign = create<CampaignState>()(
           let campaign = applyInvestigationLootToHunter(
             s.campaign,
             hunterId,
-            aq.investigationLoot ?? {},
+            hunterInvestigationLoot(aq.investigationLoot, hunterId),
           );
           campaign = {
             ...campaign,
@@ -1167,7 +1231,7 @@ export const useCampaign = create<CampaignState>()(
 
           if (
             keepInvestigationLoot === true &&
-            Object.keys(aq.investigationLoot ?? {}).length > 0
+            hasAnyInvestigationLoot(aq.investigationLoot)
           ) {
             campaign = touch(
               applyInvestigationLoot(campaign, aq.investigationLoot),

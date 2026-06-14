@@ -1271,14 +1271,14 @@ export const ancientForestWeaponPaths: WeaponForgePath[] = [
     weaponType: ls,
     label: "Anjanath",
     icon: "anjanath",
-    gearIds: ["iron-katana", "blazing-shotel", "anja-scimitar"],
+    gearIds: ["bone-shotel", "blazing-shotel", "anja-scimitar"],
   },
   {
     id: "ls-tobi",
     weaponType: ls,
     label: "Tobi-Kadachi",
     icon: "tobi-kadachi",
-    gearIds: ["iron-katana", "pulsar-shotel", "kadachi-fang"],
+    gearIds: ["bone-shotel", "pulsar-shotel", "kadachi-fang"],
   },
   {
     id: "ls-rathalos",

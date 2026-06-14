@@ -255,9 +255,11 @@ export type MonsterPartId =
   | "back"
   | "wings";
 
+export type InvestigationLootByHunter = Record<string, Record<string, number>>;
+
 export interface HunterLootProgress {
   dice: [number, number];
-  choice?: "split" | "sum";
+  choice?: "die1" | "die2" | "sum";
   brokenParts: MonsterPartId[];
   /** Manually confirmed loot; seeded from dice preview when rules change. */
   lootQuantities: Record<string, number>;
@@ -276,8 +278,8 @@ export interface ActiveQuest {
   readyHunterIds: string[];
   startedByHunterId: string;
   lootProgress: Record<string, HunterLootProgress>;
-  /** Items gathered before the monster fight; edited by quest starter only. */
-  investigationLoot: Record<string, number>;
+  /** Items gathered before the monster fight; one bucket per hunter. */
+  investigationLoot: InvestigationLootByHunter;
   /** Set when entering summary — drives reward apply + calendar. */
   outcome?: QuestOutcome;
   /** Investigation potions already added to party stockpile during looting. */

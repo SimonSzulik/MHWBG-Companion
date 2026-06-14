@@ -11,7 +11,7 @@ import { lootTableForMonster } from "../data/lootTables";
 import { catalog } from "../domain/catalog";
 import { iconUrl } from "../domain/icons";
 import { DiceRollCard } from "../ui/DiceRollCard";
-import { buildPersonalLootSummary } from "../domain/questRewards";
+import { buildPersonalLootSummary, hunterInvestigationLoot } from "../domain/questRewards";
 import { QuestInvestigationPanel } from "../ui/quest/QuestInvestigationPanel";
 import { QuestSummaryPanel } from "../ui/quest/QuestSummaryPanel";
 import { QuestFailureChoiceDialog } from "../ui/quest/QuestFailureChoiceDialog";
@@ -40,6 +40,8 @@ export function QuestFlowScreen() {
   const setLootChoice = useCampaign((s) => s.setLootChoice);
   const confirmPersonalLoot = useCampaign((s) => s.confirmPersonalLoot);
   const confirmQuestSummary = useCampaign((s) => s.confirmQuestSummary);
+  const useQuestPotion = useCampaign((s) => s.useQuestPotion);
+  const [confirmPotion, setConfirmPotion] = useState(false);
 
   const aq = campaign?.activeQuest;
 
@@ -147,8 +149,13 @@ export function QuestFlowScreen() {
     return (
       <QuestPhaseScreen title="Investigation" subtitle={quest.name}>
         <QuestInvestigationPanel
-          investigationLoot={aq!.investigationLoot ?? {}}
-          canEdit={isStarter}
+          myLoot={aq!.investigationLoot[hunter.id] ?? {}}
+          allHunterLoot={aq!.investigationLoot ?? {}}
+          hunterName={hunter.name}
+          teammates={campaign.hunters
+            .filter((h) => h.id !== hunter.id)
+            .map((h) => ({ id: h.id, name: h.name }))}
+          canEdit
           starterName={starter?.name ?? "Quest starter"}
           onSetQty={(materialId, qty) => {
             const res = setInvestigationLoot(hunter.id, materialId, qty);
@@ -183,6 +190,11 @@ export function QuestFlowScreen() {
   }
 
   if (aq!.phase === "active") {
+    const invPotions =
+      hunterInvestigationLoot(aq!.investigationLoot, hunter.id).potion ?? 0;
+    const partyPotions = campaign.items.potion ?? 0;
+    const totalPotions = invPotions + partyPotions;
+
     return (
       <QuestPhaseScreen title="Quest" subtitle={monster?.name ?? quest.name}>
         <div className="flex flex-col items-center gap-6 py-6">
@@ -202,6 +214,26 @@ export function QuestFlowScreen() {
               {monster?.kind ?? "Investigation"}
             </p>
           </div>
+
+          {totalPotions > 0 && (
+            <button
+              type="button"
+              onClick={() => setConfirmPotion(true)}
+              className="paper-card flex w-full items-center justify-between gap-3 px-4 py-3 active:translate-y-px"
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <img src="/icons/potion.png" alt="" className="h-7 w-7 object-contain" />
+                Use potion
+              </span>
+              <span className="text-sm tabular-nums text-ink-soft">
+                {invPotions > 0 && partyPotions > 0
+                  ? `${invPotions} gathered + ${partyPotions} party`
+                  : invPotions > 0
+                    ? `${invPotions} gathered`
+                    : `${partyPotions} party`}
+              </span>
+            </button>
+          )}
 
           <div className="grid w-full grid-cols-2 gap-3">
             <Button
@@ -251,6 +283,19 @@ export function QuestFlowScreen() {
             onCancel={() => setShowHighTierFailureConfirm(false)}
           />
         )}
+
+        {confirmPotion && (
+          <ConfirmDialog
+            title="Use potion?"
+            message="The potion is consumed immediately and will not go to the party stockpile."
+            onConfirm={() => {
+              const res = useQuestPotion(hunter.id);
+              if (!res.ok && res.reason) alert(res.reason);
+              setConfirmPotion(false);
+            }}
+            onCancel={() => setConfirmPotion(false)}
+          />
+        )}
       </QuestPhaseScreen>
     );
   }
@@ -276,12 +321,19 @@ export function QuestFlowScreen() {
           onDiceChange={(d) => setLootDice(hunter.id, d)}
           onReroll={() => setLootDice(hunter.id, rollDice())}
           footer={
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               <LootChoiceButton
-                label="Both dice"
-                active={progress.choice === "split"}
-                onSelect={() => setLootChoice(hunter.id, "split")}
+                label={String(x)}
+                active={progress.choice === "die1"}
+                onSelect={() => setLootChoice(hunter.id, "die1")}
               />
+              {x !== y && (
+                <LootChoiceButton
+                  label={String(y)}
+                  active={progress.choice === "die2"}
+                  onSelect={() => setLootChoice(hunter.id, "die2")}
+                />
+              )}
               {canSum && (
                 <LootChoiceButton
                   label={`Sum (${sum})`}

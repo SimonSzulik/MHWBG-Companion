@@ -448,6 +448,14 @@ function ProvisionsPanel({
   );
 }
 
+function sumToDice(sum: number): [number, number] {
+  const a = Math.min(6, Math.max(1, sum - 1));
+  const b = sum - a;
+  if (b >= 1 && b <= 6) return [a, b];
+  const fallback = Math.min(6, sum);
+  return [fallback, Math.max(1, sum - fallback)];
+}
+
 function ResourceCenterPanel({
   savedRoll,
   onRoll,
@@ -455,7 +463,13 @@ function ResourceCenterPanel({
   savedRoll?: number;
   onRoll: (sum: number) => void;
 }) {
-  const [dice, setDice] = useState<[number, number]>(() => rollDice());
+  const [dice, setDice] = useState<[number, number]>(() =>
+    savedRoll != null ? sumToDice(savedRoll) : rollDice(),
+  );
+
+  useEffect(() => {
+    if (savedRoll != null) setDice(sumToDice(savedRoll));
+  }, [savedRoll]);
 
   const tableRows = Object.entries(RESOURCE_CENTER_TABLE).map(([roll, matId]) => {
     const mat = gameData.materials.find((m) => m.id === matId);
@@ -470,30 +484,35 @@ function ResourceCenterPanel({
     <div>
       <p className="mb-2 font-semibold">Resource Center</p>
       <p className="mb-3 text-xs text-ink-soft">Roll 2 dice (sum 2–12)</p>
-      {savedRoll != null ? (
-        <div className="paper-card p-4 text-sm">
-          Rolled: <strong>{savedRoll}</strong> →{" "}
+      {savedRoll != null && (
+        <p className="mb-2 text-xs text-ink-soft">
+          Roll saved — change and confirm again to update.
+        </p>
+      )}
+      <DiceRollCard
+        dice={dice}
+        onDiceChange={setDice}
+        onReroll={() => setDice(rollDice())}
+        footer={({ dice, commit }) => (
+          <Button
+            onClick={() => {
+              const [a, b] = commit();
+              applyRoll(a + b);
+            }}
+            className="mt-3 w-full py-2 text-sm font-semibold"
+          >
+            {savedRoll != null
+              ? `Update roll (${dice[0] + dice[1]})`
+              : `Confirm roll (${dice[0] + dice[1]})`}
+          </Button>
+        )}
+      />
+      {savedRoll != null && (
+        <p className="mt-2 text-xs text-ink-soft">
+          Saved: <strong>{savedRoll}</strong> →{" "}
           {gameData.materials.find((m) => m.id === RESOURCE_CENTER_TABLE[savedRoll])
-            ?.name ?? "?"}{" "}
-          ✓
-        </div>
-      ) : (
-        <DiceRollCard
-          dice={dice}
-          onDiceChange={setDice}
-          onReroll={() => setDice(rollDice())}
-          footer={({ dice, commit }) => (
-            <Button
-              onClick={() => {
-                const [a, b] = commit();
-                applyRoll(a + b);
-              }}
-              className="mt-3 w-full py-2 text-sm font-semibold"
-            >
-              Confirm roll ({dice[0] + dice[1]})
-            </Button>
-          )}
-        />
+            ?.name ?? "?"}
+        </p>
       )}
       <details className="mt-3">
         <summary className="cursor-pointer text-xs text-ink-soft">Table</summary>

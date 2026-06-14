@@ -82,6 +82,27 @@ function runTradeTests(): void {
   assert.equal(nextA.materials["carbalite-ore"], 1);
   assert.equal(nextB.materials["carbalite-ore"], undefined);
   assert.equal(nextB.materials["quality-bone"], 1);
+
+  const monsterSwap = applyTradeSwap(
+    [
+      hunter("a", { "quality-bone": 1 }),
+      hunter("b", { "great-jagras-scale": 1 }),
+    ],
+    {
+      id: "t3",
+      fromHunterId: "a",
+      toHunterId: "b",
+      offeredMaterialId: "quality-bone",
+      requestedMaterialId: "great-jagras-scale",
+      status: "pending",
+    },
+  );
+  const monsterA = monsterSwap.find((h) => h.id === "a")!;
+  const monsterB = monsterSwap.find((h) => h.id === "b")!;
+  assert.equal(monsterA.materials["quality-bone"], undefined);
+  assert.equal(monsterA.materials["great-jagras-scale"], 1);
+  assert.equal(monsterB.materials["quality-bone"], 1);
+  assert.equal(monsterB.materials["great-jagras-scale"], undefined);
 }
 
 runTradeTests();
