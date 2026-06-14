@@ -11,42 +11,24 @@ import { iconUrl } from "../domain/icons";
  * (ability) list. Downtime is intentionally omitted — it has its own menu.
  */
 
-type Category =
-  | "all"
-  | "turn"
-  | "symbols"
-  | "terrain"
-  | "ailments"
-  | "keywords"
-  | "skills";
-
 type Entry = { group: string; name: string; text: string; icon?: string };
 
 type Group = {
   id: string;
   label: string;
-  category: Exclude<Category, "all">;
+  category: "turn" | "symbols" | "terrain" | "ailments" | "keywords" | "skills";
   icon?: string;
 };
 
-const CHIPS: { id: Category; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "turn", label: "Turn" },
-  { id: "symbols", label: "Symbols" },
-  { id: "terrain", label: "Terrain" },
-  { id: "ailments", label: "Ailments" },
-  { id: "keywords", label: "Keywords" },
-  { id: "skills", label: "Skills" },
-];
-
 export function Reference() {
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<Category>("all");
+  const [open, setOpen] = useState<string | null>(null);
 
   const groups = STATIC_GROUPS;
   const entries = STATIC_ENTRIES;
 
   const q = query.trim().toLowerCase();
+  const searching = q.length > 0;
   const matches = (e: Entry, g: Group) =>
     !q ||
     `${e.name} ${e.text} ${g.label}`.toLowerCase().includes(q);
@@ -55,15 +37,18 @@ export function Reference() {
     .map((group) => ({
       group,
       items: entries.filter(
-        (e) =>
-          e.group === group.id &&
-          (category === "all" || group.category === category) &&
-          matches(e, group),
+        (e) => e.group === group.id && matches(e, group),
       ),
     }))
     .filter((g) => g.items.length > 0);
 
   const totalShown = visibleGroups.reduce((n, g) => n + g.items.length, 0);
+
+  const toggleSection = (id: string) => {
+    setOpen((cur) => (cur === id ? null : id));
+  };
+
+  const isExpanded = (groupId: string) => searching || open === groupId;
 
   return (
     <Screen title="Hunter's Handbook" subtitle={gameData.box} hideHeader>
@@ -77,59 +62,66 @@ export function Reference() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search rules, keywords, skills, armor…"
-          className="w-full rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-sm"
+          className="w-full rounded-xl border-[1.5px] border-line-strong bg-card px-3 py-2.5 text-sm"
         />
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-          {CHIPS.map((chip) => {
-            const active = category === chip.id;
-            return (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => setCategory(chip.id)}
-                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold active:translate-y-px ${
-                  active
-                    ? "border-accent bg-accent text-white"
-                    : "border-line-strong bg-card text-ink-soft"
-                }`}
-              >
-                {chip.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {totalShown === 0 ? (
         <div className="paper-card p-5 text-center text-sm text-ink-soft">
-          No entries match {q ? `“${query}”` : "this filter"}.
+          No entries match &ldquo;{query}&rdquo;.
         </div>
       ) : (
-        visibleGroups.map(({ group, items }) => (
-          <section key={group.id} className="mb-4">
-            <div className="mb-2 flex items-center gap-2 px-1">
-              <IconBubble icon={group.icon} compact />
-              <h2 className="font-display text-lg leading-none">{group.label}</h2>
-              <span className="ml-auto text-xs text-ink-soft">{items.length}</span>
-            </div>
-            <ul className="flex flex-col gap-2">
-              {items.map((entry) => (
-                <li
-                  key={`${group.id}-${entry.name}`}
-                  className="paper-card flex items-start gap-3 px-3 py-2.5"
-                >
-                  <IconBubble icon={entry.icon} />
-                  <div className="min-w-0">
-                    <p className="font-medium leading-tight">{entry.name}</p>
-                    <p className="mt-0.5 text-xs leading-snug text-ink-soft">
-                      {entry.text}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
+        visibleGroups.map(({ group, items }) => {
+          const expanded = isExpanded(group.id);
+          return (
+            <section key={group.id} className="mb-3">
+              <button
+                type="button"
+                onClick={() => !searching && toggleSection(group.id)}
+                aria-expanded={expanded}
+                className={`paper-card flex w-full items-center gap-3 px-3 py-3 text-left active:translate-y-px ${
+                  expanded && !searching ? "ring-1 ring-accent" : ""
+                }`}
+              >
+                <IconBubble icon={group.icon} />
+                <h2 className="min-w-0 flex-1 font-display text-lg leading-tight">
+                  {group.label}
+                </h2>
+                <span className="shrink-0 rounded-full border border-line-strong bg-paper-2 px-2 py-0.5 text-xs font-semibold tabular-nums text-ink-soft">
+                  {items.length}
+                </span>
+                {!searching && (
+                  <span
+                    aria-hidden
+                    className={`shrink-0 text-lg text-ink-soft transition-transform ${
+                      expanded ? "rotate-90" : ""
+                    }`}
+                  >
+                    ›
+                  </span>
+                )}
+              </button>
+              {expanded && (
+                <ul className="mt-2 flex flex-col gap-2">
+                  {items.map((entry) => (
+                    <li
+                      key={`${group.id}-${entry.name}`}
+                      className="paper-card flex items-start gap-3 px-3 py-2.5"
+                    >
+                      <IconBubble icon={entry.icon} />
+                      <div className="min-w-0">
+                        <p className="font-medium leading-tight">{entry.name}</p>
+                        <p className="mt-0.5 text-xs leading-snug text-ink-soft">
+                          {entry.text}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })
       )}
     </Screen>
   );
