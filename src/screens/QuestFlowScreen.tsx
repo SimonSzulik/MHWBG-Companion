@@ -34,6 +34,7 @@ export function QuestFlowScreen() {
   const joinQuest = useCampaign((s) => s.joinQuest);
   const setInvestigationLoot = useCampaign((s) => s.setInvestigationLoot);
   const finishInvestigation = useCampaign((s) => s.finishInvestigation);
+  const cancelQuest = useCampaign((s) => s.cancelQuest);
   const completeQuestFailure = useCampaign((s) => s.completeQuestFailure);
   const completeQuestSuccess = useCampaign((s) => s.completeQuestSuccess);
   const setLootDice = useCampaign((s) => s.setLootDice);
@@ -42,6 +43,7 @@ export function QuestFlowScreen() {
   const confirmQuestSummary = useCampaign((s) => s.confirmQuestSummary);
   const useQuestPotion = useCampaign((s) => s.useQuestPotion);
   const [confirmPotion, setConfirmPotion] = useState(false);
+  const [showCancelInvestigation, setShowCancelInvestigation] = useState(false);
 
   const aq = campaign?.activeQuest;
 
@@ -52,12 +54,17 @@ export function QuestFlowScreen() {
   }, [campaign?.activeQuest, navigate]);
 
   useEffect(() => {
-    if (!campaign?.activeQuest || campaign.activeQuest.phase !== "lobby") return;
-    if (campaign.activeDowntime) return;
+    if (!campaign?.activeQuest || campaign.activeDowntime) return;
     const h = ownHunter(campaign, userId);
-    if (!h || campaign.activeQuest.readyHunterIds.includes(h.id)) return;
-    joinQuest(h.id);
-  }, [campaign, userId, joinQuest]);
+    if (!h) return;
+    const aq = campaign.activeQuest;
+    const needsJoin =
+      (aq.phase === "lobby" || aq.phase === "investigation") &&
+      !aq.readyHunterIds.includes(h.id);
+    if (!needsJoin) return;
+    const res = joinQuest(h.id);
+    if (!res.ok && res.reason) alert(res.reason);
+  }, [campaign?.activeQuest, campaign?.activeDowntime, userId, joinQuest]);
 
   useEffect(() => {
     if (!campaign?.activeQuest || campaign.activeQuest.phase !== "looting") return;
@@ -156,6 +163,7 @@ export function QuestFlowScreen() {
             .filter((h) => h.id !== hunter.id)
             .map((h) => ({ id: h.id, name: h.name }))}
           canEdit
+          waitingForStarter={!isStarter}
           starterName={starter?.name ?? "Quest starter"}
           onSetQty={(materialId, qty) => {
             const res = setInvestigationLoot(hunter.id, materialId, qty);
@@ -169,7 +177,24 @@ export function QuestFlowScreen() {
                 }
               : undefined
           }
+          onCancel={
+            isStarter ? () => setShowCancelInvestigation(true) : undefined
+          }
         />
+
+        {showCancelInvestigation && (
+          <ConfirmDialog
+            title="Cancel investigation?"
+            message="The quest will be aborted. Gathered items are not saved and all hunters return to camp."
+            onConfirm={() => {
+              const res = cancelQuest(hunter.id);
+              if (!res.ok && res.reason) alert(res.reason);
+              else navigate("/campaign/quests", { replace: true });
+              setShowCancelInvestigation(false);
+            }}
+            onCancel={() => setShowCancelInvestigation(false)}
+          />
+        )}
       </QuestPhaseScreen>
     );
   }

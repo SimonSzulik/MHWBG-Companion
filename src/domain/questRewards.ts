@@ -36,6 +36,37 @@ export function migrateInvestigationLoot(
   return {};
 }
 
+/** Merge local + remote active quest state without clobbering in-progress work. */
+export function mergeActiveQuest(
+  local: ActiveQuest,
+  remote: ActiveQuest,
+): ActiveQuest {
+  if (local.questId !== remote.questId) return remote;
+
+  if (local.phase === "lobby" && remote.phase === "lobby") {
+    return {
+      ...remote,
+      readyHunterIds: [
+        ...new Set([...remote.readyHunterIds, ...local.readyHunterIds]),
+      ],
+    };
+  }
+
+  if (local.phase === "investigation" && remote.phase === "investigation") {
+    const mergedLoot: InvestigationLootByHunter = {
+      ...(remote.investigationLoot ?? {}),
+    };
+    for (const [hunterId, bucket] of Object.entries(
+      local.investigationLoot ?? {},
+    )) {
+      mergedLoot[hunterId] = { ...(mergedLoot[hunterId] ?? {}), ...bucket };
+    }
+    return { ...remote, investigationLoot: mergedLoot };
+  }
+
+  return remote;
+}
+
 export function hunterInvestigationLoot(
   loot: InvestigationLootByHunter | undefined,
   hunterId: string,

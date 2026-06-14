@@ -18,7 +18,7 @@ import { normalizeCalendarDayEntry } from "../domain/types";
 import { gameData } from "../data/gameData";
 import { questsForMonster } from "../data/quests";
 import { clamp } from "../lib/math";
-import { isRecraftableRoot, rootForgeUsage } from "../domain/catalog";
+import { isRecraftableRoot, rootForgeUsage, catalog } from "../domain/catalog";
 import {
   applyStarterKitToHunter,
   hunterNeedsStarterKit,
@@ -38,6 +38,7 @@ import {
   hasAnyInvestigationLoot,
   hunterInvestigationLoot,
   migrateInvestigationLoot,
+  mergeActiveQuest,
 } from "../domain/questRewards";
 import {
   MAX_DOWNTIME_PICKS,
@@ -306,6 +307,8 @@ interface CampaignState {
     qty: number,
   ) => { ok: boolean; reason?: string };
   finishInvestigation: (hunterId: string) => { ok: boolean; reason?: string };
+  /** Abort during investigation; clears the active quest for everyone. */
+  cancelQuest: (hunterId: string) => { ok: boolean; reason?: string };
   useQuestPotion: (hunterId: string) => { ok: boolean; reason?: string };
   completeQuestFailure: (keepInvestigationLoot?: boolean) => void;
   completeQuestSuccess: () => void;
@@ -756,6 +759,19 @@ export const useCampaign = create<CampaignState>()(
             }
           }
 
+          if (
+            local?.id === next.id &&
+            local.activeQuest &&
+            next.activeQuest &&
+            local.activeQuest.questId === next.activeQuest.questId
+          ) {
+            next = {
+              ...next,
+              activeQuest: mergeActiveQuest(local.activeQuest, next.activeQuest),
+            };
+            next = tryAdvanceToActive(next);
+          }
+
           return { campaign: next };
         }),
 
@@ -894,11 +910,21 @@ export const useCampaign = create<CampaignState>()(
           };
         }
         const aq = s.campaign.activeQuest;
-        if (aq.phase !== "lobby") {
-          return { ok: false, reason: "Quest already started." };
-        }
         if (aq.readyHunterIds.includes(hunterId)) {
           return { ok: true };
+        }
+        if (aq.phase === "investigation") {
+          const next: ActiveQuest = {
+            ...aq,
+            readyHunterIds: [...aq.readyHunterIds, hunterId],
+          };
+          set({
+            campaign: touch({ ...s.campaign, activeQuest: next }),
+          });
+          return { ok: true };
+        }
+        if (aq.phase !== "lobby") {
+          return { ok: false, reason: "Quest already started." };
         }
         const next: ActiveQuest = {
           ...aq,
@@ -958,6 +984,9 @@ export const useCampaign = create<CampaignState>()(
         if (!s.campaign.hunters.some((h) => h.id === hunterId)) {
           return { ok: false, reason: "Hunter not found." };
         }
+        if (materialId !== "potion" && !catalog.material(materialId)) {
+          return { ok: false, reason: "Invalid material." };
+        }
         const perHunter = { ...aq.investigationLoot };
         const mine = { ...(perHunter[hunterId] ?? {}) };
         if (qty <= 0) delete mine[materialId];
@@ -969,6 +998,27 @@ export const useCampaign = create<CampaignState>()(
             ...s.campaign,
             activeQuest: { ...aq, investigationLoot: perHunter },
           }),
+        });
+        return { ok: true };
+      },
+
+      cancelQuest: (hunterId) => {
+        const s = get();
+        if (!s.campaign?.activeQuest) {
+          return { ok: false, reason: "No active quest." };
+        }
+        const aq = s.campaign.activeQuest;
+        if (aq.phase !== "investigation") {
+          return {
+            ok: false,
+            reason: "Quest can only be cancelled during investigation.",
+          };
+        }
+        if (hunterId !== aq.startedByHunterId) {
+          return { ok: false, reason: "Only the quest starter can cancel." };
+        }
+        set({
+          campaign: touch({ ...s.campaign, activeQuest: null }),
         });
         return { ok: true };
       },

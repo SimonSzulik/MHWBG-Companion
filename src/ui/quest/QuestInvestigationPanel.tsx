@@ -26,21 +26,25 @@ export function QuestInvestigationPanel({
   hunterName,
   teammates,
   canEdit,
+  waitingForStarter,
   starterName,
   onSetQty,
   onFinish,
+  onCancel,
 }: {
   myLoot: Record<string, number>;
   allHunterLoot: InvestigationLootByHunter;
   hunterName: string;
   teammates: { id: string; name: string }[];
   canEdit: boolean;
+  waitingForStarter?: boolean;
   starterName: string;
   onSetQty: (materialId: string, qty: number) => void;
   onFinish?: () => void;
+  onCancel?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("material");
-  const [showEmpty, setShowEmpty] = useState(false);
+  const [showEmpty, setShowEmpty] = useState(true);
   const [selected, setSelected] = useState<Material | null>(null);
 
   const materials = gameData.materials.filter((m) => m.group === "material");
@@ -63,6 +67,22 @@ export function QuestInvestigationPanel({
 
   return (
     <div className="flex flex-col gap-4">
+      {partyEntries.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs uppercase tracking-wide text-accent">Party gathered</p>
+          {partyEntries.map((entry) => (
+            <div key={entry.id} className="paper-card p-4">
+              <p className="mb-2 text-xs font-semibold text-ink-soft">{entry.name}</p>
+              <LootMaterialPreviewList
+                quantities={entry.loot}
+                readOnly
+                compact
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
       {(canEdit || potionQty > 0) && (
         <div className="paper-card flex items-center justify-between gap-3 p-3">
           <div className="flex items-center gap-2">
@@ -128,21 +148,6 @@ export function QuestInvestigationPanel({
             useShortName={tab === "monster"}
           />
         </>
-      ) : partyEntries.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {partyEntries.map((entry) => (
-            <div key={entry.id} className="paper-card p-4">
-              <p className="mb-2 text-xs uppercase tracking-wide text-accent">
-                {entry.name}
-              </p>
-              <LootMaterialPreviewList
-                quantities={entry.loot}
-                readOnly
-                compact
-              />
-            </div>
-          ))}
-        </div>
       ) : (
         <div className="paper-card p-4 text-center text-sm text-ink-soft">
           No items logged yet.
@@ -164,7 +169,17 @@ export function QuestInvestigationPanel({
         </Button>
       )}
 
-      {!canEdit && (
+      {canEdit && onCancel && (
+        <Button
+          variant="secondary"
+          onClick={onCancel}
+          className="w-full py-3 text-sm font-semibold"
+        >
+          Cancel investigation
+        </Button>
+      )}
+
+      {waitingForStarter && (
         <p className="text-center text-sm text-ink-soft">
           Waiting for {starterName} to finish investigating…
         </p>

@@ -15,14 +15,15 @@ export function QuestInvitePopup() {
 
   if (!campaign?.activeQuest) return null;
   if (campaign.activeDowntime) return null;
-  if (campaign.activeQuest.phase !== "lobby") return null;
+  const aq = campaign.activeQuest;
+  if (aq.phase !== "lobby" && aq.phase !== "investigation") return null;
   if (location.pathname === "/campaign/quest") return null;
 
   const hunter = ownHunter(campaign, userId);
   if (!hunter) return null;
-  if (campaign.activeQuest.readyHunterIds.includes(hunter.id)) return null;
+  if (aq.readyHunterIds.includes(hunter.id)) return null;
 
-  const quest = questById(campaign.activeQuest.questId);
+  const quest = questById(aq.questId);
   if (!quest) return null;
 
   const handleJoin = () => {
@@ -43,7 +44,9 @@ export function QuestInvitePopup() {
           className="h-10 w-10 shrink-0 object-contain"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-wide text-accent">Quest</p>
+          <p className="text-xs uppercase tracking-wide text-accent">
+            {aq.phase === "investigation" ? "Investigation" : "Quest"}
+          </p>
           <p className="truncate text-sm font-semibold">{quest.name}</p>
         </div>
         <button
