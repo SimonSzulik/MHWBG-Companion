@@ -8,21 +8,10 @@ import {
 
 /**
  * Quest categories unlock in order: assigned (1★) → investigation (2★/3★) →
- * tempered (4★). A higher category opens once every quest in the lower
- * categories for that monster is fully completed.
+ * tempered (4★). Investigation hunts open once the monster's assigned hunt is
+ * cleared; tempered hunts open as soon as one of the monster's investigation
+ * hunts has been completed at least once (4× is only the replay cap).
  */
-const CATEGORY_RANK: Record<QuestCategory, number> = {
-  assigned: 1,
-  investigation: 2,
-  tempered: 3,
-};
-
-const CATEGORY_LABEL: Record<QuestCategory, string> = {
-  assigned: "assigned",
-  investigation: "investigation",
-  tempered: "tempered",
-};
-
 export function questById(questId: string): QuestDef | undefined {
   return quests.find((q) => q.id === questId);
 }
@@ -38,25 +27,38 @@ export function questCategory(quest: QuestDef): QuestCategory {
   }
 }
 
-function lowerTierQuestsForMonster(
-  quest: QuestDef,
+function monsterAssignedCleared(
+  completions: Record<string, number>,
   monsterQuests: QuestDef[],
-): QuestDef[] {
-  const rank = CATEGORY_RANK[questCategory(quest)];
-  return monsterQuests.filter(
-    (q) => CATEGORY_RANK[questCategory(q)] < rank,
-  );
+): boolean {
+  return monsterQuests
+    .filter((q) => questCategory(q) === "assigned")
+    .every((q) => isQuestFullyCompleted(q, completions[q.id] ?? 0));
 }
 
-/** True when all lower-category quests for this monster are fully completed. */
+function monsterInvestigationStarted(
+  completions: Record<string, number>,
+  monsterQuests: QuestDef[],
+): boolean {
+  const investigations = monsterQuests.filter(
+    (q) => questCategory(q) === "investigation",
+  );
+  if (investigations.length === 0) return true;
+  return investigations.some((q) => (completions[q.id] ?? 0) >= 1);
+}
+
+/** True when the category prerequisites for this monster are met. */
 export function isQuestTierUnlocked(
   quest: QuestDef,
   completions: Record<string, number>,
   monsterQuests: QuestDef[],
 ): boolean {
-  return lowerTierQuestsForMonster(quest, monsterQuests).every((q) =>
-    isQuestFullyCompleted(q, completions[q.id] ?? 0),
-  );
+  const cat = questCategory(quest);
+  if (cat === "assigned") return true;
+  if (!monsterAssignedCleared(completions, monsterQuests)) return false;
+  if (cat === "investigation") return true;
+  // tempered
+  return monsterInvestigationStarted(completions, monsterQuests);
 }
 
 export function questTierLockReason(
@@ -64,14 +66,11 @@ export function questTierLockReason(
   completions: Record<string, number>,
   monsterQuests: QuestDef[],
 ): string | undefined {
-  const incomplete = lowerTierQuestsForMonster(quest, monsterQuests).filter(
-    (q) => !isQuestFullyCompleted(q, completions[q.id] ?? 0),
-  );
-  if (incomplete.length === 0) return undefined;
-  const tiers = [
-    ...new Set(incomplete.map((q) => CATEGORY_LABEL[questCategory(q)])),
-  ].join(" and ");
-  return `Complete the ${tiers} hunts first`;
+  if (isQuestTierUnlocked(quest, completions, monsterQuests)) return undefined;
+  if (!monsterAssignedCleared(completions, monsterQuests)) {
+    return "Complete the assigned hunt first";
+  }
+  return "Complete an investigation hunt first";
 }
 
 /** The campaign's mandatory first quest — the 1★ Great Jagras. */

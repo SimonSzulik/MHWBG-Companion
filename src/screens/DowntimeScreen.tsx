@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gameData } from "../data/gameData";
 import {
-  allHuntersPickedHandler,
   commonTradeableMaterialIds,
   DOWNTIME_ACTIVITIES,
   ELEMENT_TYPES,
@@ -20,7 +19,6 @@ import type {
   ProvisionsTrade,
 } from "../domain/types";
 import { rollDice } from "../domain/loot";
-import { questById } from "../domain/quests";
 import { DiceRollCard } from "../ui/DiceRollCard";
 import type { QuestDef } from "../data/quests";
 import { iconUrl } from "../domain/icons";
@@ -35,7 +33,6 @@ function isActivityResolved(
   id: DowntimeActivityId,
   hunterId: string,
   dt: ActiveDowntime,
-  hunterIds: string[],
 ): boolean {
   switch (id) {
     case "provisions":
@@ -47,11 +44,8 @@ function isActivityResolved(
     case "poogie":
       return true;
     case "handler":
-      return (
-        allHuntersPickedHandler(hunterIds, dt.picks) &&
-        Boolean(dt.handlerProposals[hunterId]) &&
-        Boolean(dt.handlerQuestId)
-      );
+      // The Handler is no longer a staged pick — it starts a quest directly.
+      return false;
   }
 }
 
@@ -63,7 +57,7 @@ export function DowntimeScreen() {
   const resolveProvisions = useCampaign((s) => s.resolveProvisions);
   const resolveResourceCenter = useCampaign((s) => s.resolveResourceCenter);
   const resolveChef = useCampaign((s) => s.resolveChef);
-  const setHandlerQuest = useCampaign((s) => s.setHandlerQuest);
+  const startHandlerQuest = useCampaign((s) => s.startHandlerQuest);
   const confirmDowntime = useCampaign((s) => s.confirmDowntime);
   const cancelDowntime = useCampaign((s) => s.cancelDowntime);
   const navigate = useNavigate();
@@ -109,12 +103,8 @@ export function DowntimeScreen() {
 
   const hunterIds = campaign.hunters.map((h) => h.id);
   const myPicks = dt.picks[hunter.id] ?? [];
-  const handlerActive = allHuntersPickedHandler(hunterIds, dt.picks);
   const handlerPool = handlerQuestPool(campaign.questCompletions);
   const myConfirmed = dt.confirmedHunterIds.includes(hunter.id);
-  const unanimousQuest = dt.handlerQuestId
-    ? questById(dt.handlerQuestId)
-    : undefined;
 
   const openActivityCard = (id: DowntimeActivityId) => {
     const cur = [...myPicks];
@@ -207,23 +197,18 @@ export function DowntimeScreen() {
               </p>
             </div>
           )}
-          {openActivity === "handler" && handlerActive && (
+          {openActivity === "handler" && (
             <HandlerPanel
               pool={handlerPool}
-              myProposal={dt.handlerProposals[hunter.id]}
-              unanimousQuest={unanimousQuest}
-              proposals={dt.handlerProposals}
-              hunterIds={hunterIds}
-              onPropose={(questId) => {
-                const res = setHandlerQuest(hunter.id, questId);
-                if (!res.ok) alert(res.reason);
+              onStart={(questId) => {
+                const res = startHandlerQuest(questId, hunter.id);
+                if (!res.ok) {
+                  alert(res.reason ?? "Quest could not be started.");
+                  return;
+                }
+                navigate("/campaign/quest");
               }}
             />
-          )}
-          {openActivity === "handler" && !handlerActive && (
-            <div className="paper-card p-4 text-sm text-ink-soft">
-              All hunters must pick Visit the Handler before choosing a quest.
-            </div>
           )}
         </div>
       </Screen>
@@ -244,7 +229,7 @@ export function DowntimeScreen() {
           <div className="grid grid-cols-2 gap-3">
             {DOWNTIME_ACTIVITIES.map((a) => {
               const selected = myPicks.includes(a.id);
-              const resolved = selected && isActivityResolved(a.id, hunter.id, dt, hunterIds);
+              const resolved = selected && isActivityResolved(a.id, hunter.id, dt);
               return (
                 <button
                   key={a.id}
@@ -268,30 +253,16 @@ export function DowntimeScreen() {
 
           <button
             type="button"
-            onClick={() => openActivityCard("handler")}
-            className={`paper-card mt-3 w-full border-[1.5px] p-3 text-left active:translate-y-px ${
-              myPicks.includes("handler")
-                ? "border-accent bg-accent-faint ring-1 ring-accent"
-                : "border-line-strong"
-            }`}
+            onClick={() => setOpenActivity("handler")}
+            className="paper-card mt-3 w-full border-[1.5px] border-line-strong p-3 text-left active:translate-y-px"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-semibold">{HANDLER_ACTIVITY.label}</p>
-                <p className="mt-1 text-[11px] text-ink-soft">
-                  {HANDLER_ACTIVITY.description}
-                </p>
-                {myPicks.includes("handler") && !handlerActive && (
-                  <p className="mt-1 text-[11px] text-accent">
-                    Waiting for all hunters…
-                  </p>
-                )}
-              </div>
-              {myPicks.includes("handler") &&
-                isActivityResolved("handler", hunter.id, dt, hunterIds) && (
-                  <span className="text-sm text-ok">✓</span>
-                )}
-            </div>
+            <p className="font-semibold">{HANDLER_ACTIVITY.label}</p>
+            <p className="mt-1 text-[11px] text-ink-soft">
+              {HANDLER_ACTIVITY.description}
+            </p>
+            <p className="mt-1 text-[11px] text-accent">
+              Starts a quest right away — invites the party to join.
+            </p>
           </button>
 
           <div className="mt-4 flex gap-2">
@@ -309,10 +280,6 @@ export function DowntimeScreen() {
               onClick={() => {
                 if (myPicks.length !== MAX_DOWNTIME_PICKS) {
                   alert(`Choose exactly ${MAX_DOWNTIME_PICKS} activities.`);
-                  return;
-                }
-                if (myPicks.includes("handler") && !handlerActive) {
-                  alert("Handler: all hunters must pick Visit the Handler.");
                   return;
                 }
                 setConfirmEnd(true);
@@ -545,27 +512,16 @@ function ChefPanel({
 
 function HandlerPanel({
   pool,
-  myProposal,
-  unanimousQuest,
-  proposals,
-  hunterIds,
-  onPropose,
+  onStart,
 }: {
   pool: QuestDef[];
-  myProposal?: string;
-  unanimousQuest: QuestDef | undefined;
-  proposals: Record<string, string>;
-  hunterIds: string[];
-  onPropose: (questId: string) => void;
+  onStart: (questId: string) => void;
 }) {
-  const matchCount = hunterIds.filter(
-    (id) => proposals[id] && proposals[id] === myProposal,
-  ).length;
-
   if (pool.length === 0) {
     return (
       <div className="paper-card p-4 text-sm text-ink-soft">
-        No exhausted investigation or tempered quests available.
+        No exhausted investigation or tempered quests available yet. Finish an
+        investigation or tempered hunt 4× to replay it here.
       </div>
     );
   }
@@ -574,24 +530,15 @@ function HandlerPanel({
     <div className="paper-card p-4">
       <p className="font-semibold">Handler</p>
       <p className="mt-1 text-xs text-ink-soft">
-        All hunters must pick the same quest.
+        Pick a quest to replay — it starts right away and invites the party.
       </p>
-      {unanimousQuest ? (
-        <p className="mt-2 text-sm text-ok">Agreed: {unanimousQuest.name} ✓</p>
-      ) : (
-        <p className="mt-2 text-xs text-ink-soft">
-          Agreement: {matchCount}/{hunterIds.length}
-        </p>
-      )}
       <div className="mt-3 flex flex-col gap-1">
         {pool.map((q) => (
           <button
             key={q.id}
             type="button"
-            onClick={() => onPropose(q.id)}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm ${
-              myProposal === q.id ? "border-accent bg-accent-faint" : "border-line"
-            }`}
+            onClick={() => onStart(q.id)}
+            className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-left text-sm active:translate-y-px"
           >
             <img src={iconUrl(q.icon)} alt="" className="h-6 w-6 object-contain" />
             <span className="flex-1">{q.name}</span>

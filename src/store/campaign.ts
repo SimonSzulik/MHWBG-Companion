@@ -42,6 +42,7 @@ import {
   canTradeProvisions,
   applyDowntimeRewards,
   emptyActiveDowntime,
+  handlerQuestPool,
   isHunterDowntimeReady,
   resolveResourceRoll,
   syncHandlerQuestId,
@@ -274,6 +275,11 @@ interface CampaignState {
   forceStarterKit: (hunterId: string) => void;
 
   startQuest: (questId: string, hunterId: string) => { ok: boolean; reason?: string };
+  /** Replay an exhausted investigation/tempered quest via the Handler downtime. */
+  startHandlerQuest: (
+    questId: string,
+    hunterId: string,
+  ) => { ok: boolean; reason?: string };
   joinQuest: (hunterId: string) => { ok: boolean; reason?: string };
   leaveQuestLobby: (hunterId: string) => void;
   /** Dev/test: advance the lobby to investigation regardless of readiness. */
@@ -792,6 +798,42 @@ export const useCampaign = create<CampaignState>()(
               pendingHandlerQuestId: isHandler
                 ? null
                 : s.campaign.pendingHandlerQuestId,
+            }),
+          ),
+        });
+        return { ok: true };
+      },
+
+      startHandlerQuest: (questId, hunterId) => {
+        const s = get();
+        if (!s.campaign) return { ok: false, reason: "No campaign." };
+        const quest = questById(questId);
+        if (!quest) return { ok: false, reason: "Unknown quest." };
+        if (s.campaign.activeQuest) {
+          return { ok: false, reason: "A quest is already in progress." };
+        }
+        // Only exhausted (4×) investigation/tempered quests can be replayed.
+        const pool = handlerQuestPool(s.campaign.questCompletions);
+        if (!pool.some((q) => q.id === questId)) {
+          return { ok: false, reason: "Quest not available for the Handler." };
+        }
+        const activeQuest: ActiveQuest = {
+          questId,
+          phase: "lobby",
+          readyHunterIds: [hunterId],
+          startedByHunterId: hunterId,
+          lootProgress: {},
+          investigationLoot: {},
+          handler: true,
+        };
+        // Starting the replay takes over the downtime day.
+        set({
+          campaign: tryAdvanceToActive(
+            touch({
+              ...s.campaign,
+              activeQuest,
+              activeDowntime: null,
+              pendingHandlerQuestId: null,
             }),
           ),
         });
