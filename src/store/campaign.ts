@@ -44,6 +44,7 @@ import {
   emptyActiveDowntime,
   handlerQuestPool,
   isHunterDowntimeReady,
+  mergeActiveDowntime,
   resolveResourceRoll,
   syncHandlerQuestId,
 } from "../domain/downtime";
@@ -316,6 +317,7 @@ interface CampaignState {
     hunterId: string,
     element: ElementType,
   ) => { ok: boolean; reason?: string };
+  resolvePoogie: (hunterId: string) => { ok: boolean; reason?: string };
   setHandlerQuest: (
     hunterId: string,
     questId: string,
@@ -714,7 +716,28 @@ export const useCampaign = create<CampaignState>()(
               ? { ...h, weaponStock: localStock }
               : h;
           });
-          return { campaign: { ...migrated, hunters } };
+          let next: Campaign = { ...migrated, hunters };
+          const local = s.campaign;
+
+          if (local?.id === next.id && local.activeDowntime) {
+            if (!next.activeDowntime) {
+              // Remote lost downtime on the same campaign day — keep local progress
+              // unless the day already advanced (downtime finished elsewhere).
+              if (next.day === local.day) {
+                next = { ...next, activeDowntime: local.activeDowntime };
+              }
+            } else {
+              next = {
+                ...next,
+                activeDowntime: mergeActiveDowntime(
+                  local.activeDowntime,
+                  next.activeDowntime,
+                ),
+              };
+            }
+          }
+
+          return { campaign: next };
         }),
 
       applyStarterKit: (hunterId) =>
@@ -1229,6 +1252,10 @@ export const useCampaign = create<CampaignState>()(
         }
         const hunter = s.campaign.hunters.find((h) => h.id === hunterId);
         if (!hunter) return { ok: false, reason: "Hunter not found." };
+        const picks = s.campaign.activeDowntime.picks[hunterId] ?? [];
+        if (!picks.includes("provisions")) {
+          return { ok: false, reason: "Provisions Stockpile not selected." };
+        }
         const potions = s.campaign.items.potion ?? 0;
         const err = canTradeProvisions(hunter, trade, potions);
         if (err) return { ok: false, reason: err };
@@ -1287,6 +1314,28 @@ export const useCampaign = create<CampaignState>()(
           chefElement: {
             ...s.campaign.activeDowntime.chefElement,
             [hunterId]: element,
+          },
+        };
+        set({
+          campaign: touch({ ...s.campaign, activeDowntime: dt }),
+        });
+        return { ok: true };
+      },
+
+      resolvePoogie: (hunterId) => {
+        const s = get();
+        if (!s.campaign?.activeDowntime) {
+          return { ok: false, reason: "Downtime not started." };
+        }
+        const picks = s.campaign.activeDowntime.picks[hunterId] ?? [];
+        if (!picks.includes("poogie")) {
+          return { ok: false, reason: "Pet Poogie not selected." };
+        }
+        const dt = {
+          ...s.campaign.activeDowntime,
+          poogieDone: {
+            ...s.campaign.activeDowntime.poogieDone,
+            [hunterId]: true,
           },
         };
         set({

@@ -11,6 +11,7 @@ import {
   PROVISIONS_TRADE_COST,
   RESOURCE_CENTER_TABLE,
   handlerQuestPool,
+  isHunterDowntimeReady,
 } from "../domain/downtime";
 import type {
   ActiveDowntime,
@@ -42,7 +43,7 @@ function isActivityResolved(
     case "chef":
       return Boolean(dt.chefElement[hunterId]);
     case "poogie":
-      return true;
+      return Boolean(dt.poogieDone[hunterId]);
     case "handler":
       // The Handler is no longer a staged pick — it starts a quest directly.
       return false;
@@ -52,11 +53,11 @@ function isActivityResolved(
 /** Downtime day: hub with activity cards, drill-in panels, confirm with party. */
 export function DowntimeScreen() {
   const { campaign, hunter } = useOwnHunter();
-  const beginDowntime = useCampaign((s) => s.beginDowntime);
   const setDowntimePicks = useCampaign((s) => s.setDowntimePicks);
   const resolveProvisions = useCampaign((s) => s.resolveProvisions);
   const resolveResourceCenter = useCampaign((s) => s.resolveResourceCenter);
   const resolveChef = useCampaign((s) => s.resolveChef);
+  const resolvePoogie = useCampaign((s) => s.resolvePoogie);
   const startHandlerQuest = useCampaign((s) => s.startHandlerQuest);
   const confirmDowntime = useCampaign((s) => s.confirmDowntime);
   const cancelDowntime = useCampaign((s) => s.cancelDowntime);
@@ -65,10 +66,23 @@ export function DowntimeScreen() {
     null,
   );
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [awaitingPartyFinish, setAwaitingPartyFinish] = useState(false);
 
   useEffect(() => {
-    beginDowntime();
-  }, [beginDowntime]);
+    useCampaign.getState().beginDowntime();
+  }, []);
+
+  const hunterIds = campaign?.hunters.map((h) => h.id) ?? [];
+  const myConfirmed = Boolean(
+    hunter?.id &&
+      campaign?.activeDowntime?.confirmedHunterIds?.includes(hunter.id),
+  );
+
+  useEffect(() => {
+    if (awaitingPartyFinish && !campaign?.activeDowntime) {
+      navigate("/", { replace: true });
+    }
+  }, [awaitingPartyFinish, campaign?.activeDowntime, navigate]);
 
   if (!campaign || !hunter) return null;
 
@@ -101,10 +115,9 @@ export function DowntimeScreen() {
     );
   }
 
-  const hunterIds = campaign.hunters.map((h) => h.id);
   const myPicks = dt.picks[hunter.id] ?? [];
   const handlerPool = handlerQuestPool(campaign.questCompletions);
-  const myConfirmed = dt.confirmedHunterIds.includes(hunter.id);
+  const downtimeReady = isHunterDowntimeReady(hunter.id, dt, hunterIds);
 
   const openActivityCard = (id: DowntimeActivityId) => {
     const cur = [...myPicks];
@@ -131,7 +144,11 @@ export function DowntimeScreen() {
       return;
     }
     setConfirmEnd(false);
-    navigate("/");
+    if (!useCampaign.getState().campaign?.activeDowntime) {
+      navigate("/", { replace: true });
+    } else {
+      setAwaitingPartyFinish(true);
+    }
   };
 
   const activityMeta = (id: DowntimeActivityId) => {
@@ -167,6 +184,7 @@ export function DowntimeScreen() {
               onSave={(trade) => {
                 const res = resolveProvisions(hunter.id, trade);
                 if (!res.ok) alert(res.reason);
+                else setOpenActivity(null);
               }}
             />
           )}
@@ -176,6 +194,7 @@ export function DowntimeScreen() {
               onRoll={(sum) => {
                 const res = resolveResourceCenter(hunter.id, sum);
                 if (!res.ok) alert(res.reason);
+                else setOpenActivity(null);
               }}
             />
           )}
@@ -195,6 +214,17 @@ export function DowntimeScreen() {
               <p className="mt-1 text-sm text-ink-soft">
                 *happy oink* — maybe it brings luck!
               </p>
+              <Button
+                disabled={Boolean(dt.poogieDone[hunter.id])}
+                onClick={() => {
+                  const res = resolvePoogie(hunter.id);
+                  if (!res.ok) alert(res.reason);
+                  else setOpenActivity(null);
+                }}
+                className="mt-4 w-full py-2 text-sm font-semibold"
+              >
+                {dt.poogieDone[hunter.id] ? "Poogie petted ✓" : "Done"}
+              </Button>
             </div>
           )}
           {openActivity === "handler" && (
@@ -278,13 +308,13 @@ export function DowntimeScreen() {
             </Button>
             <Button
               onClick={() => {
-                if (myPicks.length !== MAX_DOWNTIME_PICKS) {
-                  alert(`Choose exactly ${MAX_DOWNTIME_PICKS} activities.`);
+                if (!downtimeReady) {
+                  alert("Complete all chosen activities first.");
                   return;
                 }
                 setConfirmEnd(true);
               }}
-              disabled={myPicks.length !== MAX_DOWNTIME_PICKS}
+              disabled={!downtimeReady}
               className="flex-1 py-3 text-sm font-semibold"
             >
               Finish day
@@ -293,7 +323,7 @@ export function DowntimeScreen() {
         </>
       )}
 
-      {myConfirmed && (
+      {myConfirmed && campaign.activeDowntime && (
         <div className="paper-card p-5 text-center">
           <p className="font-semibold">Ready!</p>
           <p className="mt-2 text-sm text-ink-soft">
@@ -408,7 +438,7 @@ function ProvisionsPanel({
         </button>
       </div>
       <Button
-        disabled={saved != null}
+        disabled={saved != null || total !== PROVISIONS_TRADE_COST}
         onClick={() => onSave({ offered, rewardId })}
         className="mt-3 w-full py-2 text-sm font-semibold"
       >
@@ -425,7 +455,7 @@ function ResourceCenterPanel({
   savedRoll?: number;
   onRoll: (sum: number) => void;
 }) {
-  const [dice, setDice] = useState<[number, number]>([1, 1]);
+  const [dice, setDice] = useState<[number, number]>(() => rollDice());
 
   const tableRows = Object.entries(RESOURCE_CENTER_TABLE).map(([roll, matId]) => {
     const mat = gameData.materials.find((m) => m.id === matId);
@@ -452,14 +482,17 @@ function ResourceCenterPanel({
           dice={dice}
           onDiceChange={setDice}
           onReroll={() => setDice(rollDice())}
-          footer={
+          footer={({ dice, commit }) => (
             <Button
-              onClick={() => applyRoll(dice[0] + dice[1])}
+              onClick={() => {
+                const [a, b] = commit();
+                applyRoll(a + b);
+              }}
               className="mt-3 w-full py-2 text-sm font-semibold"
             >
               Confirm roll ({dice[0] + dice[1]})
             </Button>
-          }
+          )}
         />
       )}
       <details className="mt-3">

@@ -87,16 +87,23 @@ function parsePendingTrades(raw: unknown): TradeRequest[] {
 
 function parseActiveDowntime(raw: unknown): ActiveDowntime | null {
   if (!raw || typeof raw !== "object") return null;
-  const o = raw as ActiveDowntime;
-  if (!o.picks || !Array.isArray(o.confirmedHunterIds)) return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.picks !== "object" || o.picks === null || Array.isArray(o.picks)) {
+    return null;
+  }
   return {
-    picks: o.picks ?? {},
-    provisions: o.provisions ?? {},
-    resourceRoll: o.resourceRoll ?? {},
-    chefElement: o.chefElement ?? {},
-    handlerProposals: o.handlerProposals ?? {},
-    handlerQuestId: o.handlerQuestId ?? null,
-    confirmedHunterIds: o.confirmedHunterIds ?? [],
+    picks: o.picks as ActiveDowntime["picks"],
+    provisions: (o.provisions as ActiveDowntime["provisions"]) ?? {},
+    resourceRoll: (o.resourceRoll as ActiveDowntime["resourceRoll"]) ?? {},
+    chefElement: (o.chefElement as ActiveDowntime["chefElement"]) ?? {},
+    handlerProposals:
+      (o.handlerProposals as ActiveDowntime["handlerProposals"]) ?? {},
+    handlerQuestId:
+      typeof o.handlerQuestId === "string" ? o.handlerQuestId : null,
+    poogieDone: (o.poogieDone as ActiveDowntime["poogieDone"]) ?? {},
+    confirmedHunterIds: Array.isArray(o.confirmedHunterIds)
+      ? o.confirmedHunterIds
+      : [],
   };
 }
 

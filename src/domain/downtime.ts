@@ -1,6 +1,7 @@
 import { gameData } from "../data/gameData";
 import { quests, questsForMonster, type QuestDef } from "../data/quests";
 import type {
+  ActiveDowntime,
   Campaign,
   DowntimeActivityId,
   Hunter,
@@ -152,6 +153,27 @@ export function hunterPickedHandler(picks: DowntimeActivityId[]): boolean {
   return picks.includes("handler");
 }
 
+export function mergeActiveDowntime(
+  local: ActiveDowntime,
+  remote: ActiveDowntime,
+): ActiveDowntime {
+  return {
+    picks: { ...remote.picks, ...local.picks },
+    provisions: { ...remote.provisions, ...local.provisions },
+    resourceRoll: { ...remote.resourceRoll, ...local.resourceRoll },
+    chefElement: { ...remote.chefElement, ...local.chefElement },
+    poogieDone: { ...remote.poogieDone, ...local.poogieDone },
+    handlerProposals: { ...remote.handlerProposals, ...local.handlerProposals },
+    handlerQuestId: remote.handlerQuestId ?? local.handlerQuestId,
+    confirmedHunterIds: [
+      ...new Set([
+        ...remote.confirmedHunterIds,
+        ...local.confirmedHunterIds,
+      ]),
+    ],
+  };
+}
+
 export function emptyActiveDowntime(): import("./types").ActiveDowntime {
   return {
     picks: {},
@@ -160,6 +182,7 @@ export function emptyActiveDowntime(): import("./types").ActiveDowntime {
     chefElement: {},
     handlerProposals: {},
     handlerQuestId: null,
+    poogieDone: {},
     confirmedHunterIds: [],
   };
 }
@@ -191,6 +214,7 @@ export function isHunterDowntimeReady(
     return false;
   }
   if (picks.includes("chef") && !dt.chefElement[hunterId]) return false;
+  if (picks.includes("poogie") && !dt.poogieDone[hunterId]) return false;
 
   if (picks.includes("handler")) {
     if (!allHuntersPickedHandler(hunterIds, dt.picks)) return false;

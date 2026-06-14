@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "./Button";
 import { clamp } from "../lib/math";
 
@@ -8,6 +8,13 @@ function CompactDie({ face }: { face: number }) {
       {face}
     </div>
   );
+}
+
+function parseDieFace(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed)) return null;
+  return clamp(parsed, 1, 6);
 }
 
 /** Compact two-dice block with reroll and manual face entry. */
@@ -20,15 +27,56 @@ export function DiceRollCard({
   dice: [number, number];
   onDiceChange: (next: [number, number]) => void;
   onReroll: () => void;
-  footer?: ReactNode;
+  footer?:
+    | ReactNode
+    | ((ctx: {
+        dice: [number, number];
+        commit: () => [number, number];
+      }) => ReactNode);
 }) {
   const [x, y] = dice;
   const sum = x + y;
+  const diceRef = useRef(dice);
+  diceRef.current = dice;
+  const draftRef = useRef<[string, string]>([String(x), String(y)]);
+  const [draft, setDraft] = useState<[string, string]>([String(x), String(y)]);
+  draftRef.current = draft;
 
-  const setDieFace = (index: 0 | 1, raw: string) => {
-    const parsed = Number.parseInt(raw, 10);
-    const nextFace = Number.isNaN(parsed) ? 1 : clamp(parsed, 1, 6);
-    onDiceChange(index === 0 ? [nextFace, y] : [x, nextFace]);
+  useEffect(() => {
+    setDraft([String(x), String(y)]);
+  }, [x, y]);
+
+  const commitAllDrafts = (): [number, number] => {
+    const left = parseDieFace(draftRef.current[0]) ?? 1;
+    const right = parseDieFace(draftRef.current[1]) ?? 1;
+    const next: [number, number] = [left, right];
+    onDiceChange(next);
+    setDraft([String(left), String(right)]);
+    return next;
+  };
+
+  const updateDraft = (index: 0 | 1, raw: string) => {
+    setDraft((prev) => {
+      const next: [string, string] = [prev[0], prev[1]];
+      next[index] = raw;
+      return next;
+    });
+
+    const face = parseDieFace(raw);
+    if (face == null) return;
+    const [left, right] = diceRef.current;
+    onDiceChange(index === 0 ? [face, right] : [left, face]);
+  };
+
+  const commitDraft = (index: 0 | 1) => {
+    const face = parseDieFace(draft[index]) ?? 1;
+    const [left, right] = diceRef.current;
+    onDiceChange(index === 0 ? [face, right] : [left, face]);
+    setDraft((prev) => {
+      const next: [string, string] = [prev[0], prev[1]];
+      next[index] = String(face);
+      return next;
+    });
   };
 
   return (
@@ -59,9 +107,9 @@ export function DiceRollCard({
             min={1}
             max={6}
             step={1}
-            value={x}
-            onChange={(e) => setDieFace(0, e.target.value)}
-            onBlur={(e) => setDieFace(0, e.target.value)}
+            value={draft[0]}
+            onChange={(e) => updateDraft(0, e.target.value)}
+            onBlur={() => commitDraft(0)}
             className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-base font-semibold text-ink"
           />
         </label>
@@ -73,15 +121,17 @@ export function DiceRollCard({
             min={1}
             max={6}
             step={1}
-            value={y}
-            onChange={(e) => setDieFace(1, e.target.value)}
-            onBlur={(e) => setDieFace(1, e.target.value)}
+            value={draft[1]}
+            onChange={(e) => updateDraft(1, e.target.value)}
+            onBlur={() => commitDraft(1)}
             className="rounded-lg border-[1.5px] border-line-strong bg-card px-3 py-2 text-base font-semibold text-ink"
           />
         </label>
       </div>
 
-      {footer}
+      {typeof footer === "function"
+        ? footer({ dice, commit: commitAllDrafts })
+        : footer}
     </div>
   );
 }

@@ -153,6 +153,8 @@ export interface ActiveDowntime {
   handlerProposals: Record<string, string>;
   /** Set when all proposals match. */
   handlerQuestId: string | null;
+  /** Hunter tapped “Done” after petting Poogie. */
+  poogieDone: Record<string, boolean>;
   confirmedHunterIds: string[];
 }
 

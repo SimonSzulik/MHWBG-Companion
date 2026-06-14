@@ -414,6 +414,10 @@ async function softPull(campaignId: string): Promise<void> {
   const remoteSnap = snapshot(campaign);
   if (remoteSnap === lastPushedSnapshot) return; // our own echo — nothing new
   const local = useCampaign.getState().campaign;
+  if (local && lastPushedSnapshot && snapshot(local) !== lastPushedSnapshot) {
+    // Local edits not yet pushed — don't clobber in-progress work.
+    return;
+  }
   if (local && remoteSnap === snapshot(local)) {
     // Already in sync; just refresh baselines.
     lastPushedSnapshot = remoteSnap;
