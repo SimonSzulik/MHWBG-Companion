@@ -16,6 +16,7 @@ export function Screen({
   background,
   backgroundFallback,
   hideHeader = false,
+  headerTransparent = false,
   children,
 }: {
   title: string;
@@ -27,6 +28,8 @@ export function Screen({
   background?: string;
   backgroundFallback?: string;
   hideHeader?: boolean;
+  /** Drop the opaque header bar so a background image shows through. */
+  headerTransparent?: boolean;
   children: ReactNode;
 }) {
   const nav = useNavigate();
@@ -36,7 +39,11 @@ export function Screen({
         <ScreenBackground src={background} fallback={backgroundFallback} />
       )}
       {!hideHeader && (
-        <header className="sticky top-0 z-10 flex items-center gap-3 bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
+        <header
+          className={`sticky top-0 z-10 flex items-center gap-3 px-4 pb-3 pt-4 ${
+            headerTransparent ? "" : "bg-paper/90 backdrop-blur"
+          }`}
+        >
           {back && (
             <button
               type="button"

@@ -26,6 +26,7 @@ export function QuestPhaseScreen({
       back
       onBack={() => navigate("/")}
       background={QUEST_BACKGROUND}
+      headerTransparent
     >
       {children}
     </Screen>
