@@ -5,6 +5,7 @@ import type {
   Hunter,
   HunterLootProgress,
   InvestigationLootByHunter,
+  QuestDayReport,
 } from "./types";
 
 function applyMaterialsToHunter(
@@ -92,6 +93,20 @@ export function hasAnyInvestigationLoot(
   );
 }
 
+/** Sum all logged investigation materials (excludes potions). */
+export function aggregateInvestigationMaterials(
+  loot: InvestigationLootByHunter | undefined,
+): Record<string, number> {
+  const total: Record<string, number> = {};
+  for (const bucket of Object.values(loot ?? {})) {
+    for (const [id, qty] of Object.entries(bucket)) {
+      if (id === "potion" || qty <= 0) continue;
+      total[id] = (total[id] ?? 0) + qty;
+    }
+  }
+  return total;
+}
+
 /** Apply investigation materials to a single hunter (excludes potions). */
 export function applyInvestigationLootToHunter(
   campaign: Campaign,
@@ -143,43 +158,36 @@ export function buildPersonalLootSummary(
   activeQuest: ActiveQuest,
   hunterId: string,
 ): PersonalLootSummary {
-  const investigation = hunterInvestigationLoot(
+  const partyInvestigation = aggregateInvestigationMaterials(
     activeQuest.investigationLoot,
-    hunterId,
   );
   const rolled =
     activeQuest.lootProgress[hunterId]?.lootQuantities ?? {};
 
-  const materials: Record<string, number> = {};
-  for (const [id, qty] of Object.entries(investigation)) {
-    if (id === "potion" || qty <= 0) continue;
-    materials[id] = (materials[id] ?? 0) + qty;
-  }
+  const materials: Record<string, number> = { ...partyInvestigation };
   for (const [id, qty] of Object.entries(rolled)) {
     if (qty <= 0) continue;
     materials[id] = (materials[id] ?? 0) + qty;
   }
 
   const potionsToParty =
-    !activeQuest.partyPotionsApplied && (investigation.potion ?? 0) > 0
-      ? (investigation.potion ?? 0)
+    !activeQuest.partyPotionsApplied &&
+    totalInvestigationPotions(activeQuest.investigationLoot) > 0
+      ? totalInvestigationPotions(activeQuest.investigationLoot)
       : 0;
 
   return { materials, potionsToParty };
 }
 
-/** Apply each hunter's investigation loot; potions go to party stockpile. */
+/** Apply aggregated investigation loot to every hunter; potions go to party stockpile. */
 export function applyInvestigationLoot(
   campaign: Campaign,
   loot: InvestigationLootByHunter,
 ): Campaign {
+  const aggregate = aggregateInvestigationMaterials(loot);
   let next = campaign;
   for (const hunter of campaign.hunters) {
-    next = applyInvestigationLootToHunter(
-      next,
-      hunter.id,
-      loot[hunter.id] ?? {},
-    );
+    next = applyInvestigationLootToHunter(next, hunter.id, aggregate);
   }
   const potionQty = totalInvestigationPotions(loot);
   if (potionQty > 0) {
@@ -192,6 +200,22 @@ export function applyInvestigationLoot(
     };
   }
   return next;
+}
+
+/** Snapshot quest loot for calendar history before clearing activeQuest. */
+export function buildQuestDayReport(activeQuest: ActiveQuest): QuestDayReport {
+  const rolledLoot: Record<string, Record<string, number>> = {};
+  for (const [hunterId, progress] of Object.entries(
+    activeQuest.lootProgress ?? {},
+  )) {
+    rolledLoot[hunterId] = { ...progress.lootQuantities };
+  }
+  return {
+    questId: activeQuest.questId,
+    investigationLoot: activeQuest.investigationLoot ?? {},
+    rolledLoot,
+    keepInvestigationLoot: activeQuest.outcome?.keepInvestigationLoot,
+  };
 }
 
 /** Apply per-hunter rolled loot from the looting phase. */
@@ -216,6 +240,8 @@ export type QuestSummaryView = {
     materials: Record<string, number>;
     potions: number;
   }[];
+  aggregatedInvestigation: Record<string, number>;
+  totalPotions: number;
   perHunterLoot: {
     hunterId: string;
     name: string;
@@ -224,6 +250,8 @@ export type QuestSummaryView = {
   outcome?: ActiveQuest["outcome"];
   showRolledLoot: boolean;
   keptInvestigation: boolean;
+  /** Calendar history: show logged investigation even when not kept. */
+  showInvestigationLog?: boolean;
 };
 
 export function buildQuestSummary(
@@ -261,9 +289,61 @@ export function buildQuestSummary(
 
   return {
     perHunterInvestigation,
+    aggregatedInvestigation: aggregateInvestigationMaterials(loot),
+    totalPotions: totalInvestigationPotions(loot),
     perHunterLoot,
     outcome,
     showRolledLoot,
     keptInvestigation,
+    showInvestigationLog: false,
+  };
+}
+
+/** Build summary view from a stored calendar report. */
+export function buildQuestSummaryFromReport(
+  report: QuestDayReport,
+  hunters: { id: string; name: string }[],
+  result: "success" | "failure",
+): QuestSummaryView {
+  const loot = report.investigationLoot ?? {};
+  const showRolledLoot = result === "success";
+  const keptInvestigation =
+    result === "success" ||
+    (result === "failure" && report.keepInvestigationLoot === true);
+
+  const perHunterInvestigation = hunters.map((h) => {
+    const bucket = loot[h.id] ?? {};
+    const materials = Object.fromEntries(
+      Object.entries(bucket).filter(([id]) => id !== "potion"),
+    );
+    return {
+      hunterId: h.id,
+      name: h.name,
+      materials,
+      potions: bucket.potion ?? 0,
+    };
+  });
+
+  const perHunterLoot = hunters.map((h) => ({
+    hunterId: h.id,
+    name: h.name,
+    quantities: showRolledLoot ? (report.rolledLoot[h.id] ?? {}) : {},
+  }));
+
+  return {
+    perHunterInvestigation,
+    aggregatedInvestigation: aggregateInvestigationMaterials(loot),
+    totalPotions: totalInvestigationPotions(loot),
+    perHunterLoot,
+    outcome:
+      result === "failure"
+        ? {
+            result: "failure",
+            keepInvestigationLoot: report.keepInvestigationLoot,
+          }
+        : { result: "success" },
+    showRolledLoot,
+    keptInvestigation,
+    showInvestigationLog: hasAnyInvestigationLoot(loot),
   };
 }

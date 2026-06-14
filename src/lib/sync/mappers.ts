@@ -13,6 +13,7 @@ import type {
   HunterLootProgress,
   MaterialStash,
   QuestStars,
+  QuestDayReport,
   TradeRequest,
   WeaponType,
 } from "../../domain/types";
@@ -36,6 +37,38 @@ function parseQuestCompletions(
   return out;
 }
 
+function parseRolledLoot(
+  raw: unknown,
+): Record<string, Record<string, number>> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, Record<string, number>> = {};
+  for (const [hunterId, bucket] of Object.entries(raw as Record<string, unknown>)) {
+    if (!bucket || typeof bucket !== "object") continue;
+    const materials: Record<string, number> = {};
+    for (const [id, qty] of Object.entries(bucket as Record<string, unknown>)) {
+      if (typeof qty === "number" && qty > 0) materials[id] = qty;
+    }
+    if (Object.keys(materials).length > 0) out[hunterId] = materials;
+  }
+  return out;
+}
+
+function parseQuestDayReport(raw: unknown): QuestDayReport | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.questId !== "string") return undefined;
+  return {
+    questId: o.questId,
+    investigationLoot: migrateInvestigationLoot(o.investigationLoot),
+    rolledLoot: parseRolledLoot(o.rolledLoot),
+    ...(o.keepInvestigationLoot === true
+      ? { keepInvestigationLoot: true }
+      : o.keepInvestigationLoot === false
+        ? { keepInvestigationLoot: false }
+        : {}),
+  };
+}
+
 function parseDayLog(
   raw: Record<string, unknown> | null | undefined,
 ): Record<number, CalendarDayEntry> {
@@ -56,12 +89,14 @@ function parseDayLog(
       typeof o.stars === "string" &&
       (o.result === "success" || o.result === "failure")
     ) {
+      const report = parseQuestDayReport(o.report);
       out[day] = normalizeCalendarDayEntry({
         kind: "quest",
         monsterId: o.monsterId,
         stars: o.stars as QuestStars,
         result: o.result,
         ...(o.handler ? { handler: true } : {}),
+        ...(report ? { report } : {}),
       });
     }
   }

@@ -192,6 +192,14 @@ export type ItemStash = Record<string, number>;
 
 export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";
 
+/** Snapshot of quest loot stored on the calendar day entry. */
+export interface QuestDayReport {
+  questId: string;
+  investigationLoot: InvestigationLootByHunter;
+  rolledLoot: Record<string, Record<string, number>>;
+  keepInvestigationLoot?: boolean;
+}
+
 export type CalendarDayEntry =
   | { kind: "downtime" }
   | {
@@ -200,6 +208,7 @@ export type CalendarDayEntry =
       stars: QuestStars;
       result: "success" | "failure";
       handler?: boolean;
+      report?: QuestDayReport;
     };
 
 /** Legacy quest-only day log entries (pre-downtime saves). */

@@ -6,10 +6,11 @@ import { useOwnHunter } from "../store/hooks";
 import { otherHunters } from "../lib/hunter";
 import { catalog, hunterTotalDefense } from "../domain/catalog";
 import { pendingTradeBetween } from "../domain/trade";
-import type { Hunter } from "../domain/types";
+import type { CalendarDayEntry, Hunter } from "../domain/types";
 import { ScreenBackground } from "../ui/ScreenBackground";
 import { CampaignCalendar } from "../ui/CampaignCalendar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { QuestDayReportSheet } from "../ui/QuestDayReportSheet";
 import { GearSlotIcons } from "../ui/GearSlotIcons";
 import { TradeSheet } from "../ui/camp/TradeSheet";
 import { HunterEquipSheet } from "../ui/hunter/HunterEquipSheet";
@@ -29,6 +30,10 @@ export function Camp() {
   const [confirmPotion, setConfirmPotion] = useState(false);
   const [tradePartner, setTradePartner] = useState<Hunter | null>(null);
   const [showEquip, setShowEquip] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<{
+    day: number;
+    entry: Extract<CalendarDayEntry, { kind: "quest" }>;
+  } | null>(null);
 
   if (!campaign || !hunter) return null;
 
@@ -179,6 +184,11 @@ export function Camp() {
             maxDay={campaign.maxDay}
             dayLog={campaign.dayLog ?? {}}
             cols={5}
+            onDayClick={(dayNum, entry) => {
+              if (entry.kind === "quest") {
+                setSelectedDay({ day: dayNum, entry });
+              }
+            }}
             right={
               <button
                 type="button"
@@ -287,6 +297,15 @@ export function Camp() {
           message="Potions come from the shared party stockpile. Use one potion?"
           onConfirm={usePotion}
           onCancel={() => setConfirmPotion(false)}
+        />
+      )}
+
+      {selectedDay && (
+        <QuestDayReportSheet
+          day={selectedDay.day}
+          entry={selectedDay.entry}
+          hunters={campaign.hunters}
+          onClose={() => setSelectedDay(null)}
         />
       )}
     </div>

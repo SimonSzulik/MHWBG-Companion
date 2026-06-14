@@ -15,12 +15,14 @@ export function CampaignCalendar({
   dayLog,
   cols = 10,
   right,
+  onDayClick,
 }: {
   day: number;
   maxDay: number;
   dayLog: Record<number, CalendarDayEntry>;
   cols?: number;
   right?: ReactNode;
+  onDayClick?: (day: number, entry: CalendarDayEntry) => void;
 }) {
   const rows = Math.ceil(maxDay / cols);
 
@@ -49,6 +51,7 @@ export function CampaignCalendar({
               isCurrent={d === day}
               isPast={d < day}
               entry={dayLog[d]}
+              onDayClick={onDayClick}
             />
           );
         })}
@@ -62,11 +65,13 @@ function CalendarDay({
   isCurrent,
   isPast,
   entry,
+  onDayClick,
 }: {
   day: number;
   isCurrent: boolean;
   isPast: boolean;
   entry?: CalendarDayEntry;
+  onDayClick?: (day: number, entry: CalendarDayEntry) => void;
 }) {
   // Track failed icon loads so a missing asset falls back to the day number
   // instead of leaving an empty cell.
@@ -75,6 +80,7 @@ function CalendarDay({
   const isDowntime = entry?.kind === "downtime";
   const questEntry = entry?.kind === "quest" ? entry : null;
   const failed = questEntry?.result === "failure";
+  const clickable = Boolean(entry && onDayClick && (isPast || isCurrent));
 
   const title = isDowntime
     ? `Day ${day} · Downtime`
@@ -82,18 +88,16 @@ function CalendarDay({
       ? `Day ${day} · ${questEntry.result === "success" ? "Success" : "Failure"}`
       : `Day ${day}`;
 
-  return (
-    <span
-      title={title}
-      className={`relative flex min-h-[26px] items-center justify-center overflow-hidden rounded-sm border p-px ${
-        isCurrent
-          ? "border-accent bg-accent"
-          : isPast
-            ? "border-line bg-paper-2"
-            : "border-line bg-paper"
-      }`}
-    >
-      {/* Day number always present so each day stays trackable. */}
+  const className = `relative flex min-h-[26px] items-center justify-center overflow-hidden rounded-sm border p-px ${
+    isCurrent
+      ? "border-accent bg-accent"
+      : isPast
+        ? "border-line bg-paper-2"
+        : "border-line bg-paper"
+  }${clickable ? " cursor-pointer active:scale-95" : ""}`;
+
+  const content = (
+    <>
       <span
         className={`absolute right-0.5 top-0 text-[8px] font-semibold leading-none ${
           isCurrent ? "text-white/90" : "text-ink-soft"
@@ -114,6 +118,26 @@ function CalendarDay({
           }`}
         />
       ) : null}
+    </>
+  );
+
+  if (clickable && entry && onDayClick) {
+    const handleClick = onDayClick;
+    return (
+      <button
+        type="button"
+        title={title}
+        onClick={() => handleClick(day, entry)}
+        className={className}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <span title={title} className={className}>
+      {content}
     </span>
   );
 }

@@ -73,6 +73,19 @@ function runCalendarTests(): void {
   c = recordQuestOnCalendar(c, oneStar, "success");
   assert.equal(c.day, 60);
   assert.equal(c.dayLog[60]?.kind, "quest");
+
+  const report = {
+    questId: "great-jagras-2",
+    investigationLoot: { h1: { "quality-bone": 1 } },
+    rolledLoot: { h1: { "great-jagras-hide": 1 } },
+  };
+  c = minimalCampaign(7);
+  c = recordQuestOnCalendar(c, twoStar, "success", false, { report });
+  assert.equal(c.dayLog[7]?.kind, "quest");
+  if (c.dayLog[7]?.kind === "quest") {
+    assert.equal(c.dayLog[7].report?.questId, "great-jagras-2");
+    assert.equal(c.dayLog[7].report?.rolledLoot.h1["great-jagras-hide"], 1);
+  }
 }
 
 runCalendarTests();

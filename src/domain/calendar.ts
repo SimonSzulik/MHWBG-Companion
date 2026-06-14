@@ -1,5 +1,5 @@
 import type { QuestDef } from "../data/quests";
-import type { Campaign } from "./types";
+import type { Campaign, QuestDayReport } from "./types";
 
 export type QuestResult = "success" | "failure";
 
@@ -19,7 +19,7 @@ export function recordQuestOnCalendar(
   quest: QuestDef,
   result: QuestResult,
   handler = false,
-  opts?: { keepInvestigationLoot?: boolean },
+  opts?: { keepInvestigationLoot?: boolean; report?: QuestDayReport },
 ): Campaign {
   const keepLoot = opts?.keepInvestigationLoot;
   if (result === "failure" && quest.stars === "one-star" && !keepLoot) {
@@ -32,6 +32,7 @@ export function recordQuestOnCalendar(
     stars: quest.stars,
     result,
     ...(handler ? { handler: true } : {}),
+    ...(opts?.report ? { report: opts.report } : {}),
   };
 
   const nextDay = shouldAdvanceDay(quest, result, keepLoot)

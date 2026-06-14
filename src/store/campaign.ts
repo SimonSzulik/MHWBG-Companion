@@ -35,6 +35,8 @@ import {
   applyInvestigationLoot,
   applyInvestigationLootToHunter,
   applyPartyPotionsOnce,
+  aggregateInvestigationMaterials,
+  buildQuestDayReport,
   hasAnyInvestigationLoot,
   hunterInvestigationLoot,
   migrateInvestigationLoot,
@@ -1198,7 +1200,7 @@ export const useCampaign = create<CampaignState>()(
           let campaign = applyInvestigationLootToHunter(
             s.campaign,
             hunterId,
-            hunterInvestigationLoot(aq.investigationLoot, hunterId),
+            aggregateInvestigationMaterials(aq.investigationLoot),
           );
           campaign = {
             ...campaign,
@@ -1246,6 +1248,7 @@ export const useCampaign = create<CampaignState>()(
           if (allConfirmed) {
             const quest = questById(aq.questId);
             if (quest) {
+              const report = buildQuestDayReport(aq);
               const cur = campaign.questCompletions[aq.questId] ?? 0;
               campaign = clearElementResistances(
                 touch({
@@ -1260,7 +1263,9 @@ export const useCampaign = create<CampaignState>()(
                 }),
               );
               campaign = touch(
-                recordQuestOnCalendar(campaign, quest, "success", aq.handler),
+                recordQuestOnCalendar(campaign, quest, "success", aq.handler, {
+                  report,
+                }),
               );
             }
           }
@@ -1310,6 +1315,7 @@ export const useCampaign = create<CampaignState>()(
           campaign = touch(
             recordQuestOnCalendar(campaign, quest, "failure", aq.handler, {
               keepInvestigationLoot,
+              report: buildQuestDayReport(aq),
             }),
           );
 
