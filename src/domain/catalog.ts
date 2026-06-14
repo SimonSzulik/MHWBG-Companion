@@ -50,6 +50,20 @@ export function isFreeStarterRoot(gear: GearDef): boolean {
   );
 }
 
+/** Campaign starter weapon (root) — always available as a forge base, never consumed. */
+export function isStarterRoot(gear: GearDef): boolean {
+  return (
+    gear.slot === "weapon" && (gear.pathOrder ?? 0) === 0 && gear.isStarter === true
+  );
+}
+
+/** Held forge stock, or unlimited access to the hunter's starter root weapon. */
+export function hasHeldWeapon(hunter: Hunter, gearId: string): boolean {
+  if (heldCount(hunter, gearId) > 0) return true;
+  const gear = catalog.gear(gearId);
+  return Boolean(gear && isStarterRoot(gear));
+}
+
 /** How many times a recraftable root has been used vs. how many paths it has. */
 export function rootForgeUsage(
   hunter: Hunter,
@@ -106,7 +120,7 @@ export function canCraftGear(gear: GearDef, hunter: Hunter): boolean {
     return isRecraftableRoot(gear);
   }
   const prevId = prevGearIdInPath(gear);
-  return Boolean(prevId && heldCount(hunter, prevId) > 0);
+  return Boolean(prevId && hasHeldWeapon(hunter, prevId));
 }
 
 export function craftState(gear: GearDef, hunter: Hunter): CraftState {
@@ -216,6 +230,7 @@ export function weaponForgeGraph(
 
     const recraftable = isRecraftableRoot(rootGear);
     const freeStarter = isFreeStarterRoot(rootGear);
+    const starterRoot = isStarterRoot(rootGear);
 
     const { used: rootUsed, cap: rootCap } = rootForgeUsage(
       hunter,
@@ -231,7 +246,8 @@ export function weaponForgeGraph(
     } else rootState = owned.has(rootId) ? "forged" : "pending";
 
     const root = makeNode(rootGear, hunter, rootState);
-    if (freeStarter) root.forged = true;
+    if (freeStarter || starterRoot) root.forged = true;
+    if (starterRoot) root.held = Math.max(root.held, 1);
 
     // Which branches are already chosen (any tier beyond the root forged).
     const chosenFlags = groupPaths.map((p) =>
@@ -241,14 +257,14 @@ export function weaponForgeGraph(
 
     const branches: ForgeBranch[] = groupPaths.map((p, bi) => {
       const chosen = chosenFlags[bi];
-      // Free-starter siblings lock once one branch is committed (single base).
-      const locked = freeStarter && anyChosen && !chosen;
+      // Starter roots are unlimited — sibling paths stay open.
+      const locked = freeStarter && !starterRoot && anyChosen && !chosen;
 
       let prevId = rootId;
       const nodes = p.gearIds.slice(1).map((id) => {
         const gear = catalog.gear(id);
         const forged = owned.has(id);
-        const prevHeld = heldCount(hunter, prevId) > 0;
+        const prevHeld = hasHeldWeapon(hunter, prevId);
         const mats = gear ? hasMaterials(gear, hunter) : false;
         let state: ForgeNodeState;
         if (forged) state = "forged";

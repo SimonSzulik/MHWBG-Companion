@@ -18,7 +18,12 @@ import { normalizeCalendarDayEntry } from "../domain/types";
 import { gameData } from "../data/gameData";
 import { questsForMonster } from "../data/quests";
 import { clamp } from "../lib/math";
-import { isRecraftableRoot, rootForgeUsage, catalog } from "../domain/catalog";
+import {
+  isRecraftableRoot,
+  isStarterRoot,
+  rootForgeUsage,
+  catalog,
+} from "../domain/catalog";
 import {
   applyStarterKitToHunter,
   hunterNeedsStarterKit,
@@ -645,8 +650,10 @@ export const useCampaign = create<CampaignState>()(
           } else {
             const path = gameData.weaponPaths?.find((p) => p.id === def.pathId);
             prevId = path?.gearIds[order - 1];
+            const prevDef = prevId ? catalog.gear(prevId) : undefined;
             const held = prevId ? (hunter.weaponStock?.[prevId] ?? 0) : 0;
-            if (!prevId || held < 1)
+            const starterBase = prevDef && isStarterRoot(prevDef);
+            if (!prevId || (held < 1 && !starterBase))
               return { ok: false, reason: "Base weapon missing." };
           }
         }
@@ -666,9 +673,12 @@ export const useCampaign = create<CampaignState>()(
         if (isWeapon) {
           const stock = { ...(hunter.weaponStock ?? {}) };
           if (prevId) {
-            const left = (stock[prevId] ?? 0) - 1;
-            if (left > 0) stock[prevId] = left;
-            else delete stock[prevId];
+            const prevDef = catalog.gear(prevId);
+            if (!prevDef || !isStarterRoot(prevDef)) {
+              const left = (stock[prevId] ?? 0) - 1;
+              if (left > 0) stock[prevId] = left;
+              else delete stock[prevId];
+            }
           }
           stock[gearId] = (stock[gearId] ?? 0) + 1;
           weaponStock = stock;
