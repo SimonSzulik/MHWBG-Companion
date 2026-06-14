@@ -4,6 +4,25 @@ import {
   COMING_SOON_WEAPONS,
   isWeaponImplemented,
 } from "../data/weapons";
+import { iconUrl } from "../domain/icons";
+
+/** White-tier forge icon stem for each weapon type. */
+const WEAPON_ICON: Record<WeaponType, string> = {
+  "Great Sword": "white-great-sword",
+  "Sword & Shield": "white-sword-shield",
+  Bow: "white-bow",
+  "Dual Blades": "white-dual-blades",
+  "Long Sword": "white-long-sword",
+  Hammer: "white-hammer",
+  Gunlance: "white-gunlance",
+  "Light Bowgun": "white-light-bowgun",
+  Lance: "white-lance",
+  "Hunting Horn": "white-hunting-horn",
+  "Switch Axe": "white-switch-axe",
+  "Charge Blade": "white-charge-blade",
+  "Insect Glaive": "white-insect-glaive",
+  "Heavy Bowgun": "white-heavy-bowgun",
+};
 
 interface WeaponPickerProps {
   value: WeaponType | null;
@@ -55,7 +74,7 @@ export function WeaponPicker({
               type="button"
               disabled={disabled}
               onClick={() => onChange(w.type)}
-              className={`relative px-3 py-3 text-left text-sm font-semibold active:translate-y-px ${
+              className={`relative flex items-center gap-2.5 px-3 py-3 text-left text-sm font-semibold active:translate-y-px ${
                 state === "selected"
                   ? "rounded-2xl border-[1.5px] border-accent bg-accent text-white shadow-[2px_3px_0_rgba(43,38,32,0.15)] ring-2 ring-accent/70"
                   : state === "available"
@@ -63,12 +82,21 @@ export function WeaponPicker({
                     : "paper-card opacity-40 grayscale cursor-not-allowed"
               } ${state === "taken" ? "opacity-50 grayscale" : ""}`}
             >
-              <span className="block leading-tight">{w.type}</span>
-              {label && (
-                <span className="mt-0.5 block text-[10px] font-normal text-ink-soft">
-                  {label}
-                </span>
-              )}
+              <img
+                src={iconUrl(WEAPON_ICON[w.type])}
+                alt=""
+                className={`h-8 w-8 shrink-0 object-contain ${
+                  state === "selected" ? "brightness-0 invert" : ""
+                }`}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block leading-tight">{w.type}</span>
+                {label && (
+                  <span className="mt-0.5 block text-[10px] font-normal text-ink-soft">
+                    {label}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}

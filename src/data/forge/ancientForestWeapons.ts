@@ -83,6 +83,41 @@ const RATH_PURPLE: Cost[] = [
   { materialId: "rathalos-wing", qty: 1 },
   { materialId: "rathalos-medulla", qty: 1 },
 ];
+// Wildspire Waste monster-tier costs (from the Wildspire forge cards).
+const PUKEI_GREEN: Cost[] = [
+  { materialId: "pukei-pukei-quill", qty: 2 },
+  { materialId: "pukei-pukei-scale", qty: 2 },
+  { materialId: "poison-sac", qty: 1 },
+  { materialId: "pukei-pukei-tail", qty: 1 },
+];
+const PUKEI_PURPLE: Cost[] = [
+  { materialId: "pukei-pukei-scale", qty: 2 },
+  { materialId: "pukei-pukei-wing", qty: 2 },
+  { materialId: "toxin-sac", qty: 2 },
+  { materialId: "quality-bone", qty: 3 },
+];
+const BARROTH_GREEN: Cost[] = [
+  { materialId: "barroth-claw", qty: 1 },
+  { materialId: "barroth-shell", qty: 3 },
+  { materialId: "barroth-ridge", qty: 3 },
+];
+const BARROTH_PURPLE: Cost[] = [
+  { materialId: "barroth-claw", qty: 2 },
+  { materialId: "barroth-carapace", qty: 3 },
+  { materialId: "barroth-ridge", qty: 3 },
+];
+const DIABLOS_GREEN: Cost[] = [
+  { materialId: "twisted-horn", qty: 1 },
+  { materialId: "diablos-fang", qty: 2 },
+  { materialId: "diablos-shell", qty: 4 },
+  { materialId: "monster-bone-large", qty: 2 },
+];
+const DIABLOS_PURPLE: Cost[] = [
+  { materialId: "majestic-horn", qty: 2 },
+  { materialId: "diablos-carapace", qty: 2 },
+  { materialId: "diablos-ridge", qty: 2 },
+  { materialId: "blos-medulla", qty: 1 },
+];
 
 /** Forge gear for Ancient Forest weapon reference cards. */
 export const ancientForestWeaponGear: GearDef[] = [
@@ -556,6 +591,105 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "anjanath-pelt", qty: 4 },
       { materialId: "firecell-stone", qty: 2 },
     ],
+  }),
+
+  // ===== Wildspire Waste paths (Pukei-Pukei, Barroth, Diablos, Jyuratodus) =====
+  // ----- Great Sword -----
+  w("blooming-blade", "Blooming Blade", gs, "gs-pukei", 1, {
+    tierIcon: "green-great-sword",
+    pathIcon: "pukei-pukei",
+    cost: PUKEI_GREEN,
+  }),
+  w("datura-blaze", "Datura Blaze", gs, "gs-pukei", 2, {
+    tierIcon: "purple-great-sword",
+    pathIcon: "pukei-pukei",
+    cost: PUKEI_PURPLE,
+  }),
+  w("carapace-buster", "Carapace Buster", gs, "gs-barroth", 1, {
+    tierIcon: "green-great-sword",
+    pathIcon: "barroth",
+    cost: BARROTH_GREEN,
+  }),
+  w("barroth-shredder", "Barroth Shredder", gs, "gs-barroth", 2, {
+    tierIcon: "purple-great-sword",
+    pathIcon: "barroth",
+    cost: BARROTH_PURPLE,
+  }),
+
+  // ----- Sword & Shield -----
+  w("blooming-knife", "Blooming Knife", sns, "sns-pukei", 1, {
+    tierIcon: "green-sword-shield",
+    pathIcon: "pukei-pukei",
+    cost: PUKEI_GREEN,
+  }),
+  w("datura-blossom", "Datura Blossom", sns, "sns-pukei", 2, {
+    tierIcon: "purple-sword-shield",
+    pathIcon: "pukei-pukei",
+    cost: PUKEI_PURPLE,
+  }),
+  w("carapace-edge", "Carapace Edge", sns, "sns-barroth", 1, {
+    tierIcon: "green-sword-shield",
+    pathIcon: "barroth",
+    cost: BARROTH_GREEN,
+  }),
+  w("barroth-club", "Barroth Club", sns, "sns-barroth", 2, {
+    tierIcon: "purple-sword-shield",
+    pathIcon: "barroth",
+    cost: BARROTH_PURPLE,
+  }),
+
+  // ----- Bow -----
+  w("blooming-arch", "Blooming Arch", bow, "bow-pukei", 1, {
+    tierIcon: "green-bow",
+    pathIcon: "pukei-pukei",
+    cost: PUKEI_GREEN,
+  }),
+  w("datura-string", "Datura String", bow, "bow-pukei", 2, {
+    tierIcon: "purple-bow",
+    pathIcon: "pukei-pukei",
+    cost: PUKEI_PURPLE,
+  }),
+  w("diablos-bow", "Diablos Bow", bow, "bow-diablos", 1, {
+    tierIcon: "green-bow",
+    pathIcon: "diablos",
+    cost: DIABLOS_GREEN,
+  }),
+  w("diablos-coilbender", "Diablos Coilbender", bow, "bow-diablos", 2, {
+    tierIcon: "purple-bow",
+    pathIcon: "diablos",
+    cost: DIABLOS_PURPLE,
+  }),
+
+  // ----- Dual Blades -----
+  w("madness-pangas", "Madness Pangas", db, "db-jyura", 1, {
+    tierIcon: "green-dual-blades",
+    pathIcon: "jyuratodus",
+    cost: [
+      { materialId: "jyuratodus-fin", qty: 1 },
+      { materialId: "jyuratodus-shell", qty: 2 },
+      { materialId: "jyuratodus-scale", qty: 3 },
+      { materialId: "aqua-sac", qty: 1 },
+    ],
+  }),
+  w("jyura-hatchets", "Jyura Hatchets", db, "db-jyura", 2, {
+    tierIcon: "purple-dual-blades",
+    pathIcon: "jyuratodus",
+    cost: [
+      { materialId: "jyuratodus-fin", qty: 1 },
+      { materialId: "jyuratodus-scale", qty: 2 },
+      { materialId: "aqua-sac", qty: 2 },
+      { materialId: "gajau-scale", qty: 1 },
+    ],
+  }),
+  w("diablos-hatchets", "Diablos Hatchets", db, "db-diablos", 1, {
+    tierIcon: "green-dual-blades",
+    pathIcon: "diablos",
+    cost: DIABLOS_GREEN,
+  }),
+  w("diablos-clubs", "Diablos Clubs", db, "db-diablos", 2, {
+    tierIcon: "purple-dual-blades",
+    pathIcon: "diablos",
+    cost: DIABLOS_PURPLE,
   }),
 
   // ----- Long Sword -----
@@ -1057,6 +1191,64 @@ export const ancientForestWeaponPaths: WeaponForgePath[] = [
     label: "Anjanath",
     icon: "anjanath",
     gearIds: ["bone-hatchets", "blazing-hatchets", "anja-cyclone"],
+  },
+
+  // ===== Wildspire Waste paths =====
+  {
+    id: "gs-pukei",
+    weaponType: gs,
+    label: "Pukei-Pukei",
+    icon: "pukei-pukei",
+    gearIds: ["buster-sword", "blooming-blade", "datura-blaze"],
+  },
+  {
+    id: "gs-barroth",
+    weaponType: gs,
+    label: "Barroth",
+    icon: "barroth",
+    gearIds: ["buster-sword", "carapace-buster", "barroth-shredder"],
+  },
+  {
+    id: "sns-pukei",
+    weaponType: sns,
+    label: "Pukei-Pukei",
+    icon: "pukei-pukei",
+    gearIds: ["hunters-knife", "blooming-knife", "datura-blossom"],
+  },
+  {
+    id: "sns-barroth",
+    weaponType: sns,
+    label: "Barroth",
+    icon: "barroth",
+    gearIds: ["hunters-knife", "carapace-edge", "barroth-club"],
+  },
+  {
+    id: "bow-pukei",
+    weaponType: bow,
+    label: "Pukei-Pukei",
+    icon: "pukei-pukei",
+    gearIds: ["iron-bow", "blooming-arch", "datura-string"],
+  },
+  {
+    id: "bow-diablos",
+    weaponType: bow,
+    label: "Diablos",
+    icon: "diablos",
+    gearIds: ["iron-bow", "diablos-bow", "diablos-coilbender"],
+  },
+  {
+    id: "db-jyura",
+    weaponType: db,
+    label: "Jyuratodus",
+    icon: "jyuratodus",
+    gearIds: ["matched-slicers", "madness-pangas", "jyura-hatchets"],
+  },
+  {
+    id: "db-diablos",
+    weaponType: db,
+    label: "Diablos",
+    icon: "diablos",
+    gearIds: ["matched-slicers", "diablos-hatchets", "diablos-clubs"],
   },
 
   // ----- Long Sword -----

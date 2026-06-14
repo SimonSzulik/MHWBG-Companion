@@ -105,6 +105,41 @@ export const ancientForest: GameData = {
       ["azure-rathalos-wing", "Azure Rathalos Wing", "Wing", "white-wing"],
       ["azure-rathalos-wingtalon", "Azure Rathalos Wingtalon", "Wingtalon", "white-claw"],
     ]),
+
+    // ----- Pukei-Pukei -----
+    ...monsterParts("pukei-pukei", [
+      ["pukei-pukei-carapace", "Pukei-Pukei Carapace", "Carapace", "white-carapace"],
+      ["pukei-pukei-quill", "Pukei-Pukei Quill", "Quill", "white-wing"],
+      ["pukei-pukei-sac", "Pukei-Pukei Sac", "Sac", "white-scale"],
+      ["pukei-pukei-scale", "Pukei-Pukei Scale", "Scale", "white-scale"],
+      ["pukei-pukei-tail", "Pukei-Pukei Tail", "Tail", "white-tail"],
+      ["pukei-pukei-wing", "Pukei-Pukei Wing", "Wing", "white-wing"],
+    ]),
+
+    // ----- Barroth -----
+    ...monsterParts("barroth", [
+      ["barroth-carapace", "Barroth Carapace", "Carapace", "white-carapace"],
+      ["barroth-claw", "Barroth Claw", "Claw", "white-claw"],
+      ["barroth-ridge", "Barroth Ridge", "Ridge", "white-head"],
+      ["barroth-shell", "Barroth Shell", "Shell", "white-shell"],
+    ]),
+
+    // ----- Diablos -----
+    ...monsterParts("diablos", [
+      ["diablos-carapace", "Diablos Carapace", "Carapace", "white-carapace"],
+      ["diablos-fang", "Diablos Fang", "Fang", "white-claw"],
+      ["diablos-ridge", "Diablos Ridge", "Ridge", "white-head"],
+      ["diablos-shell", "Diablos Shell", "Shell", "white-shell"],
+    ]),
+
+    // ----- Jyuratodus -----
+    ...monsterParts("jyuratodus", [
+      ["jyuratodus-carapace", "Jyuratodus Carapace", "Carapace", "white-carapace"],
+      ["jyuratodus-fang", "Jyuratodus Fang", "Fang", "white-claw"],
+      ["jyuratodus-fin", "Jyuratodus Fin", "Fin", "white-head"],
+      ["jyuratodus-scale", "Jyuratodus Scale", "Scale", "white-scale"],
+      ["jyuratodus-shell", "Jyuratodus Shell", "Shell", "white-shell"],
+    ]),
   ],
 
   items: [
@@ -122,6 +157,10 @@ export const ancientForest: GameData = {
     { id: "anjanath", name: "Anjanath", kind: "Brute Wyvern", notes: "Fire element." },
     { id: "rathalos", name: "Rathalos", kind: "Flying Wyvern", notes: "King of the Skies." },
     { id: "azure-rathalos", name: "Azure Rathalos", kind: "Flying Wyvern", notes: "Stronger Rathalos variant." },
+    { id: "pukei-pukei", name: "Pukei-Pukei", kind: "Bird Wyvern", notes: "Poison element." },
+    { id: "barroth", name: "Barroth", kind: "Brute Wyvern", notes: "Mud-armoured charger." },
+    { id: "diablos", name: "Diablos", kind: "Flying Wyvern", notes: "Tyrant of the sands." },
+    { id: "jyuratodus", name: "Jyuratodus", kind: "Piscine Wyvern", notes: "Water element." },
   ],
 
   gear: [
