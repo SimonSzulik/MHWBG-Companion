@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import type { Campaign, Hunter, TradeRequest } from "./types";
 import {
   applyTradeSwap,
+  normalizeTradeRequest,
   pendingTradeWith,
   validateTradeProposal,
 } from "./trade";
@@ -43,16 +44,16 @@ function runTradeTests(): void {
   const c = campaign([a, b]);
 
   assert.equal(
-    validateTradeProposal(c, "a", "b", "quality-bone", "quality-bone"),
-    "Offer a different material than you request.",
+    validateTradeProposal(c, "a", "b", { "quality-bone": 1 }, { "quality-bone": 1 }),
+    "Same item cannot be on both sides.",
   );
 
   const existing: TradeRequest = {
     id: "t1",
     fromHunterId: "b",
     toHunterId: "a",
-    offeredMaterialId: "carbalite-ore",
-    requestedMaterialId: "quality-bone",
+    offered: { "carbalite-ore": 1 },
+    requested: { "quality-bone": 1 },
     status: "pending",
   };
   assert.equal(
@@ -60,8 +61,8 @@ function runTradeTests(): void {
       campaign([a, b], [existing]),
       "a",
       "b",
-      "quality-bone",
-      "carbalite-ore",
+      { "quality-bone": 1 },
+      { "carbalite-ore": 1 },
     ),
     "A pending trade already exists with this hunter.",
   );
@@ -72,8 +73,8 @@ function runTradeTests(): void {
     id: "t2",
     fromHunterId: "a",
     toHunterId: "b",
-    offeredMaterialId: "quality-bone",
-    requestedMaterialId: "carbalite-ore",
+    offered: { "quality-bone": 1 },
+    requested: { "carbalite-ore": 1 },
     status: "pending",
   });
   const nextA = swapped.find((h) => h.id === "a")!;
@@ -83,26 +84,41 @@ function runTradeTests(): void {
   assert.equal(nextB.materials["carbalite-ore"], undefined);
   assert.equal(nextB.materials["quality-bone"], 1);
 
-  const monsterSwap = applyTradeSwap(
+  const bundleSwap = applyTradeSwap(
     [
-      hunter("a", { "quality-bone": 1 }),
-      hunter("b", { "great-jagras-scale": 1 }),
+      hunter("a", { "quality-bone": 2, "carbalite-ore": 1 }),
+      hunter("b", { "great-jagras-scale": 2, "bird-wyvern-gem": 1 }),
     ],
     {
       id: "t3",
       fromHunterId: "a",
       toHunterId: "b",
-      offeredMaterialId: "quality-bone",
-      requestedMaterialId: "great-jagras-scale",
+      offered: { "quality-bone": 2, "carbalite-ore": 1 },
+      requested: { "great-jagras-scale": 1, "bird-wyvern-gem": 1 },
       status: "pending",
     },
   );
-  const monsterA = monsterSwap.find((h) => h.id === "a")!;
-  const monsterB = monsterSwap.find((h) => h.id === "b")!;
-  assert.equal(monsterA.materials["quality-bone"], undefined);
-  assert.equal(monsterA.materials["great-jagras-scale"], 1);
-  assert.equal(monsterB.materials["quality-bone"], 1);
-  assert.equal(monsterB.materials["great-jagras-scale"], undefined);
+  const bundleA = bundleSwap.find((h) => h.id === "a")!;
+  const bundleB = bundleSwap.find((h) => h.id === "b")!;
+  assert.equal(bundleA.materials["quality-bone"], undefined);
+  assert.equal(bundleA.materials["carbalite-ore"], undefined);
+  assert.equal(bundleA.materials["great-jagras-scale"], 1);
+  assert.equal(bundleA.materials["bird-wyvern-gem"], 1);
+  assert.equal(bundleB.materials["quality-bone"], 2);
+  assert.equal(bundleB.materials["carbalite-ore"], 1);
+  assert.equal(bundleB.materials["great-jagras-scale"], 1);
+  assert.equal(bundleB.materials["bird-wyvern-gem"], undefined);
+
+  const legacy = normalizeTradeRequest({
+    id: "legacy",
+    fromHunterId: "a",
+    toHunterId: "b",
+    offeredMaterialId: "quality-bone",
+    requestedMaterialId: "carbalite-ore",
+    status: "pending",
+  });
+  assert.equal(legacy?.offered["quality-bone"], 1);
+  assert.equal(legacy?.requested["carbalite-ore"], 1);
 }
 
 runTradeTests();

@@ -19,6 +19,7 @@ import type {
 } from "../../domain/types";
 import { normalizeCalendarDayEntry } from "../../domain/types";
 import { migrateInvestigationLoot } from "../../domain/questRewards";
+import { normalizeTradeRequest } from "../../domain/trade";
 import type { Database } from "../database.types";
 
 type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
@@ -105,20 +106,12 @@ function parseDayLog(
 
 function parsePendingTrades(raw: unknown): TradeRequest[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter((t): t is TradeRequest => {
-    if (!t || typeof t !== "object") return false;
-    const o = t as TradeRequest;
-    return (
-      typeof o.id === "string" &&
-      typeof o.fromHunterId === "string" &&
-      typeof o.toHunterId === "string" &&
-      typeof o.offeredMaterialId === "string" &&
-      typeof o.requestedMaterialId === "string" &&
-      (o.status === "pending" ||
-        o.status === "accepted" ||
-        o.status === "declined")
-    );
-  });
+  const trades: TradeRequest[] = [];
+  for (const item of raw) {
+    const trade = normalizeTradeRequest(item);
+    if (trade) trades.push(trade);
+  }
+  return trades;
 }
 
 function parseActiveDowntime(raw: unknown): ActiveDowntime | null {

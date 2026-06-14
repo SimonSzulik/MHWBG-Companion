@@ -13,6 +13,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { QuestDayReportSheet } from "../ui/QuestDayReportSheet";
 import { GearSlotIcons } from "../ui/GearSlotIcons";
 import { TradeSheet } from "../ui/camp/TradeSheet";
+import { TradeCompleteDialog } from "../ui/camp/TradeCompleteDialog";
 import { HunterEquipSheet } from "../ui/hunter/HunterEquipSheet";
 import type { GearSlot } from "../domain/types";
 
@@ -33,6 +34,11 @@ export function Camp() {
   const [selectedDay, setSelectedDay] = useState<{
     day: number;
     entry: Extract<CalendarDayEntry, { kind: "quest" }>;
+  } | null>(null);
+  const [tradeComplete, setTradeComplete] = useState<{
+    partnerName: string;
+    received: Record<string, number>;
+    gave: Record<string, number>;
   } | null>(null);
 
   if (!campaign || !hunter) return null;
@@ -257,21 +263,29 @@ export function Camp() {
           partner={tradePartner}
           incoming={activeTrade.incoming}
           outgoing={activeTrade.outgoing}
-          onPropose={(offeredId, requestedId) => {
+          onPropose={(offered, requested) => {
             const res = proposeTrade(
               hunter.id,
               tradePartner.id,
-              offeredId,
-              requestedId,
+              offered,
+              requested,
             );
             if (!res.ok) alert(res.reason);
             else setTradePartner(null);
           }}
           onAccept={() => {
             if (!activeTrade.incoming) return;
-            const res = acceptTrade(activeTrade.incoming.id, hunter.id);
+            const trade = activeTrade.incoming;
+            const res = acceptTrade(trade.id, hunter.id);
             if (!res.ok) alert(res.reason);
-            else setTradePartner(null);
+            else {
+              setTradeComplete({
+                partnerName: tradePartner.name,
+                received: { ...trade.offered },
+                gave: { ...trade.requested },
+              });
+              setTradePartner(null);
+            }
           }}
           onDecline={() => {
             if (!activeTrade.incoming) return;
@@ -306,6 +320,14 @@ export function Camp() {
           entry={selectedDay.entry}
           hunters={campaign.hunters}
           onClose={() => setSelectedDay(null)}
+        />
+      )}
+      {tradeComplete && (
+        <TradeCompleteDialog
+          partnerName={tradeComplete.partnerName}
+          received={tradeComplete.received}
+          gave={tradeComplete.gave}
+          onClose={() => setTradeComplete(null)}
         />
       )}
     </div>

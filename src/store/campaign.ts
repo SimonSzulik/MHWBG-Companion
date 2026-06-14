@@ -352,8 +352,8 @@ interface CampaignState {
   proposeTrade: (
     fromHunterId: string,
     toHunterId: string,
-    offeredMaterialId: string,
-    requestedMaterialId: string,
+    offered: Record<string, number>,
+    requested: Record<string, number>,
   ) => { ok: boolean; reason?: string };
   acceptTrade: (tradeId: string, hunterId: string) => { ok: boolean; reason?: string };
   declineTrade: (tradeId: string, hunterId: string) => { ok: boolean; reason?: string };
@@ -1532,23 +1532,27 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      proposeTrade: (fromHunterId, toHunterId, offeredMaterialId, requestedMaterialId) => {
+      proposeTrade: (fromHunterId, toHunterId, offered, requested) => {
         const s = get();
         if (!s.campaign) return { ok: false, reason: "No campaign." };
         const err = validateTradeProposal(
           s.campaign,
           fromHunterId,
           toHunterId,
-          offeredMaterialId,
-          requestedMaterialId,
+          offered,
+          requested,
         );
         if (err) return { ok: false, reason: err };
         const trade: TradeRequest = {
           id: createTradeId(),
           fromHunterId,
           toHunterId,
-          offeredMaterialId,
-          requestedMaterialId,
+          offered: Object.fromEntries(
+            Object.entries(offered).filter(([, qty]) => qty > 0),
+          ),
+          requested: Object.fromEntries(
+            Object.entries(requested).filter(([, qty]) => qty > 0),
+          ),
           status: "pending",
         };
         set({
@@ -1571,18 +1575,15 @@ export const useCampaign = create<CampaignState>()(
         if (trade.toHunterId !== hunterId) {
           return { ok: false, reason: "Not your trade to accept." };
         }
-        const from = s.campaign.hunters.find((h) => h.id === trade.fromHunterId);
-        const to = s.campaign.hunters.find((h) => h.id === trade.toHunterId);
-        if (!from || !to) return { ok: false, reason: "Hunter not found." };
-        if ((from.materials[trade.offeredMaterialId] ?? 0) < 1) {
-          return { ok: false, reason: "Sender no longer has that material." };
-        }
-        if ((to.materials[trade.requestedMaterialId] ?? 0) < 1) {
-          return { ok: false, reason: "You no longer have that material." };
-        }
-        if (trade.offeredMaterialId === trade.requestedMaterialId) {
-          return { ok: false, reason: "Invalid trade." };
-        }
+        const err = validateTradeProposal(
+          s.campaign,
+          trade.fromHunterId,
+          trade.toHunterId,
+          trade.offered,
+          trade.requested,
+          { skipPendingCheck: true },
+        );
+        if (err) return { ok: false, reason: err };
         const hunters = applyTradeSwap(s.campaign.hunters, trade);
         set({
           campaign: touch({

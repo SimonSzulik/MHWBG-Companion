@@ -139,8 +139,10 @@ export interface TradeRequest {
   id: string;
   fromHunterId: string;
   toHunterId: string;
-  offeredMaterialId: string;
-  requestedMaterialId: string;
+  /** materialId -> qty you give the partner. */
+  offered: Record<string, number>;
+  /** materialId -> qty you receive from the partner. */
+  requested: Record<string, number>;
   status: "pending" | "accepted" | "declined";
 }
 
