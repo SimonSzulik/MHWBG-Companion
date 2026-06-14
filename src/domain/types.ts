@@ -12,6 +12,7 @@ export type WeaponType =
   | "Gunlance"
   | "Light Bowgun"
   | "Lance"
+  | "Hunting Horn"
   | "Bow";
 
 /** Which inventory tab a material belongs to. */

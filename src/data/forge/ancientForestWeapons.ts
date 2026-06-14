@@ -40,6 +40,7 @@ const ham = "Hammer" as W;
 const gl = "Gunlance" as W;
 const lbg = "Light Bowgun" as W;
 const lance = "Lance" as W;
+const hh = "Hunting Horn" as W;
 
 // Fixed ore/bone tier costs — identical across every weapon type in the box.
 const YELLOW_ORE: Cost[] = [
@@ -872,6 +873,73 @@ export const ancientForestWeaponGear: GearDef[] = [
     pathIcon: "rathalos",
     cost: RATH_PURPLE,
   }),
+
+  // ----- Hunting Horn -----
+  w("metal-bagpipe", "Metal Bagpipe", hh, "hh-ore", 0, {
+    tierIcon: "white-hunting-horn",
+    pathIcon: "white-ore",
+    isStarter: true,
+  }),
+  w("great-bagpipe", "Great Bagpipe", hh, "hh-ore", 1, {
+    tierIcon: "yellow-hunting-horn",
+    pathIcon: "white-ore",
+    cost: YELLOW_ORE,
+  }),
+  w("fortissimo", "Fortissimo", hh, "hh-ore", 2, {
+    tierIcon: "green-hunting-horn",
+    pathIcon: "white-ore",
+    cost: GREEN_ORE,
+  }),
+  w("bone-horn", "Bone Horn", hh, "hh-bone", 0, {
+    tierIcon: "white-hunting-horn",
+    pathIcon: "yellow-bone",
+    cost: WHITE_BONE,
+  }),
+  w("hard-bone-horn", "Hard Bone Horn", hh, "hh-bone", 1, {
+    tierIcon: "yellow-hunting-horn",
+    pathIcon: "yellow-bone",
+    cost: YELLOW_BONE,
+  }),
+  w("heavy-bone-horn", "Heavy Bone Horn", hh, "hh-bone", 2, {
+    tierIcon: "green-hunting-horn",
+    pathIcon: "yellow-bone",
+    cost: GREEN_BONE,
+  }),
+  w("blazing-horn", "Blazing Horn", hh, "hh-anja", 1, {
+    tierIcon: "green-hunting-horn",
+    pathIcon: "anjanath",
+    cost: ANJA_GREEN,
+  }),
+  w("anja-barone", "Anja Barone", hh, "hh-anja", 2, {
+    tierIcon: "purple-hunting-horn",
+    pathIcon: "anjanath",
+    cost: [
+      { materialId: "anjanath-fang", qty: 4 },
+      { materialId: "anjanath-pelt", qty: 4 },
+      { materialId: "firecell-stone", qty: 2 },
+    ],
+  }),
+  w("thunder-gaida", "Thunder Gaida", hh, "hh-tobi", 1, {
+    tierIcon: "green-hunting-horn",
+    pathIcon: "tobi-kadachi",
+    cost: [
+      { materialId: "dragonite-ore", qty: 2 },
+      { materialId: "tobi-kadachi-electrode", qty: 1 },
+      { materialId: "tobi-kadachi-claw", qty: 2 },
+      { materialId: "coral-crystal", qty: 2 },
+      { materialId: "electro-sac", qty: 2 },
+    ],
+  }),
+  w("lightning-drum", "Lightning Drum", hh, "hh-tobi", 2, {
+    tierIcon: "purple-hunting-horn",
+    pathIcon: "tobi-kadachi",
+    cost: [
+      { materialId: "fucium-ore", qty: 2 },
+      { materialId: "tobi-kadachi-electrode", qty: 2 },
+      { materialId: "tobi-kadachi-claw", qty: 2 },
+      { materialId: "thunder-sac", qty: 1 },
+    ],
+  }),
 ];
 
 export const ancientForestWeaponPaths: WeaponForgePath[] = [
@@ -1140,6 +1208,36 @@ export const ancientForestWeaponPaths: WeaponForgePath[] = [
     icon: "rathalos",
     gearIds: ["iron-lance", "flame-lance", "red-tail"],
   },
+
+  // ----- Hunting Horn -----
+  {
+    id: "hh-ore",
+    weaponType: hh,
+    label: "Ore",
+    icon: "white-ore",
+    gearIds: ["metal-bagpipe", "great-bagpipe", "fortissimo"],
+  },
+  {
+    id: "hh-bone",
+    weaponType: hh,
+    label: "Bone",
+    icon: "yellow-bone",
+    gearIds: ["bone-horn", "hard-bone-horn", "heavy-bone-horn"],
+  },
+  {
+    id: "hh-anja",
+    weaponType: hh,
+    label: "Anjanath",
+    icon: "anjanath",
+    gearIds: ["metal-bagpipe", "blazing-horn", "anja-barone"],
+  },
+  {
+    id: "hh-tobi",
+    weaponType: hh,
+    label: "Tobi-Kadachi",
+    icon: "tobi-kadachi",
+    gearIds: ["metal-bagpipe", "thunder-gaida", "lightning-drum"],
+  },
 ];
 
 export const FORGE_WEAPON_TYPES: WeaponType[] = [
@@ -1152,4 +1250,5 @@ export const FORGE_WEAPON_TYPES: WeaponType[] = [
   gl,
   lbg,
   lance,
+  hh,
 ];

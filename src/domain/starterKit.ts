@@ -28,6 +28,7 @@ const LEATHER_WEAPONS: WeaponType[] = [
   "Dual Blades",
   "Long Sword",
   "Light Bowgun",
+  "Hunting Horn",
 ];
 
 function starterWeaponId(weaponType: WeaponType): string | null {

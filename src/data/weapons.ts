@@ -10,6 +10,7 @@ export const IMPLEMENTED_WEAPONS: WeaponType[] = [
   "Gunlance",
   "Light Bowgun",
   "Lance",
+  "Hunting Horn",
 ];
 
 export const COMING_SOON_WEAPONS: WeaponType[] = [
@@ -29,6 +30,7 @@ export const ALL_WEAPONS: { type: WeaponType; tag: string }[] = [
   { type: "Gunlance", tag: "shelling guard" },
   { type: "Light Bowgun", tag: "mobile ammo" },
   { type: "Lance", tag: "guard & poke" },
+  { type: "Hunting Horn", tag: "buff & bonk" },
   { type: "Switch Axe", tag: "axe ⇄ sword modes" },
   { type: "Charge Blade", tag: "defensive charge" },
   { type: "Insect Glaive", tag: "kinsect mobility" },
