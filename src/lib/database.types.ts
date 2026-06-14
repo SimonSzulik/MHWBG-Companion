@@ -57,7 +57,6 @@ export interface Database {
           campaign_id: string;
           user_id: string | null;
           name: string;
-          palico_name: string | null;
           player_name: string | null;
           weapon_type: string;
           equipped: Record<string, string>;
@@ -73,7 +72,6 @@ export interface Database {
           campaign_id: string;
           user_id?: string | null;
           name?: string;
-          palico_name?: string | null;
           player_name?: string | null;
           weapon_type: string;
           equipped?: Record<string, string>;
@@ -85,7 +83,6 @@ export interface Database {
         Update: Partial<{
           user_id: string | null;
           name: string;
-          palico_name: string | null;
           player_name: string | null;
           weapon_type: string;
           equipped: Record<string, string>;

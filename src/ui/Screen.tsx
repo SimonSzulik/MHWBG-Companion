@@ -11,6 +11,7 @@ export function Screen({
   title,
   subtitle,
   back = true,
+  onBack,
   right,
   background,
   backgroundFallback,
@@ -20,6 +21,8 @@ export function Screen({
   title: string;
   subtitle?: string;
   back?: boolean;
+  /** Override the default `history.back()` behaviour of the back chevron. */
+  onBack?: () => void;
   right?: ReactNode;
   background?: string;
   backgroundFallback?: string;
@@ -37,7 +40,7 @@ export function Screen({
           {back && (
             <button
               type="button"
-              onClick={() => nav(-1)}
+              onClick={() => (onBack ? onBack() : nav(-1))}
               aria-label="Back"
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong bg-card text-lg active:translate-y-px"
             >

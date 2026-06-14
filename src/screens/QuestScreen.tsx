@@ -85,6 +85,21 @@ export function QuestScreen() {
         </div>
       )}
 
+      {campaign.activeQuest && campaign.activeQuest.phase !== "lobby" && (
+        <div className="mb-3 rounded-xl border-[1.5px] border-accent bg-accent-faint px-4 py-3">
+          <p className="text-sm font-semibold">Quest in progress</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            Resume the active hunt to finish or abandon it.
+          </p>
+          <Button
+            onClick={() => navigate("/campaign/quest")}
+            className="mt-3 w-full py-2 text-sm font-semibold"
+          >
+            Resume quest
+          </Button>
+        </div>
+      )}
+
       {campaign.activeQuest?.phase === "lobby" && (
         <div className="mb-3 rounded-xl border-[1.5px] border-warn bg-paper-2 px-4 py-3">
           <p className="text-sm font-semibold">Quest lobby open</p>

@@ -9,7 +9,6 @@ import { WeaponPicker } from "../ui/WeaponPicker";
 import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
 import { isWeaponImplemented } from "../data/weapons";
-import { randomPalicoName } from "../data/palicoNames";
 import { isValidJoinCode, normalizeJoinCode } from "../lib/joinCode";
 import { createCloudCampaign, stopSync } from "../lib/sync/engine";
 
@@ -21,9 +20,7 @@ export function CreateCampaignScreen() {
   const resetCampaign = useCampaign((s) => s.resetCampaign);
 
   const [campaignName, setCampaignName] = useState("");
-  const [hunterName, setHunterName] = useState(username ?? "");
   const [chosenJoinCode, setChosenJoinCode] = useState("");
-  const [randomPalico, setRandomPalico] = useState(false);
   const [weaponType, setWeaponType] = useState<WeaponType | null>(null);
   const [potions, setPotions] = useState(1);
   const [maxDay, setMaxDay] = useState(25);
@@ -54,8 +51,7 @@ export function CreateCampaignScreen() {
 
     startCampaign({
       campaignName: campaignName.trim(),
-      name: hunterName.trim() || username || "Hunter",
-      palicoName: randomPalico ? randomPalicoName() : undefined,
+      name: username || "Hunter",
       weaponType,
       potions,
       maxDay: Math.max(1, maxDay),
@@ -109,30 +105,13 @@ export function CreateCampaignScreen() {
         />
 
         <Field
-          label="Hunter name"
-          value={hunterName}
-          onChange={(e) => setHunterName(e.target.value)}
-        />
-
-        <Field
           label="Join code"
           value={chosenJoinCode}
           onChange={(e) => setChosenJoinCode(normalizeJoinCode(e.target.value))}
           placeholder="e.g. A1B2C3D4"
           maxLength={8}
           className="font-display tracking-widest uppercase"
-          hint="8 characters (letters & numbers) — entered by others to join."
         />
-
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={randomPalico}
-            onChange={(e) => setRandomPalico(e.target.checked)}
-            className="h-4 w-4"
-          />
-          Random Palico
-        </label>
 
         <WeaponPicker value={weaponType} onChange={setWeaponType} />
 
@@ -153,8 +132,7 @@ export function CreateCampaignScreen() {
             !campaignName.trim() ||
             !joinCodeValid ||
             !weaponType ||
-            !isWeaponImplemented(weaponType) ||
-            !hunterName.trim()
+            !isWeaponImplemented(weaponType)
           }
           onClick={() => void finish()}
           className="py-3 font-semibold"

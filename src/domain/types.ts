@@ -155,7 +155,6 @@ export interface ActiveDowntime {
 export interface Hunter {
   id: string;
   name: string;
-  palicoName?: string;
   playerName?: string;
   /** Auth user id when synced from cloud. */
   userId?: string;

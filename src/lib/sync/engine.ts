@@ -629,6 +629,12 @@ async function push(campaign: Campaign): Promise<void> {
     lastSnaps = null;
     lastPushedSnapshot = "";
     setStatus("error", e instanceof Error ? e.message : String(e));
+    // Don't silently drop the edit: retry the latest store state shortly so a
+    // transient failure doesn't strand local changes (e.g. trades, quest start).
+    const latest = useCampaign.getState().campaign;
+    if (latest && latest.id === activeCampaignId) {
+      schedulePush(latest);
+    }
   } finally {
     pushInFlight = false;
   }

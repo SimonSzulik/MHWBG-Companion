@@ -19,11 +19,7 @@ export function HunterSummaryCard({
   to,
   isSelf,
 }: HunterSummaryCardProps) {
-  const sub =
-    subtitle ??
-    [hunter.weaponType, hunter.palicoName ? `Palico ${hunter.palicoName}` : null]
-      .filter(Boolean)
-      .join(" · ");
+  const sub = subtitle ?? hunter.weaponType;
 
   const body = (
     <>

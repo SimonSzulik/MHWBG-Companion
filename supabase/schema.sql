@@ -54,7 +54,6 @@ create table if not exists public.hunter (
   -- optional: which auth user "plays" this hunter (null = unassigned)
   user_id      uuid references auth.users (id) on delete set null,
   name         text not null default 'Hunter',
-  palico_name  text,
   player_name  text,
   weapon_type  text not null,
   -- equipped gear ids by slot, e.g. {"weapon":"mudslide-axe","head":"barroth-helm"}
@@ -454,3 +453,7 @@ alter table public.hunter
   add column if not exists element_resistance text;
 alter table public.campaign_state
   add column if not exists pending_trades jsonb not null default '[]'::jsonb;
+
+-- Migration: drop the Palico name feature (hunters use their username) (re-run safe).
+alter table public.hunter
+  drop column if exists palico_name;

@@ -52,15 +52,11 @@ export function QuestInvestigationPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-center text-sm text-ink-soft">
-        Explore paths at the table, then log what the party gathered.
-        {!canEdit && (
-          <>
-            {" "}
-            Only <strong>{starterName}</strong> can edit items.
-          </>
-        )}
-      </p>
+      {!canEdit && (
+        <p className="text-center text-sm text-ink-soft">
+          Only <strong>{starterName}</strong> can edit items.
+        </p>
+      )}
 
       {(canEdit || potionQty > 0) && (
         <div className="paper-card flex items-center justify-between gap-3 p-3">

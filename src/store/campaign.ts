@@ -119,7 +119,6 @@ function normalizeHunter(h: LegacyCampaignV4["hunters"] extends (infer U)[] | un
   return {
     id: h.id,
     name: h.name,
-    palicoName: h.palicoName,
     playerName: h.playerName,
     userId: h.userId,
     weaponType: h.weaponType,
@@ -241,7 +240,6 @@ interface StartCampaignInput {
   campaignName: string;
   name: string;
   weaponType: WeaponType;
-  palicoName?: string;
   maxDay?: number;
   potions?: number;
 }
@@ -256,7 +254,6 @@ interface CampaignState {
   addHunter: (input: {
     name: string;
     weaponType: WeaponType;
-    palicoName?: string;
   }) => void;
   updateHunter: (id: string, patch: Partial<Hunter>) => void;
   removeHunter: (id: string) => void;
@@ -422,7 +419,6 @@ export const useCampaign = create<CampaignState>()(
         campaignName,
         name,
         weaponType,
-        palicoName,
         maxDay = 25,
         potions = 1,
       }) => {
@@ -430,7 +426,6 @@ export const useCampaign = create<CampaignState>()(
         const newHunter: Hunter = {
           id: uid(),
           name: name || "Hunter",
-          palicoName,
           userId: useAuth.getState().userId ?? undefined,
           weaponType,
           equipped: kit.equipped,
@@ -469,7 +464,6 @@ export const useCampaign = create<CampaignState>()(
           const h: Hunter = {
             id: uid(),
             name: input.name || "Hunter",
-            palicoName: input.palicoName,
             userId: useAuth.getState().userId ?? undefined,
             weaponType: input.weaponType,
             equipped: kit.equipped,

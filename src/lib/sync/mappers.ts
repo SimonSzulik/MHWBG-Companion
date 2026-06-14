@@ -187,7 +187,6 @@ export function rowToHunter(row: HunterRow): Hunter {
   return {
     id: row.id,
     name: row.name,
-    palicoName: row.palico_name ?? undefined,
     playerName: row.player_name ?? undefined,
     userId: row.user_id ?? undefined,
     weaponType: row.weapon_type as WeaponType,
@@ -237,7 +236,6 @@ export function hunterToInsert(
     campaign_id: campaignId,
     user_id: userId ?? null,
     name: h.name,
-    palico_name: h.palicoName ?? null,
     player_name: h.playerName ?? null,
     weapon_type: h.weaponType,
     equipped: h.equipped as Record<string, string>,
@@ -253,7 +251,6 @@ export function hunterToUpdate(
 ): Database["public"]["Tables"]["hunter"]["Update"] {
   return {
     name: h.name,
-    palico_name: h.palicoName ?? null,
     player_name: h.playerName ?? null,
     weapon_type: h.weaponType,
     equipped: h.equipped as Record<string, string>,

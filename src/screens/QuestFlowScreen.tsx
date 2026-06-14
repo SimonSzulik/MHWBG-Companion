@@ -38,7 +38,6 @@ export function QuestFlowScreen() {
   const completeQuestSuccess = useCampaign((s) => s.completeQuestSuccess);
   const setLootDice = useCampaign((s) => s.setLootDice);
   const setLootChoice = useCampaign((s) => s.setLootChoice);
-  const setLootQuantity = useCampaign((s) => s.setLootQuantity);
   const confirmPersonalLoot = useCampaign((s) => s.confirmPersonalLoot);
   const confirmQuestSummary = useCampaign((s) => s.confirmQuestSummary);
 
@@ -294,12 +293,7 @@ export function QuestFlowScreen() {
           }
         />
 
-        {progress.choice && (
-          <LootSack
-            quantities={progress.lootQuantities}
-            onSetQty={(id, next) => setLootQuantity(hunter.id, id, next)}
-          />
-        )}
+        {progress.choice && <LootSack quantities={progress.lootQuantities} />}
 
         <Button
           disabled={!progress.choice}

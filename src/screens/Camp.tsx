@@ -102,6 +102,25 @@ export function Camp() {
         </div>
       </div>
 
+      {/* active quest resume banner */}
+      {campaign.activeQuest && (
+        <Link
+          to="/campaign/quest"
+          className="mt-3 flex items-center gap-3 rounded-xl border-[1.5px] border-accent bg-accent-faint px-4 py-3 active:translate-y-px"
+        >
+          <span className="text-xl leading-none">⚔️</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wide text-accent">
+              Quest in progress
+            </p>
+            <p className="truncate text-sm font-semibold">
+              Tap to return to the hunt
+            </p>
+          </div>
+          <span className="shrink-0 text-lg text-accent">›</span>
+        </Link>
+      )}
+
       {/* 2 · quest / downtime choice */}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Link

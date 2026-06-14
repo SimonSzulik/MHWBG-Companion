@@ -6,11 +6,21 @@ import {
   type QuestStars,
 } from "../data/quests";
 
-const STAR_RANK: Record<QuestStars, number> = {
-  "one-star": 1,
-  "two-star": 2,
-  "three-star": 3,
-  "four-star": 4,
+/**
+ * Quest categories unlock in order: assigned (1★) → investigation (2★/3★) →
+ * tempered (4★). A higher category opens once every quest in the lower
+ * categories for that monster is fully completed.
+ */
+const CATEGORY_RANK: Record<QuestCategory, number> = {
+  assigned: 1,
+  investigation: 2,
+  tempered: 3,
+};
+
+const CATEGORY_LABEL: Record<QuestCategory, string> = {
+  assigned: "assigned",
+  investigation: "investigation",
+  tempered: "tempered",
 };
 
 export function questById(questId: string): QuestDef | undefined {
@@ -32,11 +42,13 @@ function lowerTierQuestsForMonster(
   quest: QuestDef,
   monsterQuests: QuestDef[],
 ): QuestDef[] {
-  const rank = STAR_RANK[quest.stars];
-  return monsterQuests.filter((q) => STAR_RANK[q.stars] < rank);
+  const rank = CATEGORY_RANK[questCategory(quest)];
+  return monsterQuests.filter(
+    (q) => CATEGORY_RANK[questCategory(q)] < rank,
+  );
 }
 
-/** True when all lower star-tier quests for this monster are fully completed. */
+/** True when all lower-category quests for this monster are fully completed. */
 export function isQuestTierUnlocked(
   quest: QuestDef,
   completions: Record<string, number>,
@@ -57,9 +69,9 @@ export function questTierLockReason(
   );
   if (incomplete.length === 0) return undefined;
   const tiers = [
-    ...new Set(incomplete.map((q) => starLabel(q.stars))),
+    ...new Set(incomplete.map((q) => CATEGORY_LABEL[questCategory(q)])),
   ].join(" and ");
-  return `Complete ${tiers} first`;
+  return `Complete the ${tiers} hunts first`;
 }
 
 /** The campaign's mandatory first quest — the 1★ Great Jagras. */

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import type { CalendarDayEntry } from "../domain/types";
 import { iconUrl } from "../domain/icons";
 
@@ -41,59 +42,78 @@ export function CampaignCalendar({
         {Array.from({ length: rows * cols }, (_, i) => {
           const d = i + 1;
           if (d > maxDay) return <span key={d} />;
-          const isCurrent = d === day;
-          const isPast = d < day;
-          const entry = dayLog[d];
-          const isDowntime = entry?.kind === "downtime";
-          const questEntry = entry?.kind === "quest" ? entry : null;
-          const failed = questEntry?.result === "failure";
-          const showDayNumber = !isDowntime && !questEntry;
-
           return (
-            <span
+            <CalendarDay
               key={d}
-              title={
-                isDowntime
-                  ? `Day ${d} · Downtime`
-                  : questEntry
-                    ? `Day ${d} · ${questEntry.result === "success" ? "Success" : "Failure"}`
-                    : `Day ${d}`
-              }
-              className={`relative flex min-h-[26px] items-center justify-center overflow-hidden rounded-sm border p-px ${
-                isCurrent
-                  ? "border-accent bg-accent"
-                  : isPast
-                    ? "border-line bg-paper-2"
-                    : "border-line bg-paper"
-              }`}
-            >
-              {showDayNumber && (
-                <span
-                  className={`absolute right-0.5 top-0 text-[8px] font-semibold leading-none ${
-                    isCurrent ? "text-white/90" : "text-ink-soft"
-                  }`}
-                >
-                  {d}
-                </span>
-              )}
-              {isDowntime ? (
-                <span className="text-sm">🏠</span>
-              ) : questEntry ? (
-                <img
-                  src={iconUrl(questEntry.monsterId)}
-                  alt=""
-                  title={`Day ${d} · ${questEntry.result === "success" ? "Success" : "Failure"}`}
-                  className={`h-5 w-5 min-h-[1.25rem] min-w-[1.25rem] object-contain ${
-                    failed ? "opacity-50 grayscale" : ""
-                  }`}
-                />
-              ) : isCurrent ? (
-                <span className="text-[9px] font-semibold text-white">{d}</span>
-              ) : null}
-            </span>
+              day={d}
+              isCurrent={d === day}
+              isPast={d < day}
+              entry={dayLog[d]}
+            />
           );
         })}
       </div>
     </div>
+  );
+}
+
+function CalendarDay({
+  day,
+  isCurrent,
+  isPast,
+  entry,
+}: {
+  day: number;
+  isCurrent: boolean;
+  isPast: boolean;
+  entry?: CalendarDayEntry;
+}) {
+  // Track failed icon loads so a missing asset falls back to the day number
+  // instead of leaving an empty cell.
+  const [iconFailed, setIconFailed] = useState(false);
+
+  const isDowntime = entry?.kind === "downtime";
+  const questEntry = entry?.kind === "quest" ? entry : null;
+  const failed = questEntry?.result === "failure";
+
+  const title = isDowntime
+    ? `Day ${day} · Downtime`
+    : questEntry
+      ? `Day ${day} · ${questEntry.result === "success" ? "Success" : "Failure"}`
+      : `Day ${day}`;
+
+  return (
+    <span
+      title={title}
+      className={`relative flex min-h-[26px] items-center justify-center overflow-hidden rounded-sm border p-px ${
+        isCurrent
+          ? "border-accent bg-accent"
+          : isPast
+            ? "border-line bg-paper-2"
+            : "border-line bg-paper"
+      }`}
+    >
+      {/* Day number always present so each day stays trackable. */}
+      <span
+        className={`absolute right-0.5 top-0 text-[8px] font-semibold leading-none ${
+          isCurrent ? "text-white/90" : "text-ink-soft"
+        }`}
+      >
+        {day}
+      </span>
+
+      {isDowntime ? (
+        <span className="text-sm leading-none">🏠</span>
+      ) : questEntry && !iconFailed ? (
+        <img
+          src={iconUrl(questEntry.monsterId)}
+          alt=""
+          onError={() => setIconFailed(true)}
+          className={`h-5 w-5 object-contain ${
+            failed ? "opacity-50 grayscale" : ""
+          }`}
+        />
+      ) : null}
+    </span>
   );
 }

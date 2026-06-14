@@ -4,29 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
-import { useSyncStatus } from "../lib/sync/useSync";
 import { stopSync } from "../lib/sync/engine";
 import { exportCampaign, importCampaign } from "../lib/backup";
-import { usePwaInstall } from "../lib/pwa/usePwaInstall";
 
-const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
-  off: { text: "Disconnected", cls: "text-ink-soft" },
-  connecting: { text: "Connecting…", cls: "text-warn" },
-  live: { text: "● Live sync", cls: "text-ok" },
-  error: { text: "Error", cls: "text-red-600" },
-};
-
-/** Settings: sync status, join code, backup, logout. */
+/** Settings: join code, backup, account. */
 export function Settings() {
   const nav = useNavigate();
   const campaign = useCampaign((s) => s.campaign);
   const resetCampaign = useCampaign((s) => s.resetCampaign);
   const signOut = useAuth((s) => s.signOut);
-  const { status, detail } = useSyncStatus();
-  const { isInstalled, isIos, hasNativeInstallPrompt, promptInstall } = usePwaInstall();
   const fileInput = useRef<HTMLInputElement>(null);
-
-  const st = STATUS_LABEL[status] ?? STATUS_LABEL.off;
 
   const logout = async () => {
     if (!confirm("Sign out and leave the campaign?")) return;
@@ -43,15 +30,8 @@ export function Settings() {
   };
 
   return (
-    <Screen title="Settings" subtitle={campaign?.name} back>
+    <Screen title="Settings" back>
       <Section title="Campaign">
-        <button
-          type="button"
-          onClick={() => nav("/")}
-          className="rounded-lg border-[1.5px] border-line-strong bg-paper-2 py-2 text-sm font-semibold active:translate-y-px"
-        >
-          Back to Camp
-        </button>
         {campaign?.joinCode ? (
           <div className="rounded-lg border border-dashed border-accent/70 bg-accent-faint/50 px-3 py-2 text-center">
             <p className="text-xs text-ink-soft">
@@ -84,33 +64,6 @@ export function Settings() {
           Return to the campaign list to join or switch campaigns — you stay
           signed in.
         </p>
-      </Section>
-
-      <Section title="Sync">
-        <p className={`text-sm font-semibold ${st.cls}`}>
-          {st.text}
-          {detail ? ` — ${detail}` : ""}
-        </p>
-      </Section>
-
-      <Section title="App">
-        {isInstalled ? (
-          <p className="text-sm text-ok">This app is already installed.</p>
-        ) : isIos || !hasNativeInstallPrompt ? (
-          <p className="text-sm text-ink-soft">
-            In Safari: tap Share, then choose “Add to Home Screen”.
-          </p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              void promptInstall();
-            }}
-            className="rounded-lg border-[1.5px] border-line-strong bg-accent py-2 text-sm font-semibold text-white active:translate-y-px"
-          >
-            Install app
-          </button>
-        )}
       </Section>
 
       <Section title="Backup">

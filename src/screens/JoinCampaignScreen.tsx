@@ -24,7 +24,6 @@ export function JoinCampaignScreen() {
 
   const [step, setStep] = useState<Step>("code");
   const [joinCode, setJoinCode] = useState("");
-  const [hunterName, setHunterName] = useState(username ?? "");
   const [weaponType, setWeaponType] = useState<WeaponType | null>(null);
   const [takenWeapons, setTakenWeapons] = useState<WeaponType[]>([]);
   const [existingCampaignId, setExistingCampaignId] = useState<string | null>(
@@ -92,7 +91,7 @@ export function JoinCampaignScreen() {
     setError(null);
     const ok = await joinCampaignWithHunter(
       joinCode.trim(),
-      hunterName.trim() || username || "Hunter",
+      username || "Hunter",
       weaponType,
     );
     setBusy(false);
@@ -104,7 +103,7 @@ export function JoinCampaignScreen() {
   };
 
   return (
-    <Screen title="Join campaign" subtitle={step === "code" ? "Join code" : "Hunter"}>
+    <Screen title="Join campaign" subtitle={step === "code" ? "Join code" : "Weapon"}>
       {step === "code" && (
         <div className="flex flex-col gap-4">
           <Field
@@ -140,12 +139,6 @@ export function JoinCampaignScreen() {
 
       {step === "setup" && (
         <div className="flex flex-col gap-4">
-          <Field
-            label="Hunter name"
-            value={hunterName}
-            onChange={(e) => setHunterName(e.target.value)}
-          />
-
           <WeaponPicker
             value={weaponType}
             onChange={setWeaponType}
@@ -160,8 +153,7 @@ export function JoinCampaignScreen() {
               busy ||
               !weaponType ||
               !isWeaponImplemented(weaponType) ||
-              takenWeapons.includes(weaponType) ||
-              !hunterName.trim()
+              takenWeapons.includes(weaponType)
             }
             onClick={() => void confirm()}
             className="py-2.5 font-semibold"
