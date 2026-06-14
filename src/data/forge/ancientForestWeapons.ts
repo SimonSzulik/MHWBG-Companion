@@ -35,6 +35,53 @@ const gs = "Great Sword" as W;
 const sns = "Sword & Shield" as W;
 const bow = "Bow" as W;
 const db = "Dual Blades" as W;
+const ls = "Long Sword" as W;
+const ham = "Hammer" as W;
+const gl = "Gunlance" as W;
+const lbg = "Light Bowgun" as W;
+const lance = "Lance" as W;
+
+// Fixed ore/bone tier costs — identical across every weapon type in the box.
+const YELLOW_ORE: Cost[] = [
+  { materialId: "dragonite-ore", qty: 1 },
+  { materialId: "malachite-ore", qty: 1 },
+  { materialId: "monster-bone-medium", qty: 1 },
+];
+const GREEN_ORE: Cost[] = [
+  { materialId: "fucium-ore", qty: 2 },
+  { materialId: "carbalite-ore", qty: 2 },
+  { materialId: "dragonite-ore", qty: 3 },
+  { materialId: "dragonvein-crystal", qty: 2 },
+];
+const WHITE_BONE: Cost[] = [{ materialId: "monster-bone-small", qty: 1 }];
+const YELLOW_BONE: Cost[] = [
+  { materialId: "monster-bone-large", qty: 1 },
+  { materialId: "monster-bone-medium", qty: 1 },
+  { materialId: "boulder-bone", qty: 1 },
+];
+const GREEN_BONE: Cost[] = [
+  { materialId: "monster-hardbone", qty: 2 },
+  { materialId: "monster-keenbone", qty: 2 },
+  { materialId: "quality-bone", qty: 3 },
+];
+// Shared monster-tier costs (transcribed from the Ancient Forest forge cards).
+const ANJA_GREEN: Cost[] = [
+  { materialId: "anjanath-fang", qty: 2 },
+  { materialId: "anjanath-scale", qty: 3 },
+  { materialId: "flame-sac", qty: 1 },
+];
+const RATH_GREEN: Cost[] = [
+  { materialId: "rathalos-scale", qty: 2 },
+  { materialId: "rathalos-webbing", qty: 2 },
+  { materialId: "inferno-sac", qty: 1 },
+  { materialId: "rathalos-marrow", qty: 1 },
+];
+const RATH_PURPLE: Cost[] = [
+  { materialId: "rathalos-scale", qty: 2 },
+  { materialId: "rathalos-carapace", qty: 1 },
+  { materialId: "rathalos-wing", qty: 1 },
+  { materialId: "rathalos-medulla", qty: 1 },
+];
 
 /** Forge gear for Ancient Forest weapon reference cards. */
 export const ancientForestWeaponGear: GearDef[] = [
@@ -509,6 +556,322 @@ export const ancientForestWeaponGear: GearDef[] = [
       { materialId: "firecell-stone", qty: 2 },
     ],
   }),
+
+  // ----- Long Sword -----
+  w("iron-katana", "Iron Katana", ls, "ls-ore", 0, {
+    tierIcon: "white-long-sword",
+    pathIcon: "white-ore",
+    isStarter: true,
+  }),
+  w("iron-grace", "Iron Grace", ls, "ls-ore", 1, {
+    tierIcon: "yellow-long-sword",
+    pathIcon: "white-ore",
+    cost: YELLOW_ORE,
+  }),
+  w("iron-gospel", "Iron Gospel", ls, "ls-ore", 2, {
+    tierIcon: "green-long-sword",
+    pathIcon: "white-ore",
+    cost: GREEN_ORE,
+  }),
+  w("bone-shotel", "Bone Shotel", ls, "ls-bone", 0, {
+    tierIcon: "white-long-sword",
+    pathIcon: "yellow-bone",
+    cost: WHITE_BONE,
+  }),
+  w("hard-bone-shotel", "Hard Bone Shotel", ls, "ls-bone", 1, {
+    tierIcon: "yellow-long-sword",
+    pathIcon: "yellow-bone",
+    cost: YELLOW_BONE,
+  }),
+  w("bone-reaper", "Bone Reaper", ls, "ls-bone", 2, {
+    tierIcon: "green-long-sword",
+    pathIcon: "yellow-bone",
+    cost: GREEN_BONE,
+  }),
+  w("blazing-shotel", "Blazing Shotel", ls, "ls-anja", 1, {
+    tierIcon: "green-long-sword",
+    pathIcon: "anjanath",
+    cost: ANJA_GREEN,
+  }),
+  w("anja-scimitar", "Anja Scimitar", ls, "ls-anja", 2, {
+    tierIcon: "purple-long-sword",
+    pathIcon: "anjanath",
+    cost: [
+      { materialId: "anjanath-fang", qty: 2 },
+      { materialId: "anjanath-scale", qty: 2 },
+      { materialId: "inferno-sac", qty: 2 },
+    ],
+  }),
+  w("pulsar-shotel", "Pulsar Shotel", ls, "ls-tobi", 1, {
+    tierIcon: "green-long-sword",
+    pathIcon: "tobi-kadachi",
+    cost: [
+      { materialId: "tobi-kadachi-claw", qty: 1 },
+      { materialId: "tobi-kadachi-pelt", qty: 3 },
+      { materialId: "tobi-kadachi-scale", qty: 2 },
+    ],
+  }),
+  w("kadachi-fang", "Kadachi Fang", ls, "ls-tobi", 2, {
+    tierIcon: "purple-long-sword",
+    pathIcon: "tobi-kadachi",
+    cost: [
+      { materialId: "tobi-kadachi-claw", qty: 3 },
+      { materialId: "tobi-kadachi-pelt", qty: 1 },
+      { materialId: "dragonvein-crystal", qty: 2 },
+    ],
+  }),
+  w("wyvern-blade-fall", 'Wyvern Blade "Fall"', ls, "ls-rathalos", 1, {
+    tierIcon: "green-long-sword",
+    pathIcon: "rathalos",
+    cost: RATH_GREEN,
+  }),
+  w("wyvern-blade-blood", 'Wyvern Blade "Blood"', ls, "ls-rathalos", 2, {
+    tierIcon: "purple-long-sword",
+    pathIcon: "rathalos",
+    cost: RATH_PURPLE,
+  }),
+
+  // ----- Hammer -----
+  w("iron-hammer", "Iron Hammer", ham, "ham-ore", 0, {
+    tierIcon: "white-hammer",
+    pathIcon: "white-ore",
+    isStarter: true,
+  }),
+  w("iron-demon", "Iron Demon", ham, "ham-ore", 1, {
+    tierIcon: "yellow-hammer",
+    pathIcon: "white-ore",
+    cost: YELLOW_ORE,
+  }),
+  w("iron-arch-demon", "Iron Arch Demon", ham, "ham-ore", 2, {
+    tierIcon: "green-hammer",
+    pathIcon: "white-ore",
+    cost: GREEN_ORE,
+  }),
+  w("bone-bludgeon", "Bone Bludgeon", ham, "ham-bone", 0, {
+    tierIcon: "white-hammer",
+    pathIcon: "yellow-bone",
+    cost: WHITE_BONE,
+  }),
+  w("fossil-bludgeon", "Fossil Bludgeon", ham, "ham-bone", 1, {
+    tierIcon: "yellow-hammer",
+    pathIcon: "yellow-bone",
+    cost: YELLOW_BONE,
+  }),
+  w("grand-rock", "Grand Rock", ham, "ham-bone", 2, {
+    tierIcon: "green-hammer",
+    pathIcon: "yellow-bone",
+    cost: GREEN_BONE,
+  }),
+  w("blazing-hammer", "Blazing Hammer", ham, "ham-anja", 1, {
+    tierIcon: "green-hammer",
+    pathIcon: "anjanath",
+    cost: ANJA_GREEN,
+  }),
+  w("anja-striker", "Anja Striker", ham, "ham-anja", 2, {
+    tierIcon: "purple-hammer",
+    pathIcon: "anjanath",
+    cost: [
+      { materialId: "anjanath-fang", qty: 4 },
+      { materialId: "anjanath-scale", qty: 2 },
+      { materialId: "inferno-sac", qty: 1 },
+    ],
+  }),
+
+  // ----- Gunlance -----
+  w("iron-gunlance", "Iron Gunlance", gl, "gl-ore", 0, {
+    tierIcon: "white-gunlance",
+    pathIcon: "white-ore",
+    isStarter: true,
+  }),
+  w("steel-gunlance", "Steel Gunlance", gl, "gl-ore", 1, {
+    tierIcon: "yellow-gunlance",
+    pathIcon: "white-ore",
+    cost: YELLOW_ORE,
+  }),
+  w("chrome-gunlance", "Chrome Gunlance", gl, "gl-ore", 2, {
+    tierIcon: "green-gunlance",
+    pathIcon: "white-ore",
+    cost: GREEN_ORE,
+  }),
+  w("bone-gunlance", "Bone Gunlance", gl, "gl-bone", 0, {
+    tierIcon: "white-gunlance",
+    pathIcon: "yellow-bone",
+    cost: WHITE_BONE,
+  }),
+  w("bone-cannon", "Bone Cannon", gl, "gl-bone", 1, {
+    tierIcon: "yellow-gunlance",
+    pathIcon: "yellow-bone",
+    cost: YELLOW_BONE,
+  }),
+  w("great-bone-gunlance", "Great Bone Gunlance", gl, "gl-bone", 2, {
+    tierIcon: "green-gunlance",
+    pathIcon: "yellow-bone",
+    cost: GREEN_BONE,
+  }),
+  w("jagras-gunlance", "Jagras Gunlance", gl, "gl-jagras", 1, {
+    tierIcon: "green-gunlance",
+    pathIcon: "jagras",
+    cost: [
+      { materialId: "great-jagras-claw", qty: 1 },
+      { materialId: "great-jagras-scale", qty: 3 },
+      { materialId: "great-jagras-hide", qty: 1 },
+      { materialId: "sharp-claw", qty: 1 },
+    ],
+  }),
+  w("glutton-gunlance", "Glutton Gunlance", gl, "gl-jagras", 2, {
+    tierIcon: "purple-gunlance",
+    pathIcon: "jagras",
+    cost: [
+      { materialId: "great-jagras-scale", qty: 2 },
+      { materialId: "great-jagras-mane", qty: 2 },
+      { materialId: "great-jagras-claw", qty: 1 },
+      { materialId: "piercing-claw", qty: 1 },
+    ],
+  }),
+  w("rath-gunlance", "Rath Gunlance", gl, "gl-rathalos", 1, {
+    tierIcon: "green-gunlance",
+    pathIcon: "rathalos",
+    cost: [
+      { materialId: "rathalos-scale", qty: 2 },
+      { materialId: "rathalos-webbing", qty: 1 },
+      { materialId: "inferno-sac", qty: 1 },
+      { materialId: "rathalos-marrow", qty: 2 },
+    ],
+  }),
+  w("red-rook", "Red Rook", gl, "gl-rathalos", 2, {
+    tierIcon: "purple-gunlance",
+    pathIcon: "rathalos",
+    cost: RATH_PURPLE,
+  }),
+
+  // ----- Light Bowgun -----
+  w("chain-blitz", "Chain Blitz", lbg, "lbg-ore", 0, {
+    tierIcon: "white-light-bowgun",
+    pathIcon: "white-ore",
+    isStarter: true,
+  }),
+  w("high-chain-blitz", "High Chain Blitz", lbg, "lbg-ore", 1, {
+    tierIcon: "yellow-light-bowgun",
+    pathIcon: "white-ore",
+    cost: YELLOW_ORE,
+  }),
+  w("cross-blitz", "Cross Blitz", lbg, "lbg-ore", 2, {
+    tierIcon: "green-light-bowgun",
+    pathIcon: "white-ore",
+    cost: GREEN_ORE,
+  }),
+  w("hunters-rifle", "Hunter's Rifle", lbg, "lbg-bone", 0, {
+    tierIcon: "white-light-bowgun",
+    pathIcon: "yellow-bone",
+    cost: WHITE_BONE,
+  }),
+  w("power-rifle", "Power Rifle", lbg, "lbg-bone", 1, {
+    tierIcon: "yellow-light-bowgun",
+    pathIcon: "yellow-bone",
+    cost: YELLOW_BONE,
+  }),
+  w("sniper-shot", "Sniper Shot", lbg, "lbg-bone", 2, {
+    tierIcon: "green-light-bowgun",
+    pathIcon: "yellow-bone",
+    cost: GREEN_BONE,
+  }),
+  w("jagras-blitz", "Jagras Blitz", lbg, "lbg-jagras", 1, {
+    tierIcon: "green-light-bowgun",
+    pathIcon: "jagras",
+    cost: [
+      { materialId: "great-jagras-claw", qty: 1 },
+      { materialId: "great-jagras-scale", qty: 3 },
+      { materialId: "great-jagras-hide", qty: 1 },
+      { materialId: "sharp-claw", qty: 1 },
+    ],
+  }),
+  w("jagras-fire", "Jagras Fire", lbg, "lbg-jagras", 2, {
+    tierIcon: "purple-light-bowgun",
+    pathIcon: "jagras",
+    cost: [
+      { materialId: "great-jagras-scale", qty: 3 },
+      { materialId: "great-jagras-mane", qty: 2 },
+      { materialId: "great-jagras-claw", qty: 1 },
+      { materialId: "piercing-claw", qty: 1 },
+    ],
+  }),
+  w("flame-blitz", "Flame Blitz", lbg, "lbg-rathalos", 1, {
+    tierIcon: "green-light-bowgun",
+    pathIcon: "rathalos",
+    cost: [
+      { materialId: "rathalos-scale", qty: 2 },
+      { materialId: "rathalos-webbing", qty: 1 },
+      { materialId: "inferno-sac", qty: 1 },
+      { materialId: "rathalos-marrow", qty: 1 },
+    ],
+  }),
+  w("rathbuster", "Rathbuster", lbg, "lbg-rathalos", 2, {
+    tierIcon: "purple-light-bowgun",
+    pathIcon: "rathalos",
+    cost: RATH_PURPLE,
+  }),
+
+  // ----- Lance -----
+  w("iron-lance", "Iron Lance", lance, "lance-ore", 0, {
+    tierIcon: "white-lance",
+    pathIcon: "white-ore",
+    isStarter: true,
+  }),
+  w("steel-lance", "Steel Lance", lance, "lance-ore", 1, {
+    tierIcon: "yellow-lance",
+    pathIcon: "white-ore",
+    cost: YELLOW_ORE,
+  }),
+  w("chrome-lance", "Chrome Lance", lance, "lance-ore", 2, {
+    tierIcon: "green-lance",
+    pathIcon: "white-ore",
+    cost: GREEN_ORE,
+  }),
+  w("bone-lance", "Bone Lance", lance, "lance-bone", 0, {
+    tierIcon: "white-lance",
+    pathIcon: "yellow-bone",
+    cost: WHITE_BONE,
+  }),
+  w("hard-bone-lance", "Hard Bone Lance", lance, "lance-bone", 1, {
+    tierIcon: "yellow-lance",
+    pathIcon: "yellow-bone",
+    cost: YELLOW_BONE,
+  }),
+  w("heavy-bone-lance", "Heavy Bone Lance", lance, "lance-bone", 2, {
+    tierIcon: "green-lance",
+    pathIcon: "yellow-bone",
+    cost: GREEN_BONE,
+  }),
+  w("thunder-lance", "Thunder Lance", lance, "lance-tobi", 1, {
+    tierIcon: "green-lance",
+    pathIcon: "tobi-kadachi",
+    cost: [
+      { materialId: "tobi-kadachi-electrode", qty: 1 },
+      { materialId: "tobi-kadachi-claw", qty: 2 },
+      { materialId: "electro-sac", qty: 2 },
+      { materialId: "coral-crystal", qty: 2 },
+    ],
+  }),
+  w("lightning-spire", "Lightning Spire", lance, "lance-tobi", 2, {
+    tierIcon: "purple-lance",
+    pathIcon: "tobi-kadachi",
+    cost: [
+      { materialId: "fucium-ore", qty: 2 },
+      { materialId: "tobi-kadachi-electrode", qty: 2 },
+      { materialId: "tobi-kadachi-claw", qty: 2 },
+      { materialId: "thunder-sac", qty: 1 },
+    ],
+  }),
+  w("flame-lance", "Flame Lance", lance, "lance-rathalos", 1, {
+    tierIcon: "green-lance",
+    pathIcon: "rathalos",
+    cost: RATH_GREEN,
+  }),
+  w("red-tail", "Red Tail", lance, "lance-rathalos", 2, {
+    tierIcon: "purple-lance",
+    pathIcon: "rathalos",
+    cost: RATH_PURPLE,
+  }),
 ];
 
 export const ancientForestWeaponPaths: WeaponForgePath[] = [
@@ -627,6 +990,166 @@ export const ancientForestWeaponPaths: WeaponForgePath[] = [
     icon: "anjanath",
     gearIds: ["bone-hatchets", "blazing-hatchets", "anja-cyclone"],
   },
+
+  // ----- Long Sword -----
+  {
+    id: "ls-ore",
+    weaponType: ls,
+    label: "Ore",
+    icon: "white-ore",
+    gearIds: ["iron-katana", "iron-grace", "iron-gospel"],
+  },
+  {
+    id: "ls-bone",
+    weaponType: ls,
+    label: "Bone",
+    icon: "yellow-bone",
+    gearIds: ["bone-shotel", "hard-bone-shotel", "bone-reaper"],
+  },
+  {
+    id: "ls-anja",
+    weaponType: ls,
+    label: "Anjanath",
+    icon: "anjanath",
+    gearIds: ["iron-katana", "blazing-shotel", "anja-scimitar"],
+  },
+  {
+    id: "ls-tobi",
+    weaponType: ls,
+    label: "Tobi-Kadachi",
+    icon: "tobi-kadachi",
+    gearIds: ["iron-katana", "pulsar-shotel", "kadachi-fang"],
+  },
+  {
+    id: "ls-rathalos",
+    weaponType: ls,
+    label: "Rathalos",
+    icon: "rathalos",
+    gearIds: ["iron-katana", "wyvern-blade-fall", "wyvern-blade-blood"],
+  },
+
+  // ----- Hammer -----
+  {
+    id: "ham-ore",
+    weaponType: ham,
+    label: "Ore",
+    icon: "white-ore",
+    gearIds: ["iron-hammer", "iron-demon", "iron-arch-demon"],
+  },
+  {
+    id: "ham-bone",
+    weaponType: ham,
+    label: "Bone",
+    icon: "yellow-bone",
+    gearIds: ["bone-bludgeon", "fossil-bludgeon", "grand-rock"],
+  },
+  {
+    id: "ham-anja",
+    weaponType: ham,
+    label: "Anjanath",
+    icon: "anjanath",
+    gearIds: ["iron-hammer", "blazing-hammer", "anja-striker"],
+  },
+
+  // ----- Gunlance -----
+  {
+    id: "gl-ore",
+    weaponType: gl,
+    label: "Ore",
+    icon: "white-ore",
+    gearIds: ["iron-gunlance", "steel-gunlance", "chrome-gunlance"],
+  },
+  {
+    id: "gl-bone",
+    weaponType: gl,
+    label: "Bone",
+    icon: "yellow-bone",
+    gearIds: ["bone-gunlance", "bone-cannon", "great-bone-gunlance"],
+  },
+  {
+    id: "gl-jagras",
+    weaponType: gl,
+    label: "Jagras",
+    icon: "jagras",
+    gearIds: ["iron-gunlance", "jagras-gunlance", "glutton-gunlance"],
+  },
+  {
+    id: "gl-rathalos",
+    weaponType: gl,
+    label: "Rathalos",
+    icon: "rathalos",
+    gearIds: ["iron-gunlance", "rath-gunlance", "red-rook"],
+  },
+
+  // ----- Light Bowgun -----
+  {
+    id: "lbg-ore",
+    weaponType: lbg,
+    label: "Ore",
+    icon: "white-ore",
+    gearIds: ["chain-blitz", "high-chain-blitz", "cross-blitz"],
+  },
+  {
+    id: "lbg-bone",
+    weaponType: lbg,
+    label: "Bone",
+    icon: "yellow-bone",
+    gearIds: ["hunters-rifle", "power-rifle", "sniper-shot"],
+  },
+  {
+    id: "lbg-jagras",
+    weaponType: lbg,
+    label: "Jagras",
+    icon: "jagras",
+    gearIds: ["chain-blitz", "jagras-blitz", "jagras-fire"],
+  },
+  {
+    id: "lbg-rathalos",
+    weaponType: lbg,
+    label: "Rathalos",
+    icon: "rathalos",
+    gearIds: ["chain-blitz", "flame-blitz", "rathbuster"],
+  },
+
+  // ----- Lance -----
+  {
+    id: "lance-ore",
+    weaponType: lance,
+    label: "Ore",
+    icon: "white-ore",
+    gearIds: ["iron-lance", "steel-lance", "chrome-lance"],
+  },
+  {
+    id: "lance-bone",
+    weaponType: lance,
+    label: "Bone",
+    icon: "yellow-bone",
+    gearIds: ["bone-lance", "hard-bone-lance", "heavy-bone-lance"],
+  },
+  {
+    id: "lance-tobi",
+    weaponType: lance,
+    label: "Tobi-Kadachi",
+    icon: "tobi-kadachi",
+    gearIds: ["iron-lance", "thunder-lance", "lightning-spire"],
+  },
+  {
+    id: "lance-rathalos",
+    weaponType: lance,
+    label: "Rathalos",
+    icon: "rathalos",
+    gearIds: ["iron-lance", "flame-lance", "red-tail"],
+  },
 ];
 
-export const FORGE_WEAPON_TYPES: WeaponType[] = [gs, sns, bow, db];
+export const FORGE_WEAPON_TYPES: WeaponType[] = [
+  gs,
+  sns,
+  bow,
+  db,
+  ls,
+  ham,
+  gl,
+  lbg,
+  lance,
+];

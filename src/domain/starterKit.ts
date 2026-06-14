@@ -16,8 +16,19 @@ const STARTER_WEAPON_IDS = new Set(
     .map((g) => g.id),
 );
 
-const CHAINMAIL_WEAPONS: WeaponType[] = ["Great Sword", "Bow"];
-const LEATHER_WEAPONS: WeaponType[] = ["Sword & Shield", "Dual Blades"];
+const CHAINMAIL_WEAPONS: WeaponType[] = [
+  "Great Sword",
+  "Bow",
+  "Hammer",
+  "Gunlance",
+  "Lance",
+];
+const LEATHER_WEAPONS: WeaponType[] = [
+  "Sword & Shield",
+  "Dual Blades",
+  "Long Sword",
+  "Light Bowgun",
+];
 
 function starterWeaponId(weaponType: WeaponType): string | null {
   const starter = gameData.gear.find(

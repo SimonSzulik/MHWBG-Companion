@@ -5,6 +5,11 @@ export const IMPLEMENTED_WEAPONS: WeaponType[] = [
   "Sword & Shield",
   "Bow",
   "Dual Blades",
+  "Long Sword",
+  "Hammer",
+  "Gunlance",
+  "Light Bowgun",
+  "Lance",
 ];
 
 export const COMING_SOON_WEAPONS: WeaponType[] = [
@@ -19,6 +24,11 @@ export const ALL_WEAPONS: { type: WeaponType; tag: string }[] = [
   { type: "Sword & Shield", tag: "guard & slash" },
   { type: "Bow", tag: "coating & pierce" },
   { type: "Dual Blades", tag: "dual wield" },
+  { type: "Long Sword", tag: "spirit combo" },
+  { type: "Hammer", tag: "blunt KO" },
+  { type: "Gunlance", tag: "shelling guard" },
+  { type: "Light Bowgun", tag: "mobile ammo" },
+  { type: "Lance", tag: "guard & poke" },
   { type: "Switch Axe", tag: "axe ⇄ sword modes" },
   { type: "Charge Blade", tag: "defensive charge" },
   { type: "Insect Glaive", tag: "kinsect mobility" },
