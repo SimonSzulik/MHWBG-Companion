@@ -139,6 +139,14 @@ campaign), the offline/sync-error gates, and PWA install + service worker.
 
 - A campaign is created fresh per spec, prefixed `QA `, so runs do not interfere.
   Accounts are reused across runs (sign-up falls back to sign-in).
+- **The production database is not empty.** Supabase's `list_tables` reports
+  row counts from stale planner statistics and showed 0 for every table; the
+  project actually holds 9 pre-existing campaigns from June 2026 with real
+  progress (up to day 12, one with 4 hunters). No QA test touched them — every
+  account and campaign the suite creates is namespaced (`qa-*` / `QA …`) — but
+  the risk assessment that preceded this run was based on a wrong number.
+  **Teardown must delete by prefix, never truncate.** As of this report the QA
+  data (22 campaigns, 6 accounts) is still present and awaiting cleanup.
 - Two earlier "failures" were **my test's fault, not the app's**, and are
   recorded here so they are not mistaken for defects: a strict-mode selector
   collision on the word "Investigation", and an assumption that a cleared 1★
