@@ -175,6 +175,20 @@ export interface Database {
         Args: Record<string, never>;
         Returns: unknown;
       };
+      /**
+       * Atomically writes `campaign_state.active_quest`. The caller is
+       * authoritative only for its own hunter's entries in `readyHunterIds`,
+       * `lootProgress` and `investigationLoot`; every other hunter's are taken
+       * from the stored row under a row lock. Returns the merged quest.
+       */
+      merge_active_quest: {
+        Args: {
+          p_campaign_id: string;
+          p_quest: unknown;
+          p_hunter_id: string;
+        };
+        Returns: unknown;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -247,6 +247,15 @@ export function rowToHunter(row: HunterRow): Hunter {
   };
 }
 
+/**
+ * Every `campaign_state` column *except* `active_quest`.
+ *
+ * `active_quest` is written separately through the `merge_active_quest` RPC:
+ * it is one jsonb blob holding per-hunter sub-state (`readyHunterIds`,
+ * `lootProgress`, `investigationLoot`), so a plain last-write-wins column
+ * update lets two clients clobber each other's hunters. See docs/qa/e2e-report.md
+ * (QA-1, QA-2).
+ */
 export function campaignToStateUpdate(
   c: Campaign,
 ): Database["public"]["Tables"]["campaign_state"]["Update"] {
@@ -254,7 +263,6 @@ export function campaignToStateUpdate(
     zenny: c.zenny,
     items: c.items,
     hunts_completed: c.questCompletions,
-    active_quest: c.activeQuest,
     day_log: c.dayLog,
     active_downtime: c.activeDowntime ?? null,
     pending_handler_quest: c.pendingHandlerQuestId ?? null,
