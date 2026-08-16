@@ -15,18 +15,24 @@ gets in with a `_vercel_share` token (`E2E_SHARE_TOKEN`), which sets a bypass
 cookie on first navigation.
 
 ```bash
+# against the deployed production app
 E2E_SHARE_TOKEN=<token> npm run test:e2e
+
+# against a local dev server (Vercel *preview* deployments have no Supabase
+# env vars — only Production does — so previews cannot run this suite)
+npm run dev
+E2E_BASE_URL=http://localhost:5173 E2E_SHARE_TOKEN= npm run test:e2e
 ```
 
-**Result: 16 tests, 14 passing, 2 reproducing known bugs** (encoded with
-`test.fail()`, so the suite is green today and turns red the moment either bug
-is fixed).
+**Result: 16 tests, all passing.** Two high-severity concurrency bugs were found
+and **have since been fixed**; the tests that reproduced them are now permanent
+regression tests.
 
 ---
 
 ## Findings
 
-### QA-1 — Concurrent lobby joins silently drop a hunter · **high**
+### QA-1 — Concurrent lobby joins silently drop a hunter · **high** · ✅ fixed
 
 **Reproduces every run** (5/5). `tests/e2e/sync-race.spec.ts`.
 
@@ -54,7 +60,7 @@ because at the column level the write is not a conflict — it is just newer.
 **Why it matters:** this is the normal case at a physical table, not an edge
 case. Everyone taps "join" when the quest starts.
 
-### QA-2 — Concurrent loot confirmations are lost · **high**
+### QA-2 — Concurrent loot confirmations are lost · **high** · ✅ fixed
 
 **Reproduces every run** (3/3). Same spec, same root cause.
 
@@ -75,20 +81,38 @@ The quest then cannot reach the summary phase, because that requires every
 hunter to be confirmed — the party is stuck on the loot screen, and the affected
 hunter loses their roll.
 
-**Suggested fix for QA-1 + QA-2 (one fix, both bugs).** Make the per-hunter
-mutations atomic in Postgres instead of read-modify-write on the client. Two
-`security definer` RPCs alongside the existing `join_campaign` family in
-`supabase/schema.sql`:
+### The fix (one change, both bugs)
 
-- `quest_set_ready(campaign_id, hunter_id, ready boolean)` — adds/removes one id
-  in `active_quest->'readyHunterIds'`
-- `quest_set_loot(campaign_id, hunter_id, progress jsonb)` — sets
-  `active_quest->'lootProgress'->hunter_id`
+`active_quest` is no longer written as a plain column update. It goes through a
+`security definer` RPC, `merge_active_quest(campaign_id, quest, hunter_id)`
+(`supabase/schema.sql`), which takes a row lock and applies the merge rule:
 
-Both return the updated `active_quest` for the client to adopt. Concurrent calls
-then serialise in the database. The same reasoning applies to
-`investigationLoot` and to `activeDowntime`'s per-hunter confirmations, which
-are the same shape and were not separately tested.
+| key | winner |
+|---|---|
+| the caller's own hunter entry | the caller |
+| another hunter's entry that is already stored | the database |
+| another hunter's entry that is new | the caller (initialisation) |
+
+`readyHunterIds` is deliberately **not** a plain union — that would make leaving
+a lobby impossible. The caller's own membership is applied in whichever
+direction it moved; everyone else's is taken from the stored row. A different
+`questId`, or a cleared quest, still replaces wholesale, because only concurrent
+edits to the *same* quest need merging.
+
+Client side, `src/lib/sync/mappers.ts` drops `active_quest` from
+`campaignToStateUpdate`, and `src/lib/sync/engine.ts` writes it via
+`pushActiveQuest()` while tracking it as its own push-snapshot section so a
+quest-only change still triggers a push.
+
+**A regression caught while fixing this:** the first version of the merge kept
+only entries already present in the database, which silently dropped the loot
+entries the quest starter seeds *for the whole party* in
+`completeQuestSuccess`. The party then never reached the loot screen. That is
+what the third rule in the table above exists for.
+
+**Not yet given the same treatment:** `activeDowntime`'s per-hunter
+confirmations are the same shape and the same hazard, but were not covered by
+this pass.
 
 ### QA-3 — "Beitreten" is German in an otherwise English UI · **low**
 
@@ -126,8 +150,8 @@ Verified end to end, against both UI and database:
 | Party summary → day 1→2, `hunts_completed` recorded, quest cleared | pass |
 | Assigned quest caps at one completion, then unlocks the investigation tier | pass |
 | No unexpected `alert()` rule violations during a full hunt | pass |
-| Concurrent lobby joins | **fail — QA-1** |
-| Concurrent loot confirmations | **fail — QA-2** |
+| Concurrent lobby joins (QA-1 regression test) | pass |
+| Concurrent loot confirmations (QA-2 regression test) | pass |
 
 Not yet exercised — these remain open for the next pass: inventory tabs and
 quantity editing, forge crafting (weapon tree + armour set), party trading,

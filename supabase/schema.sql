@@ -457,3 +457,105 @@ alter table public.campaign_state
 -- Migration: drop the Palico name feature (hunters use their username) (re-run safe).
 alter table public.hunter
   drop column if exists palico_name;
+
+-- ---------------------------------------------------------------------------
+-- Atomic per-hunter writes to campaign_state.active_quest (re-run safe).
+--
+-- `active_quest` is a single jsonb blob holding every hunter's sub-state
+-- (readyHunterIds, lootProgress, investigationLoot), while the sync engine is
+-- last-write-wins per column. Two clients that each build the blob from their
+-- own snapshot silently clobber one another — a hunter gets dropped from the
+-- lobby, or loses their loot confirmation. Both are the normal case at a table:
+-- everyone taps "join" at once and everyone resolves loot together.
+-- See docs/qa/e2e-report.md (QA-1, QA-2).
+--
+-- Merge rule, per key of the per-hunter maps:
+--   * the caller's own key                    -> whatever the caller sent
+--   * another hunter's key already stored      -> the stored value wins
+--   * another hunter's key that is new         -> accepted (initialisation)
+-- `a || b` lets b win, hence: incoming, overlaid with (stored minus own key).
+create or replace function public.jsonb_merge_own_key(
+  p_existing jsonb,
+  p_incoming jsonb,
+  p_key text
+) returns jsonb
+language sql
+immutable
+as $$
+  select coalesce(p_incoming, '{}'::jsonb) || (coalesce(p_existing, '{}'::jsonb) - p_key);
+$$;
+
+create or replace function public.merge_active_quest(
+  p_campaign_id uuid,
+  p_quest jsonb,
+  p_hunter_id text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing jsonb;
+  v_result   jsonb;
+  v_ready    jsonb;
+begin
+  if not public.is_campaign_member(p_campaign_id) then
+    raise exception 'not a campaign member';
+  end if;
+
+  select active_quest into v_existing
+    from public.campaign_state
+   where campaign_id = p_campaign_id
+   for update;
+
+  -- No quest, a different quest, or the client is clearing it: take the
+  -- client's value wholesale. Only concurrent edits to the SAME quest merge.
+  if p_quest is null
+     or jsonb_typeof(p_quest) = 'null'
+     or v_existing is null
+     or jsonb_typeof(v_existing) = 'null'
+     or (v_existing ->> 'questId') is distinct from (p_quest ->> 'questId')
+  then
+    update public.campaign_state
+       set active_quest = p_quest
+     where campaign_id = p_campaign_id;
+    return p_quest;
+  end if;
+
+  v_result := p_quest;
+
+  -- readyHunterIds: keep every other hunter's membership as stored and apply
+  -- only this caller's own join/leave. A plain union would break "leave lobby".
+  select coalesce(jsonb_agg(e.value), '[]'::jsonb) into v_ready
+    from (
+      select distinct value
+        from jsonb_array_elements(coalesce(v_existing -> 'readyHunterIds', '[]'::jsonb))
+       where value <> to_jsonb(p_hunter_id)
+    ) e;
+
+  if coalesce(p_quest -> 'readyHunterIds', '[]'::jsonb) @> jsonb_build_array(to_jsonb(p_hunter_id)) then
+    v_ready := v_ready || jsonb_build_array(to_jsonb(p_hunter_id));
+  end if;
+
+  v_result := jsonb_set(v_result, '{readyHunterIds}', v_ready);
+
+  v_result := jsonb_set(
+    v_result, '{lootProgress}',
+    public.jsonb_merge_own_key(v_existing -> 'lootProgress', p_quest -> 'lootProgress', p_hunter_id)
+  );
+  v_result := jsonb_set(
+    v_result, '{investigationLoot}',
+    public.jsonb_merge_own_key(v_existing -> 'investigationLoot', p_quest -> 'investigationLoot', p_hunter_id)
+  );
+
+  update public.campaign_state
+     set active_quest = v_result
+   where campaign_id = p_campaign_id;
+
+  return v_result;
+end;
+$$;
+
+revoke all on function public.merge_active_quest(uuid, jsonb, text) from public;
+grant execute on function public.merge_active_quest(uuid, jsonb, text) to authenticated;
+grant execute on function public.jsonb_merge_own_key(jsonb, jsonb, text) to authenticated;

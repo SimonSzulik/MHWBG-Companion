@@ -48,9 +48,6 @@ async function freshParty(browser: Parameters<typeof Hunter.create>[0]) {
 test("two hunters opening the lobby at once both stay in the party", async ({
   browser,
 }) => {
-  // KNOWN BUG (QA-1): reproduces every run. `test.fail()` keeps the suite
-  // honest — it asserts the bug is still there and turns red once it is fixed.
-  test.fail(true, "QA-1: concurrent lobby joins clobber each other");
   const { quest } = await freshParty(browser);
 
   await aki.page.goto("/campaign/quests");
@@ -76,9 +73,6 @@ test("two hunters opening the lobby at once both stay in the party", async ({
 });
 
 test("simultaneous loot confirmations are not lost", async ({ browser }) => {
-  // KNOWN BUG (QA-2): same root cause as QA-1 — a hunter's `choice` and
-  // `confirmed` flag are dropped when three clients write the blob at once.
-  test.fail(true, "QA-2: concurrent loot confirmations clobber each other");
   const { quest } = await freshParty(browser);
 
   await aki.page.goto("/campaign/quests");
