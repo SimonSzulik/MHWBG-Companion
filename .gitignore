@@ -36,3 +36,6 @@ pnpm-debug.log*
 # Playwright
 /test-results/
 /playwright-report/
+
+# generated report intermediates
+docs/qa/.missing-data.html

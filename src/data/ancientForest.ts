@@ -132,6 +132,12 @@ export const ancientForest: GameData = {
       ["diablos-shell", "Diablos Shell", "Shell", "white-shell"],
     ]),
 
+    // ----- Black Diablos -----
+    ...monsterParts("black-diablos", [
+      ["black-diablos-carapace", "Black Diablos Carapace", "Carapace", "white-carapace"],
+      ["black-diablos-ridge", "Black Diablos Ridge", "Ridge", "white-head"],
+    ]),
+
     // ----- Jyuratodus -----
     ...monsterParts("jyuratodus", [
       ["jyuratodus-carapace", "Jyuratodus Carapace", "Carapace", "white-carapace"],
@@ -161,6 +167,7 @@ export const ancientForest: GameData = {
     { id: "barroth", name: "Barroth", kind: "Brute Wyvern", notes: "Mud-armoured charger." },
     { id: "diablos", name: "Diablos", kind: "Flying Wyvern", notes: "Tyrant of the sands." },
     { id: "jyuratodus", name: "Jyuratodus", kind: "Piscine Wyvern", notes: "Water element." },
+    { id: "black-diablos", name: "Black Diablos", kind: "Flying Wyvern", notes: "Enraged Diablos variant." },
   ],
 
   gear: [

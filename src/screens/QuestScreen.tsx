@@ -29,11 +29,16 @@ const STAR_COUNT: Record<QuestStars, number> = {
   "four-star": 4,
 };
 
-/** Quest-type label per star tier (assigned / investigation / tempered). */
+/**
+ * Quest-type label per star tier, matching the printed quest books: 1★ is an
+ * "Assigned Quest", 2★ an "Investigation Quest", and 3★ upwards are all
+ * "Tempered Investigation Quest" — the star count is what separates them.
+ * (3★ was previously mislabelled here as a plain Investigation.)
+ */
 const STAR_TYPE_LABEL: Record<QuestStars, string> = {
   "one-star": "Assigned",
   "two-star": "Investigation",
-  "three-star": "Investigation",
+  "three-star": "Tempered",
   "four-star": "Tempered",
 };
 

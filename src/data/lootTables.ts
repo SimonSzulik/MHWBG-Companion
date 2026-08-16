@@ -12,6 +12,14 @@ export const BREAKABLE_PARTS: Record<string, MonsterPartId[]> = {
   anjanath: ["head", "tail"],
   rathalos: ["back", "head", "wings"],
   "azure-rathalos": ["wings", "back", "tail", "head"],
+  // Wildspire Waste — from the physiology data in the CC0 quest-card set.
+  // That source also lists a "legs" part for Jyuratodus, Diablos and Black
+  // Diablos, which `MonsterPartId` has no equivalent for, so it is omitted.
+  barroth: ["head", "body", "claws", "tail"],
+  "pukei-pukei": ["head", "tail", "claws"],
+  jyuratodus: ["head", "tail"],
+  diablos: ["head", "tail", "claws"],
+  "black-diablos": ["head", "tail", "claws"],
 };
 
 export const LOOT_TABLES: Record<string, LootRow[]> = {
@@ -84,6 +92,87 @@ export const LOOT_TABLES: Record<string, LootRow[]> = {
     { roll: 10, materialId: "azure-rathalos-carapace" },
     { roll: 11, materialId: "azure-rathalos-tail" },
     { roll: 12, materialId: "inferno-sac", partBreak: "head" },
+  ],
+
+  // ===== Wildspire Waste =====
+  // Rows transcribed from the reward tables in the CC0 quest-card set
+  // (Elvaron/MHW-BG-QuestCards); see docs/research/mhwbg-content-dossier.md.
+  // That source validates exactly against the Ancient Forest tables above.
+  //
+  // It records *that* a row is a break reward but not *which* part it belongs
+  // to, and the Ancient Forest tables show the part is printed per row (Anjanath
+  // repeats "head" three times), so it cannot be derived. `partBreak` is
+  // therefore left off rather than guessed — those rows simply do not double
+  // yet. Every affected roll is listed in docs/qa/missing-data.md.
+  barroth: [
+    { roll: 1, materialId: "monster-bone-small" },
+    { roll: 2, materialId: "barroth-claw" },
+    { roll: 3, materialId: "barroth-ridge" },
+    { roll: 4, materialId: "barroth-shell" },
+    { roll: 5, materialId: "barroth-carapace" },
+    { roll: 6, materialId: "barroth-claw" },
+    { roll: 7, materialId: "monster-bone-small" },
+    { roll: 8, materialId: "barroth-claw" },
+    { roll: 9, materialId: "barroth-carapace" },
+    { roll: 10, materialId: "barroth-shell" },
+    { roll: 11, materialId: "barroth-ridge" },
+    { roll: 12, materialId: "barroth-claw" },
+  ],
+  "pukei-pukei": [
+    { roll: 1, materialId: "monster-bone-medium" },
+    { roll: 2, materialId: "pukei-pukei-wing" },
+    { roll: 3, materialId: "pukei-pukei-scale" },
+    { roll: 4, materialId: "pukei-pukei-quill" },
+    { roll: 5, materialId: "pukei-pukei-carapace" },
+    { roll: 6, materialId: "poison-sac" },
+    { roll: 7, materialId: "pukei-pukei-tail" },
+    { roll: 8, materialId: "toxin-sac" },
+    { roll: 9, materialId: "pukei-pukei-wing" },
+    { roll: 10, materialId: "pukei-pukei-scale" },
+    { roll: 11, materialId: "pukei-pukei-carapace" },
+    { roll: 12, materialId: "monster-bone-medium" },
+  ],
+  jyuratodus: [
+    { roll: 1, materialId: "jyuratodus-fin" },
+    { roll: 2, materialId: "aqua-sac" },
+    { roll: 3, materialId: "jyuratodus-scale" },
+    { roll: 4, materialId: "jyuratodus-shell" },
+    { roll: 5, materialId: "monster-bone-large" },
+    { roll: 6, materialId: "jyuratodus-carapace" },
+    { roll: 7, materialId: "jyuratodus-fang" },
+    { roll: 8, materialId: "jyuratodus-carapace" },
+    { roll: 9, materialId: "gajau-scale" },
+    { roll: 10, materialId: "jyuratodus-shell" },
+    { roll: 11, materialId: "jyuratodus-scale" },
+    { roll: 12, materialId: "jyuratodus-fin" },
+  ],
+  diablos: [
+    { roll: 1, materialId: "diablos-shell" },
+    { roll: 2, materialId: "diablos-carapace" },
+    { roll: 3, materialId: "twisted-horn" },
+    { roll: 4, materialId: "majestic-horn" },
+    { roll: 5, materialId: "diablos-fang" },
+    { roll: 6, materialId: "diablos-ridge" },
+    { roll: 7, materialId: "blos-medulla" },
+    { roll: 8, materialId: "diablos-carapace" },
+    { roll: 9, materialId: "diablos-fang" },
+    { roll: 10, materialId: "majestic-horn" },
+    { roll: 11, materialId: "twisted-horn" },
+    { roll: 12, materialId: "diablos-shell" },
+  ],
+  "black-diablos": [
+    { roll: 1, materialId: "novacrystal" },
+    { roll: 2, materialId: "black-diablos-carapace" },
+    { roll: 3, materialId: "black-spiral-horn" },
+    { roll: 4, materialId: "majestic-horn" },
+    { roll: 5, materialId: "black-diablos-carapace" },
+    { roll: 6, materialId: "black-diablos-ridge" },
+    { roll: 7, materialId: "blos-medulla" },
+    { roll: 8, materialId: "wyvern-gem" },
+    { roll: 9, materialId: "novacrystal" },
+    { roll: 10, materialId: "black-diablos-carapace" },
+    { roll: 11, materialId: "majestic-horn" },
+    { roll: 12, materialId: "black-spiral-horn" },
   ],
 };
 

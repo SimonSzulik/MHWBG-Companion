@@ -12,6 +12,7 @@
     "test:calendar": "npx tsx src/domain/calendar.test.ts",
     "test:domain": "npx tsx src/domain/calendar.test.ts && npx tsx src/domain/trade.test.ts && npx tsx src/domain/quests.test.ts && npx tsx src/domain/questRewards.test.ts && npx tsx src/domain/catalog.test.ts",
     "report:research": "npx tsx scripts/researchDossier.ts",
+    "report:missing": "npx tsx scripts/missingData.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

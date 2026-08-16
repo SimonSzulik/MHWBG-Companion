@@ -27,6 +27,13 @@ export const QUEST_MONSTERS: { id: string; name: string; icon: string }[] = [
   { id: "anjanath", name: "Anjanath", icon: "anjanath" },
   { id: "rathalos", name: "Rathalos", icon: "rathalos" },
   { id: "azure-rathalos", name: "Azure Rathalos", icon: "azure-rathalos" },
+  // Wildspire Waste. Barroth leads, because the rulebook (Ancient Forest p.38)
+  // lets a combined campaign open on either Great Jagras or Barroth.
+  { id: "barroth", name: "Barroth", icon: "barroth" },
+  { id: "pukei-pukei", name: "Pukei-Pukei", icon: "pukei-pukei" },
+  { id: "jyuratodus", name: "Jyuratodus", icon: "jyuratodus" },
+  { id: "diablos", name: "Diablos", icon: "diablos" },
+  { id: "black-diablos", name: "Black Diablos", icon: "black-diablos" },
 ];
 
 export const STAR_ORDER: QuestStars[] = [
@@ -157,6 +164,134 @@ export const quests: QuestDef[] = [
     monsterId: "azure-rathalos",
     stars: "four-star",
     icon: "azure-rathalos",
+    type: "purple-head",
+  },
+
+  // ===== Wildspire Waste =====
+  // Quest ids, star tiers and categories transcribed from the printed quest
+  // books via Elvaron/MHW-BG-QuestCards (CC0). See
+  // docs/research/mhwbg-content-dossier.md.
+  // `type` (quest-card colour) is NOT in that dataset and is inferred from each
+  // monster's position in the box — it is cosmetic only. Listed in the
+  // missing-data report for confirmation against the physical cards.
+  {
+    id: "barroth-1",
+    name: "Barroth",
+    monsterId: "barroth",
+    stars: "one-star",
+    icon: "barroth",
+    type: "white-head",
+  },
+  {
+    id: "barroth-2",
+    name: "Barroth",
+    monsterId: "barroth",
+    stars: "two-star",
+    icon: "barroth",
+    type: "white-head",
+  },
+  {
+    id: "barroth-3",
+    name: "Barroth",
+    monsterId: "barroth",
+    stars: "three-star",
+    icon: "barroth",
+    type: "white-head",
+  },
+  {
+    id: "pukei-pukei-1",
+    name: "Pukei-Pukei",
+    monsterId: "pukei-pukei",
+    stars: "one-star",
+    icon: "pukei-pukei",
+    type: "yellow-head",
+  },
+  {
+    id: "pukei-pukei-2",
+    name: "Pukei-Pukei",
+    monsterId: "pukei-pukei",
+    stars: "two-star",
+    icon: "pukei-pukei",
+    type: "yellow-head",
+  },
+  {
+    id: "pukei-pukei-3",
+    name: "Pukei-Pukei",
+    monsterId: "pukei-pukei",
+    stars: "three-star",
+    icon: "pukei-pukei",
+    type: "yellow-head",
+  },
+  {
+    id: "jyuratodus-1",
+    name: "Jyuratodus",
+    monsterId: "jyuratodus",
+    stars: "one-star",
+    icon: "jyuratodus",
+    type: "green-head",
+  },
+  {
+    id: "jyuratodus-2",
+    name: "Jyuratodus",
+    monsterId: "jyuratodus",
+    stars: "two-star",
+    icon: "jyuratodus",
+    type: "green-head",
+  },
+  {
+    id: "jyuratodus-3",
+    name: "Jyuratodus",
+    monsterId: "jyuratodus",
+    stars: "three-star",
+    icon: "jyuratodus",
+    type: "green-head",
+  },
+  {
+    id: "diablos-1",
+    name: "Diablos",
+    monsterId: "diablos",
+    stars: "one-star",
+    icon: "diablos",
+    type: "purple-head",
+  },
+  {
+    id: "diablos-2",
+    name: "Diablos",
+    monsterId: "diablos",
+    stars: "two-star",
+    icon: "diablos",
+    type: "purple-head",
+  },
+  {
+    id: "diablos-4",
+    name: "Diablos",
+    monsterId: "diablos",
+    stars: "four-star",
+    icon: "diablos",
+    type: "purple-head",
+  },
+  {
+    id: "black-diablos-1",
+    name: "Black Diablos",
+    monsterId: "black-diablos",
+    stars: "one-star",
+    icon: "black-diablos",
+    type: "purple-head",
+  },
+  {
+    id: "black-diablos-2",
+    name: "Black Diablos",
+    monsterId: "black-diablos",
+    stars: "two-star",
+    icon: "black-diablos",
+    type: "purple-head",
+  },
+  {
+    id: "black-diablos-4",
+    name: "Black Diablos",
+    monsterId: "black-diablos",
+    stars: "four-star",
+    icon: "black-diablos",
     type: "purple-head",
   },
 ];
