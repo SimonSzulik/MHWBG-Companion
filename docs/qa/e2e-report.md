@@ -190,8 +190,15 @@ campaign), the offline/sync-error gates, and PWA install + service worker.
   progress (up to day 12, one with 4 hunters). No QA test touched them — every
   account and campaign the suite creates is namespaced (`qa-*` / `QA …`) — but
   the risk assessment that preceded this run was based on a wrong number.
-  **Teardown must delete by prefix, never truncate.** As of this report the QA
-  data (22 campaigns, 6 accounts) is still present and awaiting cleanup.
+  **Teardown must delete by prefix, never truncate.**
+- **Cleanup done.** 51 `QA …` campaigns and 18 `qa-*` accounts were deleted by
+  prefix. All 9 original campaigns and every non-QA account were left untouched
+  and verified afterwards. Campaign deletion cascades to `campaign_state`,
+  `hunter` and `campaign_member`, so no orphans remain.
+- **Kept on purpose:** the `Fifth Fleet` demo campaign and its three hunters
+  (`Aki`, `Renn`, `Sora`), which `tests/e2e/screenshots.spec.ts` uses to
+  regenerate the README screenshots. Delete them if you want a bare database —
+  the spec recreates what it needs on the next run.
 - Two earlier "failures" were **my test's fault, not the app's**, and are
   recorded here so they are not mistaken for defects: a strict-mode selector
   collision on the word "Investigation", and an assumption that a cleared 1★
