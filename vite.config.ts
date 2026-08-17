@@ -11,6 +11,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      // The app registers the worker itself (src/lib/pwa/registerUpdates.ts)
+      // so it can poll for new builds; without that an installed PWA can run a
+      // stale bundle indefinitely. See QA-8 in docs/qa/e2e-report.md.
+      injectRegister: null,
       includeAssets: ["favicon.svg"],
       manifest: {
         name: "MHW Board Game Companion",

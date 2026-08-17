@@ -24,7 +24,7 @@ npm run dev
 E2E_BASE_URL=http://localhost:5173 E2E_SHARE_TOKEN= npm run test:e2e
 ```
 
-**Result: 29 passing, 1 expected failure** (QA-7, below). Two high-severity concurrency
+**Result: 30 passing, 1 expected failure** (QA-7, below). Two high-severity concurrency
 bugs were found and **have since been fixed**; the tests that reproduced them are
 now permanent regression tests.
 
@@ -163,6 +163,39 @@ the sync path is not worth it.
 A correct fix probably belongs in the same RPC: have `merge_active_downtime`
 return the merged row and have the client adopt it, so the confirming client
 sees the true confirmation set rather than its own.
+
+### QA-8 — A stale PWA silently produced wrong data · **high** · ✅ fixed
+
+Reported as "choosing your box doesn't work". It did work — on the server. The
+client did not have the code.
+
+`vite-plugin-pwa` injected a bare `navigator.serviceWorker.register()`, which
+installs a worker but never *checks* for a newer one after the initial load. An
+installed PWA that is never fully closed therefore keeps running the JavaScript
+it started with, indefinitely.
+
+That is not merely cosmetic staleness. The old bundle does not send `boxes` when
+creating a campaign, so Postgres applied the column default —
+`["core","ancient-forest","wildspire-waste","hunters-arsenal"]` — and every box
+appeared to be owned. **A stale client wrote wrong data that looked deliberate.**
+
+The evidence chain:
+
+| | |
+|---|---|
+| `main` deployed with box selection | 12:15:57 UTC |
+| Campaigns created by the user | 12:28 / 12:29 / 12:30 UTC — after |
+| Their stored `boxes` | the DB default, not the picker's `["core","ancient-forest"]` |
+| Production bundle at that time | contained the picker (verified by fetching it) |
+| `boxes.spec.ts` run against production | 3/3 pass in a fresh browser |
+
+Fixed in `src/lib/pwa/registerUpdates.ts`: the app now registers the worker
+itself (`injectRegister: null`) and calls `registration.update()` hourly and on
+every return to the foreground. With `registerType: "autoUpdate"` the new worker
+then claims the page and it reloads onto the matching bundle.
+
+**Anything schema-shaped deserves this scrutiny** — a client old enough to omit
+a field will silently take the database default.
 
 ### QA-3 — "Beitreten" is German in an otherwise English UI · **low** · ✅ fixed
 
