@@ -110,9 +110,30 @@ entries the quest starter seeds *for the whole party* in
 `completeQuestSuccess`. The party then never reached the loot screen. That is
 what the third rule in the table above exists for.
 
-**Not yet given the same treatment:** `activeDowntime`'s per-hunter
-confirmations are the same shape and the same hazard, but were not covered by
-this pass.
+### QA-6 — Downtime concurrency · **open, not diagnosed**
+
+`active_downtime` is the same shape and the same hazard: six hunter-keyed maps
+(`picks`, `provisions`, `resourceRoll`, `chefElement`, `handlerProposals`,
+`poogieDone`) plus `confirmedHunterIds`, in one jsonb column. A downtime day is
+by design "everyone picks, then everyone confirms", so concurrent writes are the
+rule rather than the exception.
+
+`tests/e2e/downtime-race.spec.ts` reproduces *something* — with three hunters in
+a shared downtime day, the second hunter's Poogie pick does not survive long
+enough for "Finish day" to enable, and the server row ends up holding only one
+hunter's `picks` and `poogieDone`. What is **not** yet established is whether the
+cause is the QA-1/QA-2 clobbering or simply a slower sync settle that the test
+does not wait for.
+
+The test is therefore marked `test.fixme()` rather than deleted or claimed as a
+bug, and **the fix is deliberately not shipped**: a `merge_active_downtime` RPC
+is written and applied to the database (recorded in `supabase/schema.sql`), but
+the client still writes the column directly, because an unverified change to the
+sync path is not worth shipping on reasoning alone.
+
+There is already a partial client-side mitigation that predates this work:
+`mergeActiveDowntime()` in `src/domain/downtime.ts` merges local over remote when
+a remote row is applied in `applyRemoteCampaign`.
 
 ### QA-3 — "Beitreten" is German in an otherwise English UI · **low**
 

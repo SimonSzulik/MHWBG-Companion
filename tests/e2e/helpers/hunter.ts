@@ -25,8 +25,26 @@ export class Hunter {
     return hunter;
   }
 
-  /** Sign up; fall back to sign-in so the suite is re-runnable. */
+  /**
+   * Sign up; fall back to sign-in so the suite is re-runnable.
+   *
+   * Retried once: with several specs running back to back the auth endpoint
+   * occasionally refuses a request, and a bare failure here reads like a
+   * product bug in whichever spec happened to run next.
+   */
   private async authenticate(): Promise<void> {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        await this.attemptAuth();
+        return;
+      } catch (err) {
+        if (attempt >= 2) throw err;
+        await this.page.waitForTimeout(2_000);
+      }
+    }
+  }
+
+  private async attemptAuth(): Promise<void> {
     await this.page.goto("/login");
     await expect(this.page.getByRole("heading", { name: "MHWBG Companion" })).toBeVisible();
 

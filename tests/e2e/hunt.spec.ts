@@ -30,9 +30,9 @@ function captureAlerts(page: Page, sink: string[]): void {
 const alerts: string[] = [];
 
 test.beforeAll(async ({ browser }) => {
-  aki = await Hunter.create(browser, "qa-aki");
-  brand = await Hunter.create(browser, "qa-brand");
-  cyra = await Hunter.create(browser, "qa-cyra");
+  aki = await Hunter.create(browser, "qa-hunt-aki");
+  brand = await Hunter.create(browser, "qa-hunt-brand");
+  cyra = await Hunter.create(browser, "qa-hunt-cyra");
   for (const h of [aki, brand, cyra]) captureAlerts(h.page, alerts);
 
   await createCampaign(aki, {
@@ -43,7 +43,7 @@ test.beforeAll(async ({ browser }) => {
   await joinCampaign(brand, { joinCode: JOIN_CODE, weapon: "Bow" });
   await joinCampaign(cyra, { joinCode: JOIN_CODE, weapon: "Hunting Horn" });
 
-  const db = await clientFor("qa-aki");
+  const db = await clientFor("qa-hunt-aki");
   campaignId = (await campaignByJoinCode(db, JOIN_CODE))!.id;
 });
 
@@ -68,7 +68,7 @@ test("quest board gates tiers: 1★ open, higher tiers locked", async () => {
 });
 
 test("the lobby only releases the hunt once every hunter is ready", async () => {
-  const db = await clientFor("qa-aki");
+  const db = await clientFor("qa-hunt-aki");
   const quest = async () => (await stateOf(db, campaignId))!.active_quest;
 
   await aki.page.goto("/campaign/quests");
@@ -152,7 +152,7 @@ test("the hunt resolves and each hunter rolls their own loot", async () => {
     // Let this hunter's confirmation reach Postgres before the next hunter
     // loads. Without this the next client can pull a pre-confirmation snapshot
     // and push it back, erasing the previous hunter's loot (see QA report).
-    const db = await clientFor("qa-aki");
+    const db = await clientFor("qa-hunt-aki");
     await waitFor(
       async () => (await stateOf(db, campaignId))!.active_quest,
       (q) => q == null || countConfirmed(q) >= confirmedSoFar + 1,
@@ -170,7 +170,7 @@ function countConfirmed(activeQuest: { lootProgress?: Record<string, { confirmed
 let confirmedSoFar = 0;
 
 test("the party summary lands and the campaign day advances", async () => {
-  const db = await clientFor("qa-aki");
+  const db = await clientFor("qa-hunt-aki");
 
   // All three have confirmed, so the quest is either sitting on the party
   // summary or has already been dismissed past it.

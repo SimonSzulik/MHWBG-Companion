@@ -667,19 +667,20 @@ async function push(campaign: Campaign): Promise<void> {
  * of the stored row, under a row lock. See docs/qa/e2e-report.md (QA-1, QA-2).
  */
 async function pushActiveQuest(campaign: Campaign, userId: string | null) {
+  const quest = campaign.activeQuest ?? null;
   const hunterId = ownHunter(campaign, userId)?.id;
   if (!hunterId) {
     // No hunter of our own in this campaign (e.g. mid-join): fall back to a
     // direct write, since there are no per-hunter entries we could own.
     await supabase
       .from("campaign_state")
-      .update({ active_quest: campaign.activeQuest ?? null })
+      .update({ active_quest: quest })
       .eq("campaign_id", campaign.id);
     return;
   }
   const { error } = await supabase.rpc("merge_active_quest", {
     p_campaign_id: campaign.id,
-    p_quest: campaign.activeQuest ?? null,
+    p_quest: quest,
     p_hunter_id: hunterId,
   });
   if (error) throw error;

@@ -255,6 +255,11 @@ export function rowToHunter(row: HunterRow): Hunter {
  * `lootProgress`, `investigationLoot`), so a plain last-write-wins column
  * update lets two clients clobber each other's hunters. See docs/qa/e2e-report.md
  * (QA-1, QA-2).
+ *
+ * `active_downtime` has the same shape and the same hazard, but is still a
+ * plain column write — see QA-6 in the report. It is partly mitigated on the
+ * client by `mergeActiveDowntime` (`src/domain/downtime.ts`), which merges
+ * local over remote when a remote row is applied.
  */
 export function campaignToStateUpdate(
   c: Campaign,

@@ -559,3 +559,85 @@ $$;
 revoke all on function public.merge_active_quest(uuid, jsonb, text) from public;
 grant execute on function public.merge_active_quest(uuid, jsonb, text) to authenticated;
 grant execute on function public.jsonb_merge_own_key(jsonb, jsonb, text) to authenticated;
+
+-- merge_active_downtime: the same atomic merge for campaign_state.active_downtime,
+-- whose six hunter-keyed maps plus confirmedHunterIds carry the same hazard.
+--
+-- NOT YET WIRED UP. The function exists and is applied, but the client still
+-- writes active_downtime as a plain column update, because the end-to-end test
+-- for it (tests/e2e/downtime-race.spec.ts) does not pass yet and an unverified
+-- change to the sync path is not worth shipping. See QA-6 in docs/qa/e2e-report.md.
+-- On the client there is already a partial mitigation: mergeActiveDowntime()
+-- in src/domain/downtime.ts merges local over remote when a remote row arrives.
+create or replace function public.merge_active_downtime(
+  p_campaign_id uuid,
+  p_downtime jsonb,
+  p_hunter_id text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing  jsonb;
+  v_result    jsonb;
+  v_confirmed jsonb;
+  v_map       text;
+  v_maps      text[] := array[
+    'picks', 'provisions', 'resourceRoll', 'chefElement',
+    'handlerProposals', 'poogieDone'
+  ];
+begin
+  if not public.is_campaign_member(p_campaign_id) then
+    raise exception 'not a campaign member';
+  end if;
+
+  select active_downtime into v_existing
+    from public.campaign_state
+   where campaign_id = p_campaign_id
+   for update;
+
+  if p_downtime is null
+     or jsonb_typeof(p_downtime) = 'null'
+     or v_existing is null
+     or jsonb_typeof(v_existing) = 'null'
+  then
+    update public.campaign_state
+       set active_downtime = p_downtime
+     where campaign_id = p_campaign_id;
+    return p_downtime;
+  end if;
+
+  v_result := p_downtime;
+
+  foreach v_map in array v_maps loop
+    v_result := jsonb_set(
+      v_result,
+      array[v_map],
+      public.jsonb_merge_own_key(v_existing -> v_map, p_downtime -> v_map, p_hunter_id)
+    );
+  end loop;
+
+  select coalesce(jsonb_agg(e.value), '[]'::jsonb) into v_confirmed
+    from (
+      select distinct value
+        from jsonb_array_elements(coalesce(v_existing -> 'confirmedHunterIds', '[]'::jsonb))
+       where value <> to_jsonb(p_hunter_id)
+    ) e;
+
+  if coalesce(p_downtime -> 'confirmedHunterIds', '[]'::jsonb) @> jsonb_build_array(to_jsonb(p_hunter_id)) then
+    v_confirmed := v_confirmed || jsonb_build_array(to_jsonb(p_hunter_id));
+  end if;
+
+  v_result := jsonb_set(v_result, '{confirmedHunterIds}', v_confirmed);
+
+  update public.campaign_state
+     set active_downtime = v_result
+   where campaign_id = p_campaign_id;
+
+  return v_result;
+end;
+$$;
+
+revoke all on function public.merge_active_downtime(uuid, jsonb, text) from public;
+grant execute on function public.merge_active_downtime(uuid, jsonb, text) to authenticated;

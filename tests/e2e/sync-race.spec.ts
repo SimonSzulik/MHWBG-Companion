@@ -27,9 +27,9 @@ test.afterEach(async () => {
 
 async function freshParty(browser: Parameters<typeof Hunter.create>[0]) {
   const joinCode = makeJoinCode();
-  aki = await Hunter.create(browser, "qa-aki");
-  brand = await Hunter.create(browser, "qa-brand");
-  cyra = await Hunter.create(browser, "qa-cyra");
+  aki = await Hunter.create(browser, "qa-race-aki");
+  brand = await Hunter.create(browser, "qa-race-brand");
+  cyra = await Hunter.create(browser, "qa-race-cyra");
 
   await createCampaign(aki, {
     name: `QA race ${joinCode}`,
@@ -39,7 +39,7 @@ async function freshParty(browser: Parameters<typeof Hunter.create>[0]) {
   await joinCampaign(brand, { joinCode, weapon: "Bow" });
   await joinCampaign(cyra, { joinCode, weapon: "Hunting Horn" });
 
-  const db = await clientFor("qa-aki");
+  const db = await clientFor("qa-race-aki");
   const campaignId = (await campaignByJoinCode(db, joinCode))!.id;
   const quest = async () => (await stateOf(db, campaignId))?.active_quest;
   return { joinCode, campaignId, db, quest };
