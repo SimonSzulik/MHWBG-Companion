@@ -1,6 +1,6 @@
 # What is still missing from the catalog
 
-_Generated 2026-08-16 by `npm run report:missing`._
+_Generated 2026-08-17 by `npm run report:missing`._
 
 Everything below needs a photograph of a physical card, because it could not be found in any rulebook, product page, forum thread or community dataset. Everything **not** listed here is either already in the app or sourced in `docs/research/mhwbg-content-dossier.md`.
 
