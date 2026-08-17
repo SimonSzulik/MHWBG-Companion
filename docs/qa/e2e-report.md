@@ -174,11 +174,23 @@ Verified end to end, against both UI and database:
 | Concurrent lobby joins (QA-1 regression test) | pass |
 | Concurrent loot confirmations (QA-2 regression test) | pass |
 
-Not yet exercised — these remain open for the next pass: inventory tabs and
-quantity editing, forge crafting (weapon tree + armour set), party trading,
-downtime (all five activities and the all-hunters-confirm gate), the Handler
-quest, the Reference/Info search, Settings (backup export/import, leave
-campaign), the offline/sync-error gates, and PWA install + service worker.
+Covered in a later pass (`tests/e2e/camp-screens.spec.ts`, `boxes.spec.ts`,
+`five-star.spec.ts`):
+
+| Area | Status |
+|---|---|
+| Box: stocked materials, quantity stepper persisting to Postgres | pass |
+| Box: Material / Other / Monster tabs | pass |
+| Forge: crafting a weapon deducts materials and grants the gear | pass |
+| Trading: propose from one hunter, accept on the other | pass |
+| Settings: join code, JSON backup export | pass |
+| Handbook: search filters, and clears on a no-match term | pass |
+| Box selection: filtering, the rulebook's +20 days, persistence | pass |
+| 5★ tempered tier renders for an elder dragon | pass |
+
+Still not exercised: downtime's five activities and the all-hunters-confirm gate
+(see QA-6), the Handler quest, backup *import*, leaving a campaign, the
+offline/sync-error gates, and PWA install + service worker.
 
 ## Notes on method
 
