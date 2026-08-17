@@ -7,6 +7,7 @@ import { useCampaign } from "../../store/campaign";
 import { useAuth } from "../../store/auth";
 import type { Campaign, Hunter, WeaponType } from "../../domain/types";
 import { hunterNeedsStarterKit } from "../../domain/starterKit";
+import { ownHunter } from "../hunter";
 import {
   campaignToCampaignUpdate,
   campaignToStateUpdate,
@@ -26,6 +27,10 @@ const SOFT_PULL_DEBOUNCE = 300;
 interface PushSnaps {
   meta: string;
   state: string;
+  /** `active_quest`, tracked separately because it is written via RPC. */
+  quest: string;
+  /** `active_downtime`, likewise. */
+  downtime: string;
   hunters: Record<string, string>;
 }
 
@@ -136,6 +141,10 @@ export async function createCloudCampaign(
     .insert({
       name: local.name,
       box: local.box,
+      // Must be written here, not left to the column default: startSync pulls
+      // the row straight back, so a default would silently replace the boxes
+      // the player just picked.
+      boxes: local.boxes,
       day: local.day,
       max_day: maxDay,
       owner_id: userId,
@@ -575,7 +584,12 @@ function hunterSnap(h: Hunter): string {
 function pushSnapsOf(c: Campaign): PushSnaps {
   return {
     meta: stableStringify(campaignToCampaignUpdate(c)),
+    // `active_quest` no longer travels in the column update (it goes through
+    // merge_active_quest), but it must still take part in the dirty check or a
+    // quest-only change would never be pushed.
     state: stableStringify(campaignToStateUpdate(c)),
+    quest: stableStringify(c.activeQuest ?? null),
+    downtime: stableStringify(c.activeDowntime ?? null),
     hunters: Object.fromEntries(c.hunters.map((h) => [h.id, hunterSnap(h)])),
   };
 }
@@ -592,6 +606,8 @@ function snapshot(c: Campaign): string {
   return JSON.stringify({
     meta: snaps.meta,
     state: snaps.state,
+    quest: snaps.quest,
+    downtime: snaps.downtime,
     hunters: ids.map((id) => [id, snaps.hunters[id]]),
   });
 }
@@ -626,6 +642,12 @@ async function push(campaign: Campaign): Promise<void> {
         .update(campaignToStateUpdate(campaign))
         .eq("campaign_id", campaign.id);
     }
+    if (!lastSnaps || snaps.quest !== lastSnaps.quest) {
+      await pushActiveQuest(campaign, userId);
+    }
+    if (!lastSnaps || snaps.downtime !== lastSnaps.downtime) {
+      await pushActiveDowntime(campaign, userId);
+    }
     await syncHunters(campaign.id, campaign.hunters, userId, snaps.hunters);
     lastSnaps = snaps;
   } catch (e) {
@@ -642,6 +664,61 @@ async function push(campaign: Campaign): Promise<void> {
   } finally {
     pushInFlight = false;
   }
+}
+
+/**
+ * Write `active_quest` through the `merge_active_quest` RPC rather than as a
+ * plain column update.
+ *
+ * The blob carries per-hunter sub-state (`readyHunterIds`, `lootProgress`,
+ * `investigationLoot`). Under plain last-write-wins, two players tapping "join"
+ * — or the whole party confirming loot at once, which is the normal case at a
+ * table — would each push a blob built from their own snapshot and silently
+ * drop the other's entry. The RPC applies only *this* hunter's entries on top
+ * of the stored row, under a row lock. See docs/qa/e2e-report.md (QA-1, QA-2).
+ */
+async function pushActiveQuest(campaign: Campaign, userId: string | null) {
+  const quest = campaign.activeQuest ?? null;
+  const hunterId = ownHunter(campaign, userId)?.id;
+  if (!hunterId) {
+    // No hunter of our own in this campaign (e.g. mid-join): fall back to a
+    // direct write, since there are no per-hunter entries we could own.
+    await supabase
+      .from("campaign_state")
+      .update({ active_quest: quest })
+      .eq("campaign_id", campaign.id);
+    return;
+  }
+  const { error } = await supabase.rpc("merge_active_quest", {
+    p_campaign_id: campaign.id,
+    p_quest: quest,
+    p_hunter_id: hunterId,
+  });
+  if (error) throw error;
+}
+
+/**
+ * `active_downtime` carries the same hazard as `active_quest`: six hunter-keyed
+ * maps plus `confirmedHunterIds` in one blob, written by everyone at once when
+ * the party finishes a downtime day. Lost confirmations strand the party on
+ * "waiting for N more hunters" with no way forward.
+ */
+async function pushActiveDowntime(campaign: Campaign, userId: string | null) {
+  const downtime = campaign.activeDowntime ?? null;
+  const hunterId = ownHunter(campaign, userId)?.id;
+  if (!hunterId) {
+    await supabase
+      .from("campaign_state")
+      .update({ active_downtime: downtime })
+      .eq("campaign_id", campaign.id);
+    return;
+  }
+  const { error } = await supabase.rpc("merge_active_downtime", {
+    p_campaign_id: campaign.id,
+    p_downtime: downtime,
+    p_hunter_id: hunterId,
+  });
+  if (error) throw error;
 }
 
 /**

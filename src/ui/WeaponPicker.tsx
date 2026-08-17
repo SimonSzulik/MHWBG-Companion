@@ -29,18 +29,31 @@ interface WeaponPickerProps {
   onChange: (type: WeaponType) => void;
   /** Weapon types already taken by other hunters (join flow). */
   takenWeapons?: WeaponType[];
+  /**
+   * Weapon types the campaign's boxes provide. Omitted means "all implemented",
+   * which is what the join flow wants — it reads the campaign that already
+   * exists rather than choosing boxes.
+   */
+  available?: WeaponType[];
 }
 
-type WeaponState = "selected" | "available" | "taken" | "comingSoon";
+type WeaponState =
+  | "selected"
+  | "available"
+  | "taken"
+  | "comingSoon"
+  | "needsBox";
 
 function weaponState(
   type: WeaponType,
   selected: WeaponType | null,
   taken: Set<WeaponType>,
+  available: Set<WeaponType> | null,
 ): WeaponState {
   if (COMING_SOON_WEAPONS.includes(type) || !isWeaponImplemented(type)) {
     return "comingSoon";
   }
+  if (available && !available.has(type)) return "needsBox";
   if (taken.has(type)) return "taken";
   if (selected === type) return "selected";
   return "available";
@@ -49,6 +62,7 @@ function weaponState(
 const STATE_LABEL: Partial<Record<WeaponState, string>> = {
   taken: "Taken",
   comingSoon: "Coming soon",
+  needsBox: "Hunter's Arsenal",
 };
 
 /** Shared weapon grid for campaign create/join screens. */
@@ -56,16 +70,21 @@ export function WeaponPicker({
   value,
   onChange,
   takenWeapons = [],
+  available,
 }: WeaponPickerProps) {
   const taken = new Set(takenWeapons);
+  const availableSet = available ? new Set(available) : null;
 
   return (
     <div>
       <p className="mb-2 text-xs uppercase tracking-wide text-ink-soft">Weapon</p>
       <div className="grid grid-cols-2 gap-2">
         {ALL_WEAPONS.map((w) => {
-          const state = weaponState(w.type, value, taken);
-          const disabled = state === "taken" || state === "comingSoon";
+          const state = weaponState(w.type, value, taken, availableSet);
+          const disabled =
+            state === "taken" ||
+            state === "comingSoon" ||
+            state === "needsBox";
           const label = STATE_LABEL[state];
 
           return (

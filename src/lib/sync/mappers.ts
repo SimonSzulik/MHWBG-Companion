@@ -21,6 +21,7 @@ import { normalizeCalendarDayEntry } from "../../domain/types";
 import { migrateInvestigationLoot } from "../../domain/questRewards";
 import { normalizeTradeRequest } from "../../domain/trade";
 import type { Database } from "../database.types";
+import { normalizeBoxes } from "../../data/expansions";
 
 type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
 type StateRow = Database["public"]["Tables"]["campaign_state"]["Row"];
@@ -212,6 +213,7 @@ export function rowsToCampaign(
   return {
     id: campaign.id,
     name: campaign.name,
+    boxes: normalizeBoxes(campaign.boxes),
     box: campaign.box,
     day: campaign.day,
     maxDay: campaign.max_day,
@@ -247,6 +249,15 @@ export function rowToHunter(row: HunterRow): Hunter {
   };
 }
 
+/**
+ * Every `campaign_state` column *except* `active_quest` and `active_downtime`.
+ *
+ * Both are single jsonb blobs holding per-hunter sub-state — `readyHunterIds` /
+ * `lootProgress` / `investigationLoot` for a quest, and six hunter-keyed maps
+ * plus `confirmedHunterIds` for a downtime day. A plain last-write-wins column
+ * update lets concurrent clients clobber each other's hunters, so both go
+ * through merge RPCs instead. See docs/qa/e2e-report.md (QA-1, QA-2, QA-6).
+ */
 export function campaignToStateUpdate(
   c: Campaign,
 ): Database["public"]["Tables"]["campaign_state"]["Update"] {
@@ -254,9 +265,7 @@ export function campaignToStateUpdate(
     zenny: c.zenny,
     items: c.items,
     hunts_completed: c.questCompletions,
-    active_quest: c.activeQuest,
     day_log: c.dayLog,
-    active_downtime: c.activeDowntime ?? null,
     pending_handler_quest: c.pendingHandlerQuestId ?? null,
     pending_trades: c.pendingTrades ?? [],
   };
@@ -267,6 +276,7 @@ export function campaignToCampaignUpdate(
 ): Database["public"]["Tables"]["campaign"]["Update"] {
   return {
     name: c.name,
+    boxes: c.boxes,
     box: c.box,
     day: c.day,
     max_day: c.maxDay,

@@ -21,6 +21,7 @@ export function questCategory(quest: QuestDef): QuestCategory {
     case "one-star":
       return "assigned";
     case "four-star":
+    case "five-star":
       return "tempered";
     default:
       return "investigation";
@@ -137,6 +138,8 @@ export function starLabel(stars: QuestStars): string {
       return "3★";
     case "four-star":
       return "4★";
+    case "five-star":
+      return "5★";
   }
 }
 

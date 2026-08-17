@@ -6,12 +6,12 @@ import { useCampaign } from "../store/campaign";
 import { useOwnHunter } from "../store/hooks";
 import {
   MAX_QUEST_COMPLETIONS,
-  QUEST_MONSTERS,
   STAR_ORDER,
   questsForMonster,
   type QuestDef,
   type QuestStars,
 } from "../data/quests";
+import { questsForBoxes } from "../domain/catalog";
 import {
   canStartQuest,
   isQuestFullyCompleted,
@@ -21,20 +21,28 @@ import {
   questLockReason,
 } from "../domain/quests";
 import { iconUrl } from "../domain/icons";
+import { EXPANSION_BY_ID } from "../data/expansions";
 
 const STAR_COUNT: Record<QuestStars, number> = {
   "one-star": 1,
   "two-star": 2,
   "three-star": 3,
   "four-star": 4,
+  "five-star": 5,
 };
 
-/** Quest-type label per star tier (assigned / investigation / tempered). */
+/**
+ * Quest-type label per star tier, matching the printed quest books: 1★ is an
+ * "Assigned Quest", 2★ an "Investigation Quest", and 3★ upwards are all
+ * "Tempered Investigation Quest" — the star count is what separates them.
+ * (3★ was previously mislabelled here as a plain Investigation.)
+ */
 const STAR_TYPE_LABEL: Record<QuestStars, string> = {
   "one-star": "Assigned",
   "two-star": "Investigation",
-  "three-star": "Investigation",
+  "three-star": "Tempered",
   "four-star": "Tempered",
+  "five-star": "Tempered",
 };
 
 /** Quest board, grouped by star difficulty; expand a tier to pick a hunt. */
@@ -53,7 +61,8 @@ export function QuestScreen() {
   const hasActiveQuest = campaign.activeQuest != null;
   const hasActiveDowntime = campaign.activeDowntime != null;
   const completions = campaign.questCompletions;
-  const allQuests = QUEST_MONSTERS.flatMap((m) => questsForMonster(m.id));
+  // Only offer hunts from the boxes this group actually owns.
+  const allQuests = questsForBoxes(campaign.boxes);
 
   const handleStart = (quest: QuestDef) => {
     const res = startQuest(quest.id, hunter.id);
@@ -73,7 +82,11 @@ export function QuestScreen() {
       <div className="mb-4 text-center">
         <p className="font-display text-3xl leading-none">Quest Board</p>
         <p className="mt-0.5 text-xs uppercase tracking-wide text-ink-soft">
-          Ancient Forest
+          {campaign.boxes
+            .map((id) => EXPANSION_BY_ID.get(id))
+            .filter((e) => e && !e.implicit)
+            .map((e) => e!.name)
+            .join(" · ")}
         </p>
       </div>
 
@@ -149,7 +162,7 @@ export function QuestScreen() {
           const quests = allQuests.filter((q) => q.stars === stars);
           if (quests.length === 0) return null;
           const open = openStar === stars;
-          const tempered = stars === "four-star";
+          const tempered = stars === "four-star" || stars === "five-star";
 
           return (
             <div key={stars} className="paper-card overflow-hidden">

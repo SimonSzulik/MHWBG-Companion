@@ -9,6 +9,8 @@ export interface Database {
           id: string;
           name: string;
           box: string;
+          /** Physical boxes the group owns; see src/data/expansions.ts. */
+          boxes: string[];
           join_code: string;
           day: number;
           max_day: number;
@@ -21,6 +23,7 @@ export interface Database {
           id?: string;
           name?: string;
           box?: string;
+          boxes?: string[];
           join_code?: string;
           day?: number;
           max_day?: number;
@@ -30,6 +33,7 @@ export interface Database {
         Update: Partial<{
           name: string;
           box: string;
+          boxes: string[];
           day: number;
           max_day: number;
           leader_hunter_id: string | null;
@@ -173,6 +177,29 @@ export interface Database {
       };
       list_my_campaigns: {
         Args: Record<string, never>;
+        Returns: unknown;
+      };
+      /**
+       * Atomically writes `campaign_state.active_quest`. The caller is
+       * authoritative only for its own hunter's entries in `readyHunterIds`,
+       * `lootProgress` and `investigationLoot`; every other hunter's are taken
+       * from the stored row under a row lock. Returns the merged quest.
+       */
+      merge_active_quest: {
+        Args: {
+          p_campaign_id: string;
+          p_quest: unknown;
+          p_hunter_id: string;
+        };
+        Returns: unknown;
+      };
+      /** As `merge_active_quest`, for the downtime day's per-hunter maps. */
+      merge_active_downtime: {
+        Args: {
+          p_campaign_id: string;
+          p_downtime: unknown;
+          p_hunter_id: string;
+        };
         Returns: unknown;
       };
     };

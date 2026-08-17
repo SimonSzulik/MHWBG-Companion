@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { WeaponType } from "../domain/types";
+import type { ExpansionId, WeaponType } from "../domain/types";
 import { Screen } from "../ui/Screen";
 import { Field } from "../ui/Field";
 import { Button } from "../ui/Button";
 import { Stepper } from "../ui/Stepper";
 import { WeaponPicker } from "../ui/WeaponPicker";
+import { BoxPicker } from "../ui/BoxPicker";
 import { useAuth } from "../store/auth";
 import { useCampaign } from "../store/campaign";
 import { isWeaponImplemented } from "../data/weapons";
+import { DEFAULT_BOXES } from "../data/expansions";
+import { weaponsForBoxes } from "../domain/catalog";
 import { isValidJoinCode, normalizeJoinCode } from "../lib/joinCode";
 import { createCloudCampaign, stopSync } from "../lib/sync/engine";
 
@@ -22,6 +25,7 @@ export function CreateCampaignScreen() {
   const [campaignName, setCampaignName] = useState("");
   const [chosenJoinCode, setChosenJoinCode] = useState("");
   const [weaponType, setWeaponType] = useState<WeaponType | null>(null);
+  const [boxes, setBoxes] = useState<ExpansionId[]>([...DEFAULT_BOXES]);
   const [potions, setPotions] = useState(1);
   const [maxDay, setMaxDay] = useState(25);
   const [busy, setBusy] = useState(false);
@@ -55,6 +59,7 @@ export function CreateCampaignScreen() {
       weaponType,
       potions,
       maxDay: Math.max(1, maxDay),
+      boxes,
     });
 
     const result = await createCloudCampaign(chosenJoinCode.trim());
@@ -113,7 +118,13 @@ export function CreateCampaignScreen() {
           className="font-display tracking-widest uppercase"
         />
 
-        <WeaponPicker value={weaponType} onChange={setWeaponType} />
+        <BoxPicker value={boxes} onChange={setBoxes} />
+
+        <WeaponPicker
+          value={weaponType}
+          onChange={setWeaponType}
+          available={weaponsForBoxes(boxes)}
+        />
 
         <Row label="Group Potions">
           <Stepper value={potions} onChange={setPotions} min={0} max={3} />

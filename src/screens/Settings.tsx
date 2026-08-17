@@ -6,12 +6,14 @@ import { useCampaign } from "../store/campaign";
 import { useAuth } from "../store/auth";
 import { stopSync } from "../lib/sync/engine";
 import { exportCampaign, importCampaign } from "../lib/backup";
+import { BoxPicker } from "../ui/BoxPicker";
 
 /** Settings: join code, backup, account. */
 export function Settings() {
   const nav = useNavigate();
   const campaign = useCampaign((s) => s.campaign);
   const resetCampaign = useCampaign((s) => s.resetCampaign);
+  const setBoxes = useCampaign((s) => s.setBoxes);
   const signOut = useAuth((s) => s.signOut);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -65,6 +67,23 @@ export function Settings() {
           signed in.
         </p>
       </Section>
+
+      {campaign && (
+        <Section title="Boxes">
+          <BoxPicker
+            value={campaign.boxes}
+            onChange={(boxes) => {
+              const res = setBoxes(boxes);
+              if (!res.ok) alert(res.reason);
+            }}
+          />
+          <p className="text-xs text-ink-soft">
+            Only affects what the quest board and weapon picker offer. Materials
+            and gear you already own are never removed. Adding Wildspire Waste
+            also adds 20 days to the campaign timer, as the rulebook says.
+          </p>
+        </Section>
+      )}
 
       <Section title="Backup">
         <div className="flex gap-2">
