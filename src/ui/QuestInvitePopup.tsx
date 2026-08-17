@@ -54,7 +54,7 @@ export function QuestInvitePopup() {
           onClick={handleJoin}
           className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white active:translate-y-px"
         >
-          Beitreten
+          Join
         </button>
       </div>
     </div>

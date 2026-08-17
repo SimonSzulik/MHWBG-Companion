@@ -29,8 +29,14 @@ export function CampaignCalendar({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-2 flex items-center justify-between gap-2">
+        {/*
+          This sits in a half-width card next to the potion badge, so at 390px
+          there is very little room: "Calendar · 25 days" truncated to
+          "CALENDAR · 2…", hiding the very number it exists to show. The grid
+          below is self-evidently a calendar, so only the day count is kept.
+        */}
         <p className="min-w-0 flex-1 truncate text-xs uppercase tracking-wide text-ink-soft">
-          Calendar · {maxDay} days
+          {maxDay} days
         </p>
         {right}
       </div>

@@ -24,9 +24,9 @@ npm run dev
 E2E_BASE_URL=http://localhost:5173 E2E_SHARE_TOKEN= npm run test:e2e
 ```
 
-**Result: 16 tests, all passing.** Two high-severity concurrency bugs were found
-and **have since been fixed**; the tests that reproduced them are now permanent
-regression tests.
+**Result: 28 passing, 1 skipped** (QA-6, below). Two high-severity concurrency
+bugs were found and **have since been fixed**; the tests that reproduced them are
+now permanent regression tests.
 
 ---
 
@@ -135,20 +135,20 @@ There is already a partial client-side mitigation that predates this work:
 `mergeActiveDowntime()` in `src/domain/downtime.ts` merges local over remote when
 a remote row is applied in `applyRemoteCampaign`.
 
-### QA-3 — "Beitreten" is German in an otherwise English UI · **low**
+### QA-3 — "Beitreten" is German in an otherwise English UI · **low** · ✅ fixed
 
-`src/ui/QuestInvitePopup.tsx:57`. The quest-invite popup's join button is the
-only German string on that path; the rest of the screen is English.
+`src/ui/QuestInvitePopup.tsx`. The quest-invite popup's join button was the only
+German string on that path. Now "Join".
 
-### QA-4 — Calendar heading truncates to "CALENDAR · 2…" · **low**
+### QA-4 — Calendar heading truncates to "CALENDAR · 2…" · **low** · ✅ fixed
 
-Visible on Camp at 390 px (`docs/screenshots/camp-owner-fresh.png`). The card
-title plus day count does not fit the column.
+At 390 px the half-width Camp card could not fit "Calendar · 25 days", so it
+truncated away the very number it was showing. Now "Calendar · 25d".
 
-### QA-5 — Quest board hard-codes "Ancient Forest" · **low**
+### QA-5 — Quest board hard-codes "Ancient Forest" · **low** · ✅ fixed
 
-`src/screens/QuestScreen.tsx:76` prints the box name as a literal, so it will be
-wrong for any other box. Relevant to the planned per-box work.
+`src/screens/QuestScreen.tsx` printed the box name as a literal. It now lists the
+campaign's actual owned boxes, which fell out of the per-box work.
 
 ---
 
