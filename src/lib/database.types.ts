@@ -193,6 +193,15 @@ export interface Database {
         };
         Returns: unknown;
       };
+      /** As `merge_active_quest`, for the downtime day's per-hunter maps. */
+      merge_active_downtime: {
+        Args: {
+          p_campaign_id: string;
+          p_downtime: unknown;
+          p_hunter_id: string;
+        };
+        Returns: unknown;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

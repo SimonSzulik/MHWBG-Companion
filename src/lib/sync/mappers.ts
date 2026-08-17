@@ -250,18 +250,13 @@ export function rowToHunter(row: HunterRow): Hunter {
 }
 
 /**
- * Every `campaign_state` column *except* `active_quest`.
+ * Every `campaign_state` column *except* `active_quest` and `active_downtime`.
  *
- * `active_quest` is written separately through the `merge_active_quest` RPC:
- * it is one jsonb blob holding per-hunter sub-state (`readyHunterIds`,
- * `lootProgress`, `investigationLoot`), so a plain last-write-wins column
- * update lets two clients clobber each other's hunters. See docs/qa/e2e-report.md
- * (QA-1, QA-2).
- *
- * `active_downtime` has the same shape and the same hazard, but is still a
- * plain column write — see QA-6 in the report. It is partly mitigated on the
- * client by `mergeActiveDowntime` (`src/domain/downtime.ts`), which merges
- * local over remote when a remote row is applied.
+ * Both are single jsonb blobs holding per-hunter sub-state — `readyHunterIds` /
+ * `lootProgress` / `investigationLoot` for a quest, and six hunter-keyed maps
+ * plus `confirmedHunterIds` for a downtime day. A plain last-write-wins column
+ * update lets concurrent clients clobber each other's hunters, so both go
+ * through merge RPCs instead. See docs/qa/e2e-report.md (QA-1, QA-2, QA-6).
  */
 export function campaignToStateUpdate(
   c: Campaign,
@@ -271,7 +266,6 @@ export function campaignToStateUpdate(
     items: c.items,
     hunts_completed: c.questCompletions,
     day_log: c.dayLog,
-    active_downtime: c.activeDowntime ?? null,
     pending_handler_quest: c.pendingHandlerQuestId ?? null,
     pending_trades: c.pendingTrades ?? [],
   };

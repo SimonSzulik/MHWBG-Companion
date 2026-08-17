@@ -396,6 +396,7 @@ function allHuntersReady(campaign: Campaign, aq: ActiveQuest): boolean {
   return campaign.hunters.every((h) => aq.readyHunterIds.includes(h.id));
 }
 
+
 function tryAdvanceToActive(campaign: Campaign): Campaign {
   const aq = campaign.activeQuest;
   if (!aq || aq.phase !== "lobby") return campaign;

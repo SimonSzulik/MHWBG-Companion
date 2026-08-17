@@ -563,12 +563,11 @@ grant execute on function public.jsonb_merge_own_key(jsonb, jsonb, text) to auth
 -- merge_active_downtime: the same atomic merge for campaign_state.active_downtime,
 -- whose six hunter-keyed maps plus confirmedHunterIds carry the same hazard.
 --
--- NOT YET WIRED UP. The function exists and is applied, but the client still
--- writes active_downtime as a plain column update, because the end-to-end test
--- for it (tests/e2e/downtime-race.spec.ts) does not pass yet and an unverified
--- change to the sync path is not worth shipping. See QA-6 in docs/qa/e2e-report.md.
--- On the client there is already a partial mitigation: mergeActiveDowntime()
--- in src/domain/downtime.ts merges local over remote when a remote row arrives.
+-- Wired up: src/lib/sync/engine.ts pushes active_downtime through this instead
+-- of writing the column. Verified fix for QA-6 (three simultaneous "Finish day"
+-- taps previously left 1 of 3 confirmations on the server). Note QA-7 remains
+-- open: the confirmations now all land, but no client re-checks "everyone
+-- confirmed" afterwards, so the day does not advance on its own.
 create or replace function public.merge_active_downtime(
   p_campaign_id uuid,
   p_downtime jsonb,

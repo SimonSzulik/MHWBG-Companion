@@ -29,6 +29,8 @@ interface PushSnaps {
   state: string;
   /** `active_quest`, tracked separately because it is written via RPC. */
   quest: string;
+  /** `active_downtime`, likewise. */
+  downtime: string;
   hunters: Record<string, string>;
 }
 
@@ -587,6 +589,7 @@ function pushSnapsOf(c: Campaign): PushSnaps {
     // quest-only change would never be pushed.
     state: stableStringify(campaignToStateUpdate(c)),
     quest: stableStringify(c.activeQuest ?? null),
+    downtime: stableStringify(c.activeDowntime ?? null),
     hunters: Object.fromEntries(c.hunters.map((h) => [h.id, hunterSnap(h)])),
   };
 }
@@ -604,6 +607,7 @@ function snapshot(c: Campaign): string {
     meta: snaps.meta,
     state: snaps.state,
     quest: snaps.quest,
+    downtime: snaps.downtime,
     hunters: ids.map((id) => [id, snaps.hunters[id]]),
   });
 }
@@ -640,6 +644,9 @@ async function push(campaign: Campaign): Promise<void> {
     }
     if (!lastSnaps || snaps.quest !== lastSnaps.quest) {
       await pushActiveQuest(campaign, userId);
+    }
+    if (!lastSnaps || snaps.downtime !== lastSnaps.downtime) {
+      await pushActiveDowntime(campaign, userId);
     }
     await syncHunters(campaign.id, campaign.hunters, userId, snaps.hunters);
     lastSnaps = snaps;
@@ -685,6 +692,30 @@ async function pushActiveQuest(campaign: Campaign, userId: string | null) {
   const { error } = await supabase.rpc("merge_active_quest", {
     p_campaign_id: campaign.id,
     p_quest: quest,
+    p_hunter_id: hunterId,
+  });
+  if (error) throw error;
+}
+
+/**
+ * `active_downtime` carries the same hazard as `active_quest`: six hunter-keyed
+ * maps plus `confirmedHunterIds` in one blob, written by everyone at once when
+ * the party finishes a downtime day. Lost confirmations strand the party on
+ * "waiting for N more hunters" with no way forward.
+ */
+async function pushActiveDowntime(campaign: Campaign, userId: string | null) {
+  const downtime = campaign.activeDowntime ?? null;
+  const hunterId = ownHunter(campaign, userId)?.id;
+  if (!hunterId) {
+    await supabase
+      .from("campaign_state")
+      .update({ active_downtime: downtime })
+      .eq("campaign_id", campaign.id);
+    return;
+  }
+  const { error } = await supabase.rpc("merge_active_downtime", {
+    p_campaign_id: campaign.id,
+    p_downtime: downtime,
     p_hunter_id: hunterId,
   });
   if (error) throw error;

@@ -11,6 +11,11 @@ import { campaignByJoinCode, clientFor, stateOf, waitFor } from "./helpers/db";
  * If a confirmation is lost the day never advances: the party is stuck on
  * "waiting for N more hunters" with no way forward. The day counter is
  * therefore the assertion that matters.
+ *
+ * Note each hunter must pick exactly `MAX_DOWNTIME_PICKS` (3) activities and
+ * resolve all of them before "Finish day" enables — that is the rule, not a
+ * bug. Poogie, Chef and Resource Center are the three that resolve without
+ * spending materials or starting a quest.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -42,14 +47,7 @@ test.afterAll(async () => {
   await Promise.all([aki?.dispose(), brand?.dispose(), cyra?.dispose()]);
 });
 
-test("a downtime day resolved by everyone at once still advances", async () => {
-  // UNFINISHED (QA-6). This reproduces something real — the second hunter's
-  // pick does not survive long enough for "Finish day" to enable — but it is
-  // not yet isolated well enough to say whether the cause is the same
-  // last-write-wins clobbering as QA-1/QA-2 or a slower sync settle. Marked
-  // fixme rather than deleted so the work is not lost. See docs/qa/e2e-report.md.
-  test.fixme(true, "QA-6: downtime concurrency not yet diagnosed");
-
+test("concurrent downtime confirmations are all recorded", async () => {
   const db = await clientFor("qa-dt-aki");
   const downtime = async () => (await stateOf(db, campaignId))?.active_downtime;
 
@@ -67,14 +65,25 @@ test("a downtime day resolved by everyone at once still advances", async () => {
     });
   }
 
-  // Each hunter picks Poogie (the one activity with no further choices) and
-  // resolves it. Done one at a time, so the race under test is purely the
-  // confirmation below.
+  // Each hunter picks and resolves their three activities. Done one at a time,
+  // so the race under test is purely the confirmation below.
   for (const hunter of [aki, brand, cyra]) {
     await hunter.page.getByText("Pet Poogie").first().click();
     const done = hunter.page.getByRole("button", { name: "Done" });
     await done.waitFor({ state: "visible", timeout: 20_000 });
     await done.click();
+
+    await hunter.page.getByText("Meowscular Chef").first().click();
+    await hunter.page.getByRole("button", { name: "Fire", exact: true }).click();
+    // The Chef panel stays open after choosing (unlike Poogie and the Resource
+    // Center, which close themselves), so step back out to the activity list.
+    await hunter.page.goto("/campaign/downtime");
+
+    await hunter.page.getByText("Resource Center").first().click();
+    await hunter.page
+      .getByRole("button", { name: /Confirm roll|Update roll/ })
+      .click();
+
     await expect(
       hunter.page.getByRole("button", { name: "Finish day" }),
     ).toBeEnabled({ timeout: 20_000 });
@@ -90,14 +99,35 @@ test("a downtime day resolved by everyone at once still advances", async () => {
     }),
   );
 
-  // If any confirmation were dropped, the day would never advance.
+  // QA-6: every hunter's confirmation and picks must survive the concurrent
+  // write. Before merge_active_downtime, only one of three survived.
+  const settled = await waitFor(
+    downtime,
+    (d) => d == null || (d.confirmedHunterIds ?? []).length === 3,
+    { timeout: 40_000 },
+  );
+  if (settled != null) {
+    expect(
+      settled.confirmedHunterIds,
+      "every hunter's confirmation must survive concurrent writes",
+    ).toHaveLength(3);
+    expect(Object.keys(settled.picks)).toHaveLength(3);
+  }
+});
+
+test("the day advances once every hunter has confirmed", async () => {
+  // KNOWN BUG (QA-7), separate from QA-6 above. The confirmations now all
+  // reach the server, but `confirmDowntime` decides "everyone is confirmed"
+  // from the confirming client's own view, so when the party taps "Finish day"
+  // together nobody ever observes the full set and the day never advances.
+  // The party is stranded on "waiting for N more hunters".
+  test.fail(true, "QA-7: nobody re-checks all-confirmed after a remote update");
+
+  const db = await clientFor("qa-dt-aki");
   const campaign = await waitFor(
     () => campaignByJoinCode(db, JOIN_CODE),
     (c) => c!.day === 2,
-    { timeout: 40_000 },
+    { timeout: 30_000 },
   );
-  expect(campaign!.day, "every hunter's confirmation must survive").toBe(2);
-
-  const after = await stateOf(db, campaignId);
-  expect(after!.active_downtime).toBeNull();
+  expect(campaign!.day).toBe(2);
 });

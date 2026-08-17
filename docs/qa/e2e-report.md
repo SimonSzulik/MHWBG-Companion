@@ -24,7 +24,7 @@ npm run dev
 E2E_BASE_URL=http://localhost:5173 E2E_SHARE_TOKEN= npm run test:e2e
 ```
 
-**Result: 28 passing, 1 skipped** (QA-6, below). Two high-severity concurrency
+**Result: 29 passing, 1 expected failure** (QA-7, below). Two high-severity concurrency
 bugs were found and **have since been fixed**; the tests that reproduced them are
 now permanent regression tests.
 
@@ -110,30 +110,59 @@ entries the quest starter seeds *for the whole party* in
 `completeQuestSuccess`. The party then never reached the loot screen. That is
 what the third rule in the table above exists for.
 
-### QA-6 — Downtime concurrency · **open, not diagnosed**
+### QA-6 — Concurrent downtime confirmations are lost · **high** · ✅ fixed
 
-`active_downtime` is the same shape and the same hazard: six hunter-keyed maps
-(`picks`, `provisions`, `resourceRoll`, `chefElement`, `handlerProposals`,
-`poogieDone`) plus `confirmedHunterIds`, in one jsonb column. A downtime day is
-by design "everyone picks, then everyone confirms", so concurrent writes are the
-rule rather than the exception.
+`active_downtime` has the same shape and hazard as `active_quest`: six
+hunter-keyed maps plus `confirmedHunterIds` in one jsonb column. A downtime day
+is by design "everyone picks, then everyone confirms", so concurrent writes are
+the rule, not the exception.
 
-`tests/e2e/downtime-race.spec.ts` reproduces *something* — with three hunters in
-a shared downtime day, the second hunter's Poogie pick does not survive long
-enough for "Finish day" to enable, and the server row ends up holding only one
-hunter's `picks` and `poogieDone`. What is **not** yet established is whether the
-cause is the QA-1/QA-2 clobbering or simply a slower sync settle that the test
-does not wait for.
+**Diagnosis took three steps, and the first read was wrong.** The original
+reproduction failed with "Finish day" disabled, which looked like a lost pick.
+It was not: `isHunterDowntimeReady` requires exactly `MAX_DOWNTIME_PICKS` (3)
+resolved activities, and the test picked one. *That was a bug in the test, not
+the app.*
 
-The test is therefore marked `test.fixme()` rather than deleted or claimed as a
-bug, and **the fix is deliberately not shipped**: a `merge_active_downtime` RPC
-is written and applied to the database (recorded in `supabase/schema.sql`), but
-the client still writes the column directly, because an unverified change to the
-sync path is not worth shipping on reasoning alone.
+A second diagnostic then showed sequential picks — even with no settling time —
+survive fine, because `mergeActiveDowntime()` in `src/domain/downtime.ts`
+already merges local over remote on pull.
 
-There is already a partial client-side mitigation that predates this work:
-`mergeActiveDowntime()` in `src/domain/downtime.ts` merges local over remote when
-a remote row is applied in `applyRemoteCampaign`.
+With the test corrected to pick three activities, the real bug appeared: after
+three hunters confirmed **simultaneously**, the server held 1 of 3 confirmations
+and 2 of 3 hunters' picks.
+
+Fixed by routing `active_downtime` through `merge_active_downtime`, the same
+row-locked per-hunter merge used for quests. Verified: all three confirmations,
+picks, Poogie and Chef selections now survive, 3 runs out of 3.
+
+### QA-7 — The day does not advance when everyone confirms together · **medium** · open
+
+Uncovered by fixing QA-6. The confirmations now all reach the server, but
+`confirmDowntime` (`src/store/campaign.ts`) decides "everyone is confirmed" from
+**the confirming client's own view**:
+
+```ts
+const confirmedHunterIds = [...dt.confirmedHunterIds, hunterId];
+const allConfirmed = hunterIds.every((id) => confirmedHunterIds.includes(id));
+```
+
+When the party taps "Finish day" together, no client ever observes the full set,
+so nothing applies the rewards or clears the day. The server row is correct and
+complete; the party is simply stranded on "waiting for N more hunters".
+
+Reproduces every run, and is asserted with `test.fail()` in
+`tests/e2e/downtime-race.spec.ts`.
+
+**Attempted and reverted.** Re-checking in `applyRemoteCampaign` (mirroring
+`tryAdvanceToActive`, gated on the campaign leader so the non-idempotent rewards
+cannot pay out twice) did **not** work: the leader's own push is suppressed as
+its own echo via `lastPushedSnapshot`, so the leader never re-enters that path
+with the complete set. Reverted rather than shipped — an unverified change to
+the sync path is not worth it.
+
+A correct fix probably belongs in the same RPC: have `merge_active_downtime`
+return the merged row and have the client adopt it, so the confirming client
+sees the true confirmation set rather than its own.
 
 ### QA-3 — "Beitreten" is German in an otherwise English UI · **low** · ✅ fixed
 
