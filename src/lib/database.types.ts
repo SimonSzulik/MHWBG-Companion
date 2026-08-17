@@ -9,6 +9,8 @@ export interface Database {
           id: string;
           name: string;
           box: string;
+          /** Physical boxes the group owns; see src/data/expansions.ts. */
+          boxes: string[];
           join_code: string;
           day: number;
           max_day: number;
@@ -21,6 +23,7 @@ export interface Database {
           id?: string;
           name?: string;
           box?: string;
+          boxes?: string[];
           join_code?: string;
           day?: number;
           max_day?: number;
@@ -30,6 +33,7 @@ export interface Database {
         Update: Partial<{
           name: string;
           box: string;
+          boxes: string[];
           day: number;
           max_day: number;
           leader_hunter_id: string | null;

@@ -81,12 +81,27 @@ export interface GearDef {
   notes?: string;
 }
 
+/**
+ * A physical product in the *Monster Hunter World* board game line.
+ *
+ * Only boxes whose content the app actually ships are listed. `"core"` is the
+ * sentinel for content common to every core box (ores, bones, potions, starter
+ * armour) — always owned, never shown in the picker.
+ */
+export type ExpansionId =
+  | "core"
+  | "ancient-forest"
+  | "wildspire-waste"
+  | "hunters-arsenal";
+
 export interface MonsterDef {
   id: string;
   name: string;
   /** e.g. "Brute Wyvern" */
   kind?: string;
   notes?: string;
+  /** Which box this monster comes in. */
+  expansion?: ExpansionId;
 }
 
 /** A weapon forge upgrade path (Ancient Forest reference cards). */
@@ -231,7 +246,18 @@ export function normalizeCalendarDayEntry(
 export interface Campaign {
   id: string;
   name: string;
+  /**
+   * @deprecated Display-only. Derived from `boxes`; read `boxes` for anything
+   * behavioural. Kept because the Supabase column is `not null` and older
+   * clients still read it.
+   */
   box: string;
+  /**
+   * The physical boxes this group owns. Filters what the quest board, forge and
+   * inventory *offer* — never what a hunter already owns. Always contains
+   * `"core"`.
+   */
+  boxes: ExpansionId[];
   /** In-game day counter, e.g. 8 of 60. */
   day: number;
   maxDay: number;

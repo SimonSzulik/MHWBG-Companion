@@ -5,6 +5,7 @@ import type {
   Campaign,
   DowntimeActivityId,
   ElementType,
+  ExpansionId,
   Hunter,
   HunterLootProgress,
   MonsterPartId,
@@ -16,6 +17,13 @@ import type {
 } from "../domain/types";
 import { normalizeCalendarDayEntry } from "../domain/types";
 import { gameData } from "../data/gameData";
+import {
+  DEFAULT_BOXES,
+  EXPANSION_BY_ID,
+  WEAPON_EXPANSION,
+  normalizeBoxes,
+  primaryBoxLabel,
+} from "../data/expansions";
 import { questsForMonster } from "../data/quests";
 import { clamp } from "../lib/math";
 import {
@@ -205,8 +213,15 @@ function migrateCampaign(raw: LegacyCampaignV4): Campaign {
       entry as Parameters<typeof normalizeCalendarDayEntry>[0],
     );
   }
+  // Saves predating box selection had access to every box the app shipped, so
+  // that is what they migrate to — defaulting them to Ancient Forest alone would
+  // make an existing Wildspire stash or an Arsenal hunter vanish from the UI.
+  const boxes = normalizeBoxes((rest as { boxes?: unknown }).boxes);
+
   return {
     ...rest,
+    boxes,
+    box: primaryBoxLabel(boxes),
     hunters,
     leaderId: rest.leaderId ?? hunters[0]?.id ?? "",
     questCompletions,
@@ -267,6 +282,8 @@ interface StartCampaignInput {
   weaponType: WeaponType;
   maxDay?: number;
   potions?: number;
+  /** Boxes the group owns; defaults to the first core box. */
+  boxes?: ExpansionId[];
 }
 
 interface CampaignState {
@@ -274,6 +291,8 @@ interface CampaignState {
   hydrated: boolean;
 
   startCampaign: (input: StartCampaignInput) => void;
+  /** Change which boxes the group owns. Never deletes owned gear or materials. */
+  setBoxes: (boxes: ExpansionId[]) => { ok: boolean; reason?: string };
   resetCampaign: () => void;
 
   addHunter: (input: {
@@ -458,6 +477,7 @@ export const useCampaign = create<CampaignState>()(
         weaponType,
         maxDay = 25,
         potions = 1,
+        boxes = DEFAULT_BOXES,
       }) => {
         const kit = starterKitFor(weaponType);
         const newHunter: Hunter = {
@@ -475,7 +495,8 @@ export const useCampaign = create<CampaignState>()(
           campaign: {
             id: uid(),
             name: campaignName || "Neue Kampagne",
-            box: gameData.box,
+            boxes: [...boxes],
+            box: primaryBoxLabel(boxes),
             day: 1,
             maxDay: Math.max(1, maxDay),
             leaderId: newHunter.id,
@@ -490,6 +511,53 @@ export const useCampaign = create<CampaignState>()(
             updatedAt: now,
           },
         });
+      },
+
+      setBoxes: (next) => {
+        const campaign = get().campaign;
+        if (!campaign) return { ok: false, reason: "No campaign." };
+        if (campaign.activeQuest || campaign.activeDowntime) {
+          return {
+            ok: false,
+            reason: "Finish the current quest or downtime day first.",
+          };
+        }
+
+        const boxes = normalizeBoxes(next);
+        const owned = new Set(boxes);
+
+        // A hunter cannot be left holding a weapon the party no longer owns.
+        const orphaned = campaign.hunters.filter((h) => {
+          const from = WEAPON_EXPANSION.get(h.weaponType);
+          return from != null && !owned.has(from);
+        });
+        if (orphaned.length > 0) {
+          return {
+            ok: false,
+            reason: `${orphaned
+              .map((h) => `${h.name} (${h.weaponType})`)
+              .join(", ")} would lose their weapon.`,
+          };
+        }
+
+        // Adding a box extends the campaign timer once, as the rulebook says
+        // (Ancient Forest p.38: +20 days for Wildspire Waste). Removing one
+        // never shortens it — days already played cannot be taken back.
+        const added = boxes.filter((b) => !campaign.boxes.includes(b));
+        const extraDays = added.reduce(
+          (sum, id) => sum + (EXPANSION_BY_ID.get(id)?.addsDays ?? 0),
+          0,
+        );
+
+        set({
+          campaign: touch({
+            ...campaign,
+            boxes,
+            box: primaryBoxLabel(boxes),
+            maxDay: campaign.maxDay + extraDays,
+          }),
+        });
+        return { ok: true };
       },
 
       resetCampaign: () => set({ campaign: null }),

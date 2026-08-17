@@ -641,3 +641,17 @@ $$;
 
 revoke all on function public.merge_active_downtime(uuid, jsonb, text) from public;
 grant execute on function public.merge_active_downtime(uuid, jsonb, text) to authenticated;
+
+-- Migration: per-campaign box ownership (re-run safe).
+--
+-- Which physical boxes a group owns. Filters what the quest board and weapon
+-- picker OFFER; it never removes gear or materials a hunter already has.
+-- See src/data/expansions.ts.
+--
+-- The default is everything the app shipped before this column existed, so
+-- pre-existing campaigns keep exactly the content they already had. Defaulting
+-- to Ancient Forest alone would make a Wildspire stash or an Arsenal hunter
+-- vanish from the UI.
+alter table public.campaign
+  add column if not exists boxes jsonb not null
+  default '["core","ancient-forest","wildspire-waste","hunters-arsenal"]'::jsonb;

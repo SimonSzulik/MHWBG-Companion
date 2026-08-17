@@ -21,6 +21,7 @@ import { normalizeCalendarDayEntry } from "../../domain/types";
 import { migrateInvestigationLoot } from "../../domain/questRewards";
 import { normalizeTradeRequest } from "../../domain/trade";
 import type { Database } from "../database.types";
+import { normalizeBoxes } from "../../data/expansions";
 
 type CampaignRow = Database["public"]["Tables"]["campaign"]["Row"];
 type StateRow = Database["public"]["Tables"]["campaign_state"]["Row"];
@@ -212,6 +213,7 @@ export function rowsToCampaign(
   return {
     id: campaign.id,
     name: campaign.name,
+    boxes: normalizeBoxes(campaign.boxes),
     box: campaign.box,
     day: campaign.day,
     maxDay: campaign.max_day,
@@ -280,6 +282,7 @@ export function campaignToCampaignUpdate(
 ): Database["public"]["Tables"]["campaign"]["Update"] {
   return {
     name: c.name,
+    boxes: c.boxes,
     box: c.box,
     day: c.day,
     max_day: c.maxDay,

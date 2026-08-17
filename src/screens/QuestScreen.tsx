@@ -6,12 +6,12 @@ import { useCampaign } from "../store/campaign";
 import { useOwnHunter } from "../store/hooks";
 import {
   MAX_QUEST_COMPLETIONS,
-  QUEST_MONSTERS,
   STAR_ORDER,
   questsForMonster,
   type QuestDef,
   type QuestStars,
 } from "../data/quests";
+import { questsForBoxes } from "../domain/catalog";
 import {
   canStartQuest,
   isQuestFullyCompleted,
@@ -21,6 +21,7 @@ import {
   questLockReason,
 } from "../domain/quests";
 import { iconUrl } from "../domain/icons";
+import { EXPANSION_BY_ID } from "../data/expansions";
 
 const STAR_COUNT: Record<QuestStars, number> = {
   "one-star": 1,
@@ -58,7 +59,8 @@ export function QuestScreen() {
   const hasActiveQuest = campaign.activeQuest != null;
   const hasActiveDowntime = campaign.activeDowntime != null;
   const completions = campaign.questCompletions;
-  const allQuests = QUEST_MONSTERS.flatMap((m) => questsForMonster(m.id));
+  // Only offer hunts from the boxes this group actually owns.
+  const allQuests = questsForBoxes(campaign.boxes);
 
   const handleStart = (quest: QuestDef) => {
     const res = startQuest(quest.id, hunter.id);
@@ -78,7 +80,11 @@ export function QuestScreen() {
       <div className="mb-4 text-center">
         <p className="font-display text-3xl leading-none">Quest Board</p>
         <p className="mt-0.5 text-xs uppercase tracking-wide text-ink-soft">
-          Ancient Forest
+          {campaign.boxes
+            .map((id) => EXPANSION_BY_ID.get(id))
+            .filter((e) => e && !e.implicit)
+            .map((e) => e!.name)
+            .join(" · ")}
         </p>
       </div>
 

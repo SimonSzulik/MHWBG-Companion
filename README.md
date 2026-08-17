@@ -34,7 +34,7 @@ The other player gets a badge, and accepts or declines on their own device.
 
 <img src="docs/screenshots/readme-quests.png" width="240" align="right" alt="Quest board">
 
-Every quest in the box, grouped by star tier. Tiers unlock as the rulebook
+Every quest from the boxes you own, grouped by star tier. Tiers unlock as the rulebook
 dictates: an **Assigned** (1★) hunt opens the monster's **Investigation** (2★),
 which opens its **Tempered** hunts (3★/4★). Locked rows say why, and each row
 tracks how many times you have cleared it.
@@ -150,8 +150,21 @@ Radobaan), and the elder dragons (Kushala Daora, Nergigante, Teostra). What is
 still needed for each is tracked in **[docs/qa/missing-data.pdf](docs/qa/missing-data.pdf)**;
 sourced data lives in [docs/research/mhwbg-content-dossier.md](docs/research/mhwbg-content-dossier.md).
 
-> **Note:** the campaign currently shows every monster in the catalog. Per-campaign
-> selection of the boxes you actually own is not implemented yet.
+### Choosing your boxes
+
+Tick the boxes your group actually owns when you create a campaign, or later
+under **Settings → Boxes**. The quest board and the weapon picker then offer only
+what you own — a group with just Ancient Forest never sees Barroth or a Hunting
+Horn. Adding Wildspire Waste also adds 20 days to the campaign timer, as the
+rulebook requires.
+
+Unticking a box is safe mid-campaign: it only changes what is *offered*.
+Materials and gear a hunter already owns are never removed, and the app refuses
+the change if a hunter would lose the weapon they are playing.
+
+<p align="center">
+  <img src="docs/screenshots/readme-boxes.png" width="260" alt="Box selection">
+</p>
 
 ---
 

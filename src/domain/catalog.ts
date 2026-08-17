@@ -1,9 +1,14 @@
 import { gameData } from "../data/gameData";
+import { WEAPON_EXPANSION } from "../data/expansions";
+import { IMPLEMENTED_WEAPONS } from "../data/weapons";
+import { quests, type QuestDef } from "../data/quests";
 import type {
   ArmorForgeSet,
+  ExpansionId,
   GearDef,
   GearSlot,
   Hunter,
+  MonsterDef,
   WeaponForgePath,
   WeaponType,
 } from "./types";
@@ -13,6 +18,18 @@ const itemsById = new Map(gameData.items.map((i) => [i.id, i]));
 const gearById = new Map(gameData.gear.map((g) => [g.id, g]));
 const monstersById = new Map(gameData.monsters.map((m) => [m.id, m]));
 
+/**
+ * **Lookups are unfiltered; listings are filtered.**
+ *
+ * `catalog.gear(id)` / `.material(id)` / `.monster(id)` resolve against the
+ * complete catalog, so gear and materials a hunter acquired before a box was
+ * unticked still render with their real name and icon. Only the surfaces that
+ * *offer* new things — the quest board, the monster picker — go through
+ * `monstersForBoxes` / `questsForBoxes` below.
+ *
+ * Filtering these maps would make every item from an unticked box render blank,
+ * which reads as data loss even though nothing was lost.
+ */
 export const catalog = {
   material: (id: string) => materialsById.get(id),
   item: (id: string) => itemsById.get(id),
@@ -20,6 +37,29 @@ export const catalog = {
   monster: (id: string) => monstersById.get(id),
   all: gameData,
 };
+
+/** Monsters from the boxes this campaign owns, in catalog order. */
+export function monstersForBoxes(boxes: readonly ExpansionId[]): MonsterDef[] {
+  const owned = new Set(boxes);
+  return gameData.monsters.filter(
+    (m) => m.expansion == null || owned.has(m.expansion),
+  );
+}
+
+/** Quests whose monster comes from a box this campaign owns. */
+export function questsForBoxes(boxes: readonly ExpansionId[]): QuestDef[] {
+  const ids = new Set(monstersForBoxes(boxes).map((m) => m.id));
+  return quests.filter((q) => ids.has(q.monsterId));
+}
+
+/** Weapon types playable with the boxes this campaign owns. */
+export function weaponsForBoxes(boxes: readonly ExpansionId[]): WeaponType[] {
+  const owned = new Set(boxes);
+  return IMPLEMENTED_WEAPONS.filter((w) => {
+    const from = WEAPON_EXPANSION.get(w);
+    return from == null || owned.has(from);
+  });
+}
 
 export type CraftState = "owned" | "craftable" | "missing";
 

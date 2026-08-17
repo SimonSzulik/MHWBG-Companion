@@ -158,16 +158,18 @@ export const ancientForest: GameData = {
   ],
 
   monsters: [
-    { id: "jagras", name: "Great Jagras", kind: "Fanged Wyvern", notes: "First assigned investigation." },
-    { id: "tobi-kadachi", name: "Tobi-Kadachi", kind: "Fanged Wyvern", notes: "Thunder element." },
-    { id: "anjanath", name: "Anjanath", kind: "Brute Wyvern", notes: "Fire element." },
-    { id: "rathalos", name: "Rathalos", kind: "Flying Wyvern", notes: "King of the Skies." },
-    { id: "azure-rathalos", name: "Azure Rathalos", kind: "Flying Wyvern", notes: "Stronger Rathalos variant." },
-    { id: "pukei-pukei", name: "Pukei-Pukei", kind: "Bird Wyvern", notes: "Poison element." },
-    { id: "barroth", name: "Barroth", kind: "Brute Wyvern", notes: "Mud-armoured charger." },
-    { id: "diablos", name: "Diablos", kind: "Flying Wyvern", notes: "Tyrant of the sands." },
-    { id: "jyuratodus", name: "Jyuratodus", kind: "Piscine Wyvern", notes: "Water element." },
-    { id: "black-diablos", name: "Black Diablos", kind: "Flying Wyvern", notes: "Enraged Diablos variant." },
+    // Ancient Forest
+    { id: "jagras", name: "Great Jagras", kind: "Fanged Wyvern", notes: "First assigned investigation.", expansion: "ancient-forest" },
+    { id: "tobi-kadachi", name: "Tobi-Kadachi", kind: "Fanged Wyvern", notes: "Thunder element.", expansion: "ancient-forest" },
+    { id: "anjanath", name: "Anjanath", kind: "Brute Wyvern", notes: "Fire element.", expansion: "ancient-forest" },
+    { id: "rathalos", name: "Rathalos", kind: "Flying Wyvern", notes: "King of the Skies.", expansion: "ancient-forest" },
+    { id: "azure-rathalos", name: "Azure Rathalos", kind: "Flying Wyvern", notes: "Stronger Rathalos variant.", expansion: "ancient-forest" },
+    // Wildspire Waste
+    { id: "pukei-pukei", name: "Pukei-Pukei", kind: "Bird Wyvern", notes: "Poison element.", expansion: "wildspire-waste" },
+    { id: "barroth", name: "Barroth", kind: "Brute Wyvern", notes: "Mud-armoured charger.", expansion: "wildspire-waste" },
+    { id: "diablos", name: "Diablos", kind: "Flying Wyvern", notes: "Tyrant of the sands.", expansion: "wildspire-waste" },
+    { id: "jyuratodus", name: "Jyuratodus", kind: "Piscine Wyvern", notes: "Water element.", expansion: "wildspire-waste" },
+    { id: "black-diablos", name: "Black Diablos", kind: "Flying Wyvern", notes: "Enraged Diablos variant.", expansion: "wildspire-waste" },
   ],
 
   gear: [

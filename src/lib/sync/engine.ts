@@ -139,6 +139,10 @@ export async function createCloudCampaign(
     .insert({
       name: local.name,
       box: local.box,
+      // Must be written here, not left to the column default: startSync pulls
+      // the row straight back, so a default would silently replace the boxes
+      // the player just picked.
+      boxes: local.boxes,
       day: local.day,
       max_day: maxDay,
       owner_id: userId,
