@@ -19,6 +19,10 @@ The reward tables are transcribed, but the source records only *that* a roll is 
 | jyuratodus | 1, 7, 9, 12 | head, tail |
 | diablos | 6, 8, 10, 12 | head, tail, claws |
 | black-diablos | 6, 10, 11, 12 | head, tail, claws |
+| nergigante | 5, 6, 9, 12 | head, wings, claws, tail |
+| teostra | 10, 11, 12 | head, wings, tail |
+| kushala-daora | 3, 7, 10, 11 | head, wings, tail |
+| kulu-ya-ku | 7, 11, 12 | head, claws |
 
 ## 3. Monsters with no source data anywhere
 

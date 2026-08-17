@@ -20,6 +20,11 @@ export const BREAKABLE_PARTS: Record<string, MonsterPartId[]> = {
   jyuratodus: ["head", "tail"],
   diablos: ["head", "tail", "claws"],
   "black-diablos": ["head", "tail", "claws"],
+  // Single-monster expansions. "legs" is again dropped — no MonsterPartId.
+  "kulu-ya-ku": ["head", "claws"],
+  "kushala-daora": ["head", "wings", "tail"],
+  nergigante: ["head", "wings", "claws", "tail"],
+  teostra: ["head", "wings", "tail"],
 };
 
 export const LOOT_TABLES: Record<string, LootRow[]> = {
@@ -173,6 +178,65 @@ export const LOOT_TABLES: Record<string, LootRow[]> = {
     { roll: 10, materialId: "black-diablos-carapace" },
     { roll: 11, materialId: "majestic-horn" },
     { roll: 12, materialId: "black-spiral-horn" },
+  ],
+
+  // ===== Single-monster expansions =====
+  // Same source and the same partBreak caveat as the Wildspire tables above.
+  "kulu-ya-ku": [
+    { roll: 1, materialId: "shoulder-bone" },
+    { roll: 2, materialId: "kulu-ya-ku-plume" },
+    { roll: 3, materialId: "kulu-ya-ku-beak" },
+    { roll: 4, materialId: "earth-crystal" },
+    { roll: 5, materialId: "kulu-ya-ku-scale" },
+    { roll: 6, materialId: "kulu-ya-ku-hide" },
+    { roll: 7, materialId: "kulu-ya-ku-scale" },
+    { roll: 8, materialId: "bird-wyvern-gem" },
+    { roll: 9, materialId: "earth-crystal" },
+    { roll: 10, materialId: "boulder-bone" },
+    { roll: 11, materialId: "kulu-ya-ku-hide" },
+    { roll: 12, materialId: "kulu-ya-ku-plume" },
+  ],
+  "kushala-daora": [
+    { roll: 1, materialId: "daora-webbing" },
+    { roll: 2, materialId: "daora-gem" },
+    { roll: 3, materialId: "daora-claw" },
+    { roll: 4, materialId: "daora-dragon-scale" },
+    { roll: 5, materialId: "daora-carapace" },
+    { roll: 6, materialId: "daora-horn" },
+    { roll: 7, materialId: "daora-tail" },
+    { roll: 8, materialId: "elder-dragon-bone" },
+    { roll: 9, materialId: "elder-dragon-blood" },
+    { roll: 10, materialId: "daora-horn" },
+    { roll: 11, materialId: "daora-carapace" },
+    { roll: 12, materialId: "elder-dragon-bone" },
+  ],
+  nergigante: [
+    { roll: 1, materialId: "immortal-dragonscale" },
+    { roll: 2, materialId: "nergigante-talon" },
+    { roll: 3, materialId: "nergigante-carapace" },
+    { roll: 4, materialId: "nergigante-regrowth-plate" },
+    { roll: 5, materialId: "nergigante-horn" },
+    { roll: 6, materialId: "nergigante-tail" },
+    { roll: 7, materialId: "elder-dragon-bone" },
+    { roll: 8, materialId: "elder-dragon-blood" },
+    { roll: 9, materialId: "nergigante-regrowth-plate" },
+    { roll: 10, materialId: "nergigante-gem" },
+    { roll: 11, materialId: "elder-dragon-bone" },
+    { roll: 12, materialId: "nergigante-talon" },
+  ],
+  teostra: [
+    { roll: 1, materialId: "fire-dragon-scale" },
+    { roll: 2, materialId: "teostra-horn" },
+    { roll: 3, materialId: "teostra-webbing" },
+    { roll: 4, materialId: "teostra-gem" },
+    { roll: 5, materialId: "teostra-powder" },
+    { roll: 6, materialId: "teostra-carapace" },
+    { roll: 7, materialId: "fire-dragon-scale" },
+    { roll: 8, materialId: "novacrystal" },
+    { roll: 9, materialId: "firecell-stone" },
+    { roll: 10, materialId: "teostra-claw" },
+    { roll: 11, materialId: "teostra-mane" },
+    { roll: 12, materialId: "teostra-tail" },
   ],
 };
 

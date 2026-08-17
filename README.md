@@ -133,22 +133,32 @@ name is mapped to a synthetic address for Supabase Auth.)
 
 | | |
 | --- | --- |
-| Monsters | 10 |
-| Quests | 30 |
-| Loot tables | 10 |
+| Monsters | 14 |
+| Quests | 42 |
+| Loot tables | 14 |
 | Weapon types | 10 (4 core + 6 from Hunter's Arsenal) |
 | Weapon forge paths | 48 |
 | Armour sets | 7 |
 | Gear items | 149 |
-| Materials | 93 |
+| Materials | 119 |
 
-**Ancient Forest** — Great Jagras, Tobi-Kadachi, Anjanath, Rathalos, Azure Rathalos.
-**Wildspire Waste** — Barroth, Pukei-Pukei, Jyuratodus, Diablos, Black Diablos.
+| Box | Monsters |
+| --- | --- |
+| **Ancient Forest** | Great Jagras, Tobi-Kadachi, Anjanath, Rathalos, Azure Rathalos |
+| **Wildspire Waste** | Barroth, Pukei-Pukei, Jyuratodus, Diablos, Black Diablos |
+| **Hunter's Arsenal** | 6 extra weapon types |
+| **Kulu-Ya-Ku** | Kulu-Ya-Ku |
+| **Kushala Daora** · **Nergigante** · **Teostra** | the three elder dragons, each with a 5★ tempered hunt |
 
-Not yet included: Kirin, the Picking Bones monsters (Tzitzi-Ya-Ku, Great Girros,
-Radobaan), and the elder dragons (Kushala Daora, Nergigante, Teostra). What is
-still needed for each is tracked in **[docs/qa/missing-data.pdf](docs/qa/missing-data.pdf)**;
-sourced data lives in [docs/research/mhwbg-content-dossier.md](docs/research/mhwbg-content-dossier.md).
+Quests, reward tables and breakable parts are in for all of the above. **Forge
+paths and armour sets are not** for the monster expansions — those live on the
+printed forge reference cards, which no dataset covers.
+
+Not included at all: **Kirin** and the **Picking Bones** monsters (Tzitzi-Ya-Ku,
+Great Girros, Radobaan) — released after every community dataset stopped being
+maintained, so there is no source for them anywhere. What is still needed is
+tracked in **[docs/qa/missing-data.pdf](docs/qa/missing-data.pdf)**; sourced data
+lives in [docs/research/mhwbg-content-dossier.md](docs/research/mhwbg-content-dossier.md).
 
 ### Choosing your boxes
 

@@ -47,6 +47,26 @@ export const EXPANSIONS: ExpansionDef[] = [
       "Hunting Horn",
     ],
   },
+  {
+    id: "kulu-ya-ku",
+    name: "Kulu-Ya-Ku",
+    blurb: "The tool-using Bird Wyvern. Kickstarter exclusive.",
+  },
+  {
+    id: "kushala-daora",
+    name: "Kushala Daora",
+    blurb: "Elder Dragon of the steel winds. 5★ tempered hunt.",
+  },
+  {
+    id: "nergigante",
+    name: "Nergigante",
+    blurb: "Elder Dragon with regrowing spikes. 5★ tempered hunt.",
+  },
+  {
+    id: "teostra",
+    name: "Teostra",
+    blurb: "Elder Dragon of flame and blast. 5★ tempered hunt.",
+  },
 ];
 
 export const EXPANSION_BY_ID = new Map(EXPANSIONS.map((e) => [e.id, e]));
@@ -69,6 +89,8 @@ export const LEGACY_BOXES: ExpansionId[] = [
   "wildspire-waste",
   "hunters-arsenal",
 ];
+// Note: the monster expansions are deliberately absent — they were added after
+// box selection existed, so no save has ever implicitly had them.
 
 /** Weapon type -> the box that provides it. */
 export const WEAPON_EXPANSION = new Map<WeaponType, ExpansionId>(

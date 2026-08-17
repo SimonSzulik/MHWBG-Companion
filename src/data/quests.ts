@@ -4,9 +4,11 @@
  * 1★: max 1 success (failures do not count). 2★+: max 4 attempts (success or failure).
  */
 
-export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";
+import type { QuestStars } from "../domain/types";
 
-/** Assigned (1★), investigation (2★/3★), or tempered investigation (4★). */
+export type { QuestStars };
+
+/** Assigned (1★), investigation (2★), or tempered investigation (3★–5★). */
 export type QuestCategory = "assigned" | "investigation" | "tempered";
 
 export interface QuestDef {
@@ -34,6 +36,11 @@ export const QUEST_MONSTERS: { id: string; name: string; icon: string }[] = [
   { id: "jyuratodus", name: "Jyuratodus", icon: "jyuratodus" },
   { id: "diablos", name: "Diablos", icon: "diablos" },
   { id: "black-diablos", name: "Black Diablos", icon: "black-diablos" },
+  // Single-monster expansions.
+  { id: "kulu-ya-ku", name: "Kulu-Ya-Ku", icon: "kulu-ya-ku" },
+  { id: "kushala-daora", name: "Kushala Daora", icon: "kushala-daora" },
+  { id: "nergigante", name: "Nergigante", icon: "nergigante" },
+  { id: "teostra", name: "Teostra", icon: "teostra" },
 ];
 
 export const STAR_ORDER: QuestStars[] = [
@@ -41,6 +48,7 @@ export const STAR_ORDER: QuestStars[] = [
   "two-star",
   "three-star",
   "four-star",
+  "five-star",
 ];
 
 export const MAX_QUEST_COMPLETIONS = 4;
@@ -292,6 +300,106 @@ export const quests: QuestDef[] = [
     monsterId: "black-diablos",
     stars: "four-star",
     icon: "black-diablos",
+    type: "purple-head",
+  },
+
+  // ===== Single-monster expansions =====
+  // Same source as the Wildspire block. The elder dragons top out at 5★, which
+  // is why QuestStars has a five-star tier.
+  {
+    id: "kulu-ya-ku-1",
+    name: "Kulu-Ya-Ku",
+    monsterId: "kulu-ya-ku",
+    stars: "one-star",
+    icon: "kulu-ya-ku",
+    type: "white-head",
+  },
+  {
+    id: "kulu-ya-ku-2",
+    name: "Kulu-Ya-Ku",
+    monsterId: "kulu-ya-ku",
+    stars: "two-star",
+    icon: "kulu-ya-ku",
+    type: "white-head",
+  },
+  {
+    id: "kulu-ya-ku-3",
+    name: "Kulu-Ya-Ku",
+    monsterId: "kulu-ya-ku",
+    stars: "three-star",
+    icon: "kulu-ya-ku",
+    type: "white-head",
+  },
+  {
+    id: "kushala-daora-1",
+    name: "Kushala Daora",
+    monsterId: "kushala-daora",
+    stars: "one-star",
+    icon: "kushala-daora",
+    type: "purple-head",
+  },
+  {
+    id: "kushala-daora-2",
+    name: "Kushala Daora",
+    monsterId: "kushala-daora",
+    stars: "two-star",
+    icon: "kushala-daora",
+    type: "purple-head",
+  },
+  {
+    id: "kushala-daora-5",
+    name: "Kushala Daora",
+    monsterId: "kushala-daora",
+    stars: "five-star",
+    icon: "kushala-daora",
+    type: "purple-head",
+  },
+  {
+    id: "nergigante-1",
+    name: "Nergigante",
+    monsterId: "nergigante",
+    stars: "one-star",
+    icon: "nergigante",
+    type: "purple-head",
+  },
+  {
+    id: "nergigante-2",
+    name: "Nergigante",
+    monsterId: "nergigante",
+    stars: "two-star",
+    icon: "nergigante",
+    type: "purple-head",
+  },
+  {
+    id: "nergigante-5",
+    name: "Nergigante",
+    monsterId: "nergigante",
+    stars: "five-star",
+    icon: "nergigante",
+    type: "purple-head",
+  },
+  {
+    id: "teostra-1",
+    name: "Teostra",
+    monsterId: "teostra",
+    stars: "one-star",
+    icon: "teostra",
+    type: "purple-head",
+  },
+  {
+    id: "teostra-2",
+    name: "Teostra",
+    monsterId: "teostra",
+    stars: "two-star",
+    icon: "teostra",
+    type: "purple-head",
+  },
+  {
+    id: "teostra-5",
+    name: "Teostra",
+    monsterId: "teostra",
+    stars: "five-star",
+    icon: "teostra",
     type: "purple-head",
   },
 ];

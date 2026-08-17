@@ -23,6 +23,7 @@ export const ancientForest: GameData = {
     { id: "monster-hardbone", name: "Monster Hardbone", group: "material", iconType: "white-bone" },
     { id: "ancient-bone", name: "Ancient Bone", group: "material", iconType: "white-bone" },
     { id: "boulder-bone", name: "Boulder Bone", group: "material", iconType: "white-bone" },
+    { id: "shoulder-bone", name: "Shoulder Bone", group: "material", iconType: "white-bone" },
     { id: "dragonvein-crystal", name: "Dragonvein Crystal", group: "material", iconType: "white-gem" },
     { id: "wingdrake-hide", name: "Wingdrake Hide", group: "material", iconType: "white-pelt" },
 
@@ -138,6 +139,47 @@ export const ancientForest: GameData = {
       ["black-diablos-ridge", "Black Diablos Ridge", "Ridge", "white-head"],
     ]),
 
+    // ----- Kulu-Ya-Ku -----
+    ...monsterParts("kulu-ya-ku", [
+      ["kulu-ya-ku-beak", "Kulu-Ya-Ku Beak", "Beak", "white-head"],
+      ["kulu-ya-ku-hide", "Kulu-Ya-Ku Hide", "Hide", "white-pelt"],
+      ["kulu-ya-ku-plume", "Kulu-Ya-Ku Plume", "Plume", "white-wing"],
+      ["kulu-ya-ku-scale", "Kulu-Ya-Ku Scale", "Scale", "white-scale"],
+    ]),
+
+    // ----- Kushala Daora -----
+    ...monsterParts("kushala-daora", [
+      ["daora-carapace", "Daora Carapace", "Carapace", "white-carapace"],
+      ["daora-claw", "Daora Claw", "Claw", "white-claw"],
+      ["daora-dragon-scale", "Daora Dragon Scale", "Scale", "white-scale"],
+      ["daora-gem", "Daora Gem", "Gem", "white-gem"],
+      ["daora-horn", "Daora Horn", "Horn", "white-head"],
+      ["daora-tail", "Daora Tail", "Tail", "white-tail"],
+      ["daora-webbing", "Daora Webbing", "Webbing", "white-wing"],
+    ]),
+
+    // ----- Nergigante -----
+    ...monsterParts("nergigante", [
+      ["nergigante-carapace", "Nergigante Carapace", "Carapace", "white-carapace"],
+      ["nergigante-gem", "Nergigante Gem", "Gem", "white-gem"],
+      ["nergigante-horn", "Nergigante Horn", "Horn", "white-head"],
+      ["nergigante-regrowth-plate", "Nergigante Regrowth Plate", "Plate", "white-plate"],
+      ["nergigante-tail", "Nergigante Tail", "Tail", "white-tail"],
+      ["nergigante-talon", "Nergigante Talon", "Talon", "white-claw"],
+    ]),
+
+    // ----- Teostra -----
+    ...monsterParts("teostra", [
+      ["teostra-carapace", "Teostra Carapace", "Carapace", "white-carapace"],
+      ["teostra-claw", "Teostra Claw", "Claw", "white-claw"],
+      ["teostra-gem", "Teostra Gem", "Gem", "white-gem"],
+      ["teostra-horn", "Teostra Horn", "Horn", "white-head"],
+      ["teostra-mane", "Teostra Mane", "Mane", "white-pelt"],
+      ["teostra-powder", "Teostra Powder", "Powder", "white-sac"],
+      ["teostra-tail", "Teostra Tail", "Tail", "white-tail"],
+      ["teostra-webbing", "Teostra Webbing", "Webbing", "white-wing"],
+    ]),
+
     // ----- Jyuratodus -----
     ...monsterParts("jyuratodus", [
       ["jyuratodus-carapace", "Jyuratodus Carapace", "Carapace", "white-carapace"],
@@ -170,6 +212,11 @@ export const ancientForest: GameData = {
     { id: "diablos", name: "Diablos", kind: "Flying Wyvern", notes: "Tyrant of the sands.", expansion: "wildspire-waste" },
     { id: "jyuratodus", name: "Jyuratodus", kind: "Piscine Wyvern", notes: "Water element.", expansion: "wildspire-waste" },
     { id: "black-diablos", name: "Black Diablos", kind: "Flying Wyvern", notes: "Enraged Diablos variant.", expansion: "wildspire-waste" },
+    // Single-monster expansions.
+    { id: "kulu-ya-ku", name: "Kulu-Ya-Ku", kind: "Bird Wyvern", notes: "Fights with a borrowed tool.", expansion: "kulu-ya-ku" },
+    { id: "kushala-daora", name: "Kushala Daora", kind: "Elder Dragon", notes: "Cloaked in steel winds.", expansion: "kushala-daora" },
+    { id: "nergigante", name: "Nergigante", kind: "Elder Dragon", notes: "Spikes regrow as it feeds.", expansion: "nergigante" },
+    { id: "teostra", name: "Teostra", kind: "Elder Dragon", notes: "Flame and blast dust.", expansion: "teostra" },
   ],
 
   gear: [

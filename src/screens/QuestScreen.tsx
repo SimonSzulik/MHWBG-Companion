@@ -28,6 +28,7 @@ const STAR_COUNT: Record<QuestStars, number> = {
   "two-star": 2,
   "three-star": 3,
   "four-star": 4,
+  "five-star": 5,
 };
 
 /**
@@ -41,6 +42,7 @@ const STAR_TYPE_LABEL: Record<QuestStars, string> = {
   "two-star": "Investigation",
   "three-star": "Tempered",
   "four-star": "Tempered",
+  "five-star": "Tempered",
 };
 
 /** Quest board, grouped by star difficulty; expand a tier to pick a hunt. */
@@ -160,7 +162,7 @@ export function QuestScreen() {
           const quests = allQuests.filter((q) => q.stars === stars);
           if (quests.length === 0) return null;
           const open = openStar === stars;
-          const tempered = stars === "four-star";
+          const tempered = stars === "four-star" || stars === "five-star";
 
           return (
             <div key={stars} className="paper-card overflow-hidden">

@@ -92,7 +92,12 @@ export type ExpansionId =
   | "core"
   | "ancient-forest"
   | "wildspire-waste"
-  | "hunters-arsenal";
+  | "hunters-arsenal"
+  // Single-monster expansions.
+  | "kulu-ya-ku"
+  | "kushala-daora"
+  | "nergigante"
+  | "teostra";
 
 export interface MonsterDef {
   id: string;
@@ -207,7 +212,13 @@ export type MaterialStash = Record<string, number>;
 /** itemId -> quantity. */
 export type ItemStash = Record<string, number>;
 
-export type QuestStars = "one-star" | "two-star" | "three-star" | "four-star";
+export type QuestStars =
+  | "one-star"
+  | "two-star"
+  | "three-star"
+  | "four-star"
+  /** Elder dragons (Kushala Daora, Nergigante, Teostra) top out at 5★. */
+  | "five-star";
 
 /** Snapshot of quest loot stored on the calendar day entry. */
 export interface QuestDayReport {
