@@ -101,10 +101,8 @@ test("the lobby only releases the hunt once every hunter is ready", async () => 
 });
 
 test("the party investigates and the starter closes the phase", async () => {
-  // With all hunters ready the lobby releases on its own; force-start otherwise.
-  const forceStart = aki.page.getByRole("button", { name: "Start now (test)" });
-  if (await forceStart.isVisible().catch(() => false)) await forceStart.click();
-
+  // With every hunter joined, the lobby releases on its own — there is no
+  // force-start any more, by design.
   await expect(
     aki.page.getByRole("heading", { name: "Investigation" }),
   ).toBeVisible({ timeout: 30_000 });

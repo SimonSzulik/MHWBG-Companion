@@ -118,6 +118,7 @@ export function DowntimeScreen() {
   const myPicks = dt.picks[hunter.id] ?? [];
   const handlerPool = handlerQuestPool(campaign.questCompletions);
   const downtimeReady = isHunterDowntimeReady(hunter.id, dt, hunterIds);
+  const isLeader = hunter.id === campaign.leaderId;
 
   const openActivityCard = (id: DowntimeActivityId) => {
     const cur = [...myPicks];
@@ -296,16 +297,21 @@ export function DowntimeScreen() {
           </button>
 
           <div className="mt-4 flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                cancelDowntime();
-                navigate("/");
-              }}
-              className="flex-1 py-3 text-sm font-semibold"
-            >
-              Cancel
-            </Button>
+            {/* Cancelling scraps the day for the whole party, so it is the
+                leader's call — everyone else just finishes their own day. */}
+            {isLeader && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const res = cancelDowntime(hunter.id);
+                  if (!res.ok && res.reason) alert(res.reason);
+                  else navigate("/");
+                }}
+                className="flex-1 py-3 text-sm font-semibold"
+              >
+                Cancel
+              </Button>
+            )}
             <Button
               onClick={() => {
                 if (!downtimeReady) {

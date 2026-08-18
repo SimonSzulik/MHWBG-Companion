@@ -89,8 +89,6 @@ test("simultaneous loot confirmations are not lost", async ({ browser }) => {
     timeout: 30_000,
   });
 
-  const forceStart = aki.page.getByRole("button", { name: "Start now (test)" });
-  if (await forceStart.isVisible().catch(() => false)) await forceStart.click();
   await waitFor(quest, (q) => q?.phase === "investigation", { timeout: 30_000 });
 
   await aki.page.getByRole("button", { name: "Finished investigating" }).click();

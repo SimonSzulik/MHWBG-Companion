@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Screen } from "../ui/Screen";
 import { useCampaign } from "../store/campaign";
+import { useOwnHunter } from "../store/hooks";
 import { useAuth } from "../store/auth";
 import { stopSync } from "../lib/sync/engine";
 import { exportCampaign, importCampaign } from "../lib/backup";
@@ -12,6 +13,11 @@ import { BoxPicker } from "../ui/BoxPicker";
 export function Settings() {
   const nav = useNavigate();
   const campaign = useCampaign((s) => s.campaign);
+  const { hunter } = useOwnHunter();
+  const isLeader = Boolean(hunter && campaign && hunter.id === campaign.leaderId);
+  const leaderName =
+    campaign?.hunters.find((h) => h.id === campaign.leaderId)?.name ??
+    "the campaign leader";
   const resetCampaign = useCampaign((s) => s.resetCampaign);
   const setBoxes = useCampaign((s) => s.setBoxes);
   const signOut = useAuth((s) => s.signOut);
@@ -68,19 +74,20 @@ export function Settings() {
         </p>
       </Section>
 
-      {campaign && (
+      {campaign && hunter && (
         <Section title="Boxes">
           <BoxPicker
             value={campaign.boxes}
+            disabled={!isLeader}
             onChange={(boxes) => {
-              const res = setBoxes(boxes);
+              const res = setBoxes(boxes, hunter.id);
               if (!res.ok) alert(res.reason);
             }}
           />
           <p className="text-xs text-ink-soft">
-            Only affects what the quest board and weapon picker offer. Materials
-            and gear you already own are never removed. Adding Wildspire Waste
-            also adds 20 days to the campaign timer, as the rulebook says.
+            {isLeader
+              ? "Only affects what the quest board and weapon picker offer. Materials and gear you already own are never removed. Adding Wildspire Waste also adds 20 days to the campaign timer, as the rulebook says."
+              : `Only ${leaderName} can change which boxes the group owns.`}
           </p>
         </Section>
       )}
