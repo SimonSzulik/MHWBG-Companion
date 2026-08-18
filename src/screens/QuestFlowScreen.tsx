@@ -30,7 +30,6 @@ export function QuestFlowScreen() {
   const [showPersonalLoot, setShowPersonalLoot] = useState(false);
 
   const leaveQuestLobby = useCampaign((s) => s.leaveQuestLobby);
-  const forceStartQuest = useCampaign((s) => s.forceStartQuest);
   const joinQuest = useCampaign((s) => s.joinQuest);
   const setInvestigationLoot = useCampaign((s) => s.setInvestigationLoot);
   const finishInvestigation = useCampaign((s) => s.finishInvestigation);
@@ -127,26 +126,22 @@ export function QuestFlowScreen() {
             </ul>
           </div>
 
-          <div className="flex w-full flex-col gap-2">
+          {/*
+            No force-start. The hunt begins when every hunter has joined —
+            that is the party's consent, and it is the only way in.
+          */}
+          {ready && (
             <Button
-              onClick={() => forceStartQuest()}
-              className="w-full py-3 text-sm font-semibold"
+              variant="secondary"
+              onClick={() => {
+                leaveQuestLobby(hunter.id);
+                navigate("/campaign/quests");
+              }}
+              className="w-full bg-paper-2 py-3 text-sm font-semibold"
             >
-              Start now (test)
+              Leave
             </Button>
-            {ready && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  leaveQuestLobby(hunter.id);
-                  navigate("/campaign/quests");
-                }}
-                className="w-full bg-paper-2 py-3 text-sm font-semibold"
-              >
-                Leave
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </QuestPhaseScreen>
     );
@@ -260,37 +255,55 @@ export function QuestFlowScreen() {
             </button>
           )}
 
-          <div className="grid w-full grid-cols-2 gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => completeQuestSuccess()}
-              className="bg-ok py-4 text-sm font-bold text-white"
-            >
-              Completed
-            </Button>
-            <Button
-              onClick={() => {
-                if (quest.stars === "one-star") {
-                  setShowFailureChoice(true);
-                } else {
-                  setShowHighTierFailureConfirm(true);
-                }
-              }}
-              className="py-4 text-sm font-bold"
-            >
-              Failure
-            </Button>
-          </div>
+          {/*
+            Only the hunter who started the hunt calls it, the same authority
+            that already governs cancelling during the investigation. Otherwise
+            any one player could end everyone's hunt — and on a failure, bin
+            everyone's gathered loot.
+          */}
+          {isStarter ? (
+            <div className="grid w-full grid-cols-2 gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const res = completeQuestSuccess(hunter.id);
+                  if (!res.ok && res.reason) alert(res.reason);
+                }}
+                className="bg-ok py-4 text-sm font-bold text-white"
+              >
+                Completed
+              </Button>
+              <Button
+                onClick={() => {
+                  if (quest.stars === "one-star") {
+                    setShowFailureChoice(true);
+                  } else {
+                    setShowHighTierFailureConfirm(true);
+                  }
+                }}
+                className="py-4 text-sm font-bold"
+              >
+                Failure
+              </Button>
+            </div>
+          ) : (
+            <p className="w-full text-center text-sm text-ink-soft">
+              Waiting for {starter?.name ?? "the quest starter"} to call the
+              hunt…
+            </p>
+          )}
         </div>
 
         {showFailureChoice && (
           <QuestFailureChoiceDialog
             onKeepLoot={() => {
-              completeQuestFailure(true);
+              const res = completeQuestFailure(hunter.id, true);
+              if (!res.ok && res.reason) alert(res.reason);
               setShowFailureChoice(false);
             }}
             onDiscardLoot={() => {
-              completeQuestFailure(false);
+              const res = completeQuestFailure(hunter.id, false);
+              if (!res.ok && res.reason) alert(res.reason);
               setShowFailureChoice(false);
             }}
             onCancel={() => setShowFailureChoice(false)}
@@ -302,7 +315,8 @@ export function QuestFlowScreen() {
             title="Quest failed?"
             message="All investigation loot and progress are lost. One campaign day will pass."
             onConfirm={() => {
-              completeQuestFailure(false);
+              const res = completeQuestFailure(hunter.id, false);
+              if (!res.ok && res.reason) alert(res.reason);
               setShowHighTierFailureConfirm(false);
             }}
             onCancel={() => setShowHighTierFailureConfirm(false)}

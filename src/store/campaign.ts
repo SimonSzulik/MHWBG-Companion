@@ -292,7 +292,10 @@ interface CampaignState {
 
   startCampaign: (input: StartCampaignInput) => void;
   /** Change which boxes the group owns. Never deletes owned gear or materials. */
-  setBoxes: (boxes: ExpansionId[]) => { ok: boolean; reason?: string };
+  setBoxes: (
+    boxes: ExpansionId[],
+    hunterId: string,
+  ) => { ok: boolean; reason?: string };
   resetCampaign: () => void;
 
   addHunter: (input: {
@@ -309,7 +312,7 @@ interface CampaignState {
 
   craftGear: (hunterId: string, gearId: string) => { ok: boolean; reason?: string };
 
-  setDay: (day: number) => void;
+  setDay: (day: number, hunterId: string) => { ok: boolean; reason?: string };
   incrementQuest: (questId: string) => void;
 
   applyRemoteCampaign: (campaign: Campaign) => void;
@@ -325,8 +328,6 @@ interface CampaignState {
   ) => { ok: boolean; reason?: string };
   joinQuest: (hunterId: string) => { ok: boolean; reason?: string };
   leaveQuestLobby: (hunterId: string) => void;
-  /** Dev/test: advance the lobby to investigation regardless of readiness. */
-  forceStartQuest: () => void;
   setInvestigationLoot: (
     hunterId: string,
     materialId: string,
@@ -336,8 +337,11 @@ interface CampaignState {
   /** Abort during investigation; clears the active quest for everyone. */
   cancelQuest: (hunterId: string) => { ok: boolean; reason?: string };
   useQuestPotion: (hunterId: string) => { ok: boolean; reason?: string };
-  completeQuestFailure: (keepInvestigationLoot?: boolean) => void;
-  completeQuestSuccess: () => void;
+  completeQuestFailure: (
+    hunterId: string,
+    keepInvestigationLoot?: boolean,
+  ) => { ok: boolean; reason?: string };
+  completeQuestSuccess: (hunterId: string) => { ok: boolean; reason?: string };
   setLootDice: (hunterId: string, dice: [number, number]) => void;
   setLootChoice: (
     hunterId: string,
@@ -371,7 +375,7 @@ interface CampaignState {
     questId: string,
   ) => { ok: boolean; reason?: string };
   confirmDowntime: (hunterId: string) => { ok: boolean; reason?: string };
-  cancelDowntime: () => void;
+  cancelDowntime: (hunterId: string) => { ok: boolean; reason?: string };
 
   proposeTrade: (
     fromHunterId: string,
@@ -390,6 +394,45 @@ function backfillStarterKits(campaign: Campaign): Campaign {
   );
   const changed = hunters.some((h, i) => h !== campaign.hunters[i]);
   return changed ? { ...campaign, hunters } : campaign;
+}
+
+type Denied = { ok: false; reason: string };
+
+/**
+ * Who may do what, in one place.
+ *
+ * A campaign is shared, and anyone holding the join code can enter it. That is
+ * fine — but a single hunter must not be able to overturn the group's campaign.
+ * So the party-wide actions are split three ways:
+ *
+ *   starting a hunt      -> every hunter must join (the lobby enforces it)
+ *   the hunt in progress -> the hunter who started it decides
+ *   campaign settings    -> the leader decides
+ *
+ * Both helpers no-op for a solo campaign, where you are both starter and leader.
+ */
+function questStarterOnly(
+  aq: ActiveQuest,
+  hunterId: string,
+  campaign: Campaign,
+): Denied | null {
+  if (campaign.hunters.length <= 1) return null;
+  if (hunterId === aq.startedByHunterId) return null;
+  const starter = campaign.hunters.find((h) => h.id === aq.startedByHunterId);
+  return {
+    ok: false,
+    reason: `Only ${starter?.name ?? "the quest starter"} can end this hunt.`,
+  };
+}
+
+function leaderOnly(campaign: Campaign, hunterId: string): Denied | null {
+  if (campaign.hunters.length <= 1) return null;
+  if (hunterId === campaign.leaderId) return null;
+  const leader = campaign.hunters.find((h) => h.id === campaign.leaderId);
+  return {
+    ok: false,
+    reason: `Only ${leader?.name ?? "the campaign leader"} can change this.`,
+  };
 }
 
 function allHuntersReady(campaign: Campaign, aq: ActiveQuest): boolean {
@@ -514,9 +557,11 @@ export const useCampaign = create<CampaignState>()(
         });
       },
 
-      setBoxes: (next) => {
+      setBoxes: (next, hunterId) => {
         const campaign = get().campaign;
         if (!campaign) return { ok: false, reason: "No campaign." };
+        const denied = leaderOnly(campaign, hunterId);
+        if (denied) return denied;
         if (campaign.activeQuest || campaign.activeDowntime) {
           return {
             ok: false,
@@ -774,16 +819,19 @@ export const useCampaign = create<CampaignState>()(
         return { ok: true };
       },
 
-      setDay: (day) =>
-        set((s) => {
-          if (!s.campaign) return s;
-          return {
-            campaign: touch({
-              ...s.campaign,
-              day: clamp(Math.floor(day), 1, s.campaign.maxDay),
-            }),
-          };
-        }),
+      setDay: (day, hunterId) => {
+        const campaign = get().campaign;
+        if (!campaign) return { ok: false, reason: "No campaign." };
+        const denied = leaderOnly(campaign, hunterId);
+        if (denied) return denied;
+        set({
+          campaign: touch({
+            ...campaign,
+            day: clamp(Math.floor(day), 1, campaign.maxDay),
+          }),
+        });
+        return { ok: true };
+      },
 
       incrementQuest: (questId) =>
         set((s) => {
@@ -1036,23 +1084,6 @@ export const useCampaign = create<CampaignState>()(
           };
         }),
 
-      forceStartQuest: () =>
-        set((s) => {
-          if (!s.campaign?.activeQuest) return s;
-          const aq = s.campaign.activeQuest;
-          if (aq.phase !== "lobby") return s;
-          return {
-            campaign: touch({
-              ...s.campaign,
-              activeQuest: {
-                ...aq,
-                phase: "investigation",
-                investigationLoot: aq.investigationLoot ?? {},
-              },
-            }),
-          };
-        }),
-
       setInvestigationLoot: (hunterId, materialId, qty) => {
         const s = get();
         if (!s.campaign?.activeQuest) {
@@ -1167,55 +1198,57 @@ export const useCampaign = create<CampaignState>()(
         return { ok: true };
       },
 
-      completeQuestFailure: (keepInvestigationLoot) =>
-        set((s) => {
-          if (!s.campaign?.activeQuest) return s;
-          const aq = s.campaign.activeQuest;
-          if (aq.phase !== "active") return s;
-          const quest = questById(aq.questId);
-          if (!quest) return s;
-          if (
-            quest.stars === "one-star" &&
-            keepInvestigationLoot === undefined
-          ) {
-            return s;
-          }
-          return {
-            campaign: touch({
-              ...s.campaign,
-              activeQuest: {
-                ...aq,
-                phase: "summary",
-                outcome: {
-                  result: "failure",
-                  keepInvestigationLoot:
-                    quest.stars === "one-star"
-                      ? keepInvestigationLoot
-                      : false,
-                },
-              },
-            }),
-          };
-        }),
+      completeQuestFailure: (hunterId, keepInvestigationLoot) => {
+        const s = get();
+        const aq = s.campaign?.activeQuest;
+        if (!s.campaign || !aq) return { ok: false, reason: "No active quest." };
+        if (aq.phase !== "active") {
+          return { ok: false, reason: "The hunt is not underway." };
+        }
+        const denied = questStarterOnly(aq, hunterId, s.campaign);
+        if (denied) return denied;
 
-      completeQuestSuccess: () =>
-        set((s) => {
-          if (!s.campaign?.activeQuest) return s;
-          const lootProgress: Record<string, HunterLootProgress> = {};
-          for (const h of s.campaign.hunters) {
-            lootProgress[h.id] = { ...emptyLootProgress(), dice: rollDice() };
-          }
-          return {
-            campaign: touch({
-              ...s.campaign,
-              activeQuest: {
-                ...s.campaign.activeQuest,
-                phase: "looting",
-                lootProgress,
+        const quest = questById(aq.questId);
+        if (!quest) return { ok: false, reason: "Unknown quest." };
+        if (quest.stars === "one-star" && keepInvestigationLoot === undefined) {
+          return { ok: false, reason: "Choose whether to keep gathered loot." };
+        }
+        set({
+          campaign: touch({
+            ...s.campaign,
+            activeQuest: {
+              ...aq,
+              phase: "summary",
+              outcome: {
+                result: "failure",
+                keepInvestigationLoot:
+                  quest.stars === "one-star" ? keepInvestigationLoot : false,
               },
-            }),
-          };
-        }),
+            },
+          }),
+        });
+        return { ok: true };
+      },
+
+      completeQuestSuccess: (hunterId) => {
+        const s = get();
+        const aq = s.campaign?.activeQuest;
+        if (!s.campaign || !aq) return { ok: false, reason: "No active quest." };
+        const denied = questStarterOnly(aq, hunterId, s.campaign);
+        if (denied) return denied;
+
+        const lootProgress: Record<string, HunterLootProgress> = {};
+        for (const h of s.campaign.hunters) {
+          lootProgress[h.id] = { ...emptyLootProgress(), dice: rollDice() };
+        }
+        set({
+          campaign: touch({
+            ...s.campaign,
+            activeQuest: { ...aq, phase: "looting", lootProgress },
+          }),
+        });
+        return { ok: true };
+      },
 
       setLootDice: (hunterId, dice) =>
         set((s) => {
@@ -1603,13 +1636,16 @@ export const useCampaign = create<CampaignState>()(
         return { ok: true };
       },
 
-      cancelDowntime: () =>
-        set((s) => {
-          if (!s.campaign?.activeDowntime) return s;
-          return {
-            campaign: touch({ ...s.campaign, activeDowntime: null }),
-          };
-        }),
+      cancelDowntime: (hunterId) => {
+        const campaign = get().campaign;
+        if (!campaign?.activeDowntime) {
+          return { ok: false, reason: "No downtime day in progress." };
+        }
+        const denied = leaderOnly(campaign, hunterId);
+        if (denied) return denied;
+        set({ campaign: touch({ ...campaign, activeDowntime: null }) });
+        return { ok: true };
+      },
 
       proposeTrade: (fromHunterId, toHunterId, offered, requested) => {
         const s = get();

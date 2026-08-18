@@ -50,7 +50,6 @@ export function QuestScreen() {
   const { campaign, hunter } = useOwnHunter();
   const startQuest = useCampaign((s) => s.startQuest);
   const joinQuest = useCampaign((s) => s.joinQuest);
-  const forceStartQuest = useCampaign((s) => s.forceStartQuest);
   const navigate = useNavigate();
   const [openStar, setOpenStar] = useState<QuestStars | null>(
     STAR_ORDER[0] ?? null,
@@ -120,31 +119,20 @@ export function QuestScreen() {
           <p className="mt-1 text-xs text-ink-soft">
             Not everyone has joined yet.
           </p>
-          <div className="mt-3 flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const res = joinQuest(hunter.id);
-                if (!res.ok) {
-                  alert(res.reason ?? "Could not join quest.");
-                  return;
-                }
-                navigate("/campaign/quest");
-              }}
-              className="flex-1 py-2 text-sm font-semibold"
-            >
-              Open lobby
-            </Button>
-            <Button
-              onClick={() => {
-                forceStartQuest();
-                navigate("/campaign/quest");
-              }}
-              className="flex-1 py-2 text-sm font-semibold"
-            >
-              Start now (test)
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const res = joinQuest(hunter.id);
+              if (!res.ok) {
+                alert(res.reason ?? "Could not join quest.");
+                return;
+              }
+              navigate("/campaign/quest");
+            }}
+            className="mt-3 w-full py-2 text-sm font-semibold"
+          >
+            Open lobby
+          </Button>
         </div>
       )}
 

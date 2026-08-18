@@ -97,8 +97,6 @@ test("run one hunt so the calendar has history", async () => {
     timeout: 30_000,
   });
 
-  const forceStart = aki.page.getByRole("button", { name: "Start now (test)" });
-  if (await forceStart.isVisible().catch(() => false)) await forceStart.click();
   await waitFor(quest, (q) => q?.phase === "investigation", { timeout: 30_000 });
 
   await aki.page.getByRole("button", { name: "Finished investigating" }).click();
